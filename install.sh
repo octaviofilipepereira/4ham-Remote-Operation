@@ -168,8 +168,30 @@ fi
 # ── WSJT-X (jt9 + wsprd) ────────────────────────────────────────────────────────
 _install_wsjtx=0
 _wsjtx_label="Nao (instalar depois para FT8/FT4/WSPR)"
-if whiptail --backtitle "$BT" --title "WSJT-X -- Modos Digitais (R3)" \
-  --yesno "\
+_jt9_found=0; _wsprd_found=0
+command -v jt9   &>/dev/null && _jt9_found=1
+command -v wsprd &>/dev/null && _wsprd_found=1
+
+if [[ $_jt9_found -eq 1 && $_wsprd_found -eq 1 ]]; then
+  _wsjtx_label="Ja instalado (jt9 + wsprd detectados)"
+  whiptail --backtitle "$BT" --title "WSJT-X -- Ja instalado" \
+    --msgbox "jt9 e wsprd ja estao instalados no sistema.\n\nNao e necessario reinstalar -- a instalacao continua." \
+    9 62
+elif [[ $_jt9_found -eq 1 && $_wsprd_found -eq 0 ]]; then
+  whiptail --backtitle "$BT" --title "WSJT-X -- Instalacao parcial" \
+    --msgbox "jt9 encontrado mas wsprd nao esta instalado.\nVai ser feita a instalacao completa do wsjtx." \
+    9 62
+  _install_wsjtx=1
+  _wsjtx_label="Sim (wsjtx -- instalacao corrigida, wsprd em falta)"
+elif [[ $_jt9_found -eq 0 && $_wsprd_found -eq 1 ]]; then
+  whiptail --backtitle "$BT" --title "WSJT-X -- Instalacao parcial" \
+    --msgbox "wsprd encontrado mas jt9 nao esta instalado.\nVai ser feita a instalacao completa do wsjtx." \
+    9 62
+  _install_wsjtx=1
+  _wsjtx_label="Sim (wsjtx -- instalacao corrigida, jt9 em falta)"
+else
+  if whiptail --backtitle "$BT" --title "WSJT-X -- Modos Digitais (R3)" \
+    --yesno "\
 Instalar WSJT-X (jt9 + wsprd)?
 
 Necessario para descodificacao de FT8, FT4 e WSPR (fase R3).
@@ -177,9 +199,10 @@ Nao e necessario para a fase R1 (RX audio) nem R2 (TX SSB).
 
   SIM  ->  sudo apt install wsjtx  (~50 MB)
   NAO  ->  ignorar por agora" \
-  13 66; then
-  _install_wsjtx=1
-  _wsjtx_label="Sim (wsjtx -- jt9 + wsprd)"
+    13 66; then
+    _install_wsjtx=1
+    _wsjtx_label="Sim (wsjtx -- jt9 + wsprd)"
+  fi
 fi
 
 # ── modo de instalacao ───────────────────────────────────────────────────────────
