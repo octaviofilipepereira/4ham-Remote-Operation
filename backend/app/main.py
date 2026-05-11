@@ -88,6 +88,10 @@ def create_app() -> FastAPI:
     app.include_router(webrtc_router)
     app.include_router(spectrum_router)
 
+    @app.get("/health")
+    async def health():
+        return {"status": "ok"}
+
     # servir o frontend estático se a pasta existir
     # main.py está em backend/app/ — três .parent sobem para a raiz do projecto
     frontend_path = Path(__file__).resolve().parent.parent.parent / "frontend"
@@ -98,8 +102,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
