@@ -6,7 +6,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.rig import router as rig_router
+from .api.webrtc import router as webrtc_router
 from .remote.cat_driver import CATDriver
+from .remote.webrtc_peer import WebRTCPeer
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +24,16 @@ async def lifespan(app: FastAPI):
         await driver.connect()
     except OSError:
         logger.warning("rigctld não disponível no arranque — será tentado no primeiro comando")
+
+    peer = WebRTCPeer(
+        audio_device=os.getenv("AUDIO_DEVICE") or None,
+        rx_channel=int(os.getenv("AUDIO_RX_CHANNEL", "0")),
+    )
+    app.state.webrtc_peer = peer
+
     yield
+
+    await peer.close()
     await driver.close()
 
 
@@ -42,6 +53,7 @@ app.add_middleware(
 )
 
 app.include_router(rig_router)
+app.include_router(webrtc_router)
 
 
 @app.get("/health")
