@@ -1,0 +1,13 @@
+fastapi>=0.111
+uvicorn[standard]>=0.29
+aiortc>=1.9
+sounddevice>=0.4.6
+numpy>=1.26
+scipy>=1.13
+aiofiles>=23.2
+python-multipart>=0.0.9
+bcrypt>=4.1
+pyyaml>=6.0
+jsonschema>=4.22
+aiosqlite>=0.20
+aprslib>=0.7.3

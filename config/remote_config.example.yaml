@@ -1,0 +1,63 @@
+# Configuração do 4ham Remote Operation
+# Copiar este ficheiro para remote_config.yaml e ajustar os valores
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  # Para HTTPS (necessário para WebRTC):
+  # ssl_certfile: "certs/cert.pem"
+  # ssl_keyfile: "certs/key.pem"
+
+auth:
+  users:
+    - username: "ct7bfv"
+      # Gerar com: python scripts/hash_password.py <password>
+      password_hash: "$2b$12$SUBSTITUIR_PELO_HASH_REAL"
+      role: "operator"   # operator | rx_only
+    - username: "guest"
+      password_hash: "$2b$12$SUBSTITUIR_PELO_HASH_REAL"
+      role: "rx_only"
+
+rig:
+  # Perfil activo: ft991a | x6100 | custom
+  profile: "ft991a"
+  rigctld:
+    host: "127.0.0.1"
+    port: 4532
+
+audio:
+  # Nome do dispositivo sounddevice (deixar null para usar o padrão)
+  # Ver dispositivos disponíveis: python -c "import sounddevice; print(sounddevice.query_devices())"
+  device: null
+  sample_rate: 48000
+  channels: 2      # 2 para FT-991A (L=RX, R=TX); 1 para dispositivos mono
+  rx_channel: 0    # Índice do canal RX (0 = esquerdo)
+  tx_channel: 1    # Índice do canal TX (1 = direito)
+
+ptt:
+  # Limite máximo de transmissão em segundos
+  max_tx_seconds: 180
+  # Bandas HF permitidas para TX (Hz)
+  allowed_bands:
+    - [1800000, 2000000]     # 160m
+    - [3500000, 3800000]     # 80m
+    - [7000000, 7200000]     # 40m
+    - [10100000, 10150000]   # 30m
+    - [14000000, 14350000]   # 20m
+    - [18068000, 18168000]   # 17m
+    - [21000000, 21450000]   # 15m
+    - [24890000, 24990000]   # 12m
+    - [28000000, 29700000]   # 10m
+
+decoders:
+  ft8:
+    enabled: true
+    # Caminho para o executável jt9 (instalado com wsjtx)
+    jt9_path: "/usr/bin/jt9"
+  cw:
+    enabled: true
+  aprs:
+    enabled: false
+    # Direwolf deve estar a correr separadamente
+    direwolf_host: "127.0.0.1"
+    direwolf_kiss_port: 8001

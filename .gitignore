@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# Build / eggs
+*.egg-info/
+dist/
+build/
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Audio temporário
+*.wav
+*.raw
+*.pcm
+
+# Certificados (excepto exemplo)
+certs/*.pem
+certs/*.key
+certs/*.crt
+!certs/.gitkeep
+
+# Config com passwords
+config/remote_config.yaml
+!config/remote_config.example.yaml
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# macOS
+.DS_Store
+
+# Node (frontend build tools se necessário)
+node_modules/
+frontend/vendor/
