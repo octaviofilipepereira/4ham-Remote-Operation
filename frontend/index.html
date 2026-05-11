@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4ham Remote</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <span class="callsign">CT7BFV</span>
+    <span class="app-title">4ham Remote</span>
+    <span id="conn-state" class="badge badge--disconnected">Disconnected</span>
+  </header>
+
+  <main>
+    <!-- Frequência + modo -->
+    <section class="rig-card">
+      <div class="freq-display">
+        <span id="freq-mhz">---.---</span>
+        <span class="freq-unit">MHz</span>
+      </div>
+
+      <div class="mode-row">
+        <label>Mode</label>
+        <select id="mode-select">
+          <option>USB</option>
+          <option>LSB</option>
+          <option>CW</option>
+          <option>FM</option>
+          <option>AM</option>
+        </select>
+        <span id="ptt-badge" class="badge badge--rx">RX</span>
+      </div>
+
+      <div class="smeter-row">
+        <label>S-meter</label>
+        <meter id="smeter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
+        <span id="smeter-val">-- dBm</span>
+      </div>
+    </section>
+
+    <!-- Áudio RX -->
+    <section class="audio-card">
+      <button id="btn-connect" class="btn btn--primary">▶ Connect RX Audio</button>
+      <button id="btn-disconnect" class="btn btn--secondary" disabled>■ Disconnect</button>
+      <audio id="rx-audio" autoplay></audio>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
