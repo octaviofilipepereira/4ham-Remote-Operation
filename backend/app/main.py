@@ -80,7 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(webrtc_router)
 
     # servir o frontend estático se a pasta existir
-    frontend_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend")
+    frontend_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
     if os.path.isdir(frontend_path):
         app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
