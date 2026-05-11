@@ -504,3 +504,7 @@ else
       LOG "$LOG_FILE" WSJTX_NOTE "$_wsjtx_note")" \
     22 70
 fi
+
+# Repor estado do terminal após ncurses (whiptail), para que o fecho da
+# janela funcione correctamente.
+stty sane 2>/dev/null || true
