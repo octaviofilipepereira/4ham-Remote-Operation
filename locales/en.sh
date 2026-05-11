@@ -65,9 +65,9 @@ I18N_LABEL_WSJTX_NO="No (install later for FT8/FT4/WSPR)"
 I18N_TITLE_INSTALL_MODE="Installation Mode"
 I18N_MSG_INSTALL_MODE="How do you want to run 4ham Remote Operation?"
 I18N_OPT_SYSTEMD="systemd service -- auto-start on boot (recommended)"
-I18N_OPT_MANUAL="Manual start/stop -- use scripts/server_control.sh"
+I18N_OPT_MANUAL="Manual start/stop -- use scripts/4ham_control.sh"
 I18N_LABEL_SYSTEMD="systemd service (auto-start on boot)"
-I18N_LABEL_MANUAL="Manual start/stop (scripts/server_control.sh)"
+I18N_LABEL_MANUAL="Manual start/stop (scripts/4ham_control.sh)"
 
 # ── Operator account ───────────────────────────────────────────────────────────
 I18N_TITLE_OP_USER="Operator Account -- Username"
@@ -125,5 +125,5 @@ I18N_OPT_L_EXIT="Exit"
 # ── Completion ─────────────────────────────────────────────────────────────────
 I18N_TITLE_DONE="Installation Complete!"
 I18N_MSG_DONE_SYSTEMD=$'4ham Remote Operation is installed and running!\n\nOpen in browser:\n  https://%IP%:8000/\n  https://127.0.0.1:8000/\n\nLogin:\n  Username : %USER%\n  Password : (the one you set)\n\nService management:\n  Status   sudo systemctl status %SVC%\n  Logs     journalctl -u %SVC% -f\n  Restart  sudo systemctl restart %SVC%\n  Stop     sudo systemctl stop %SVC%\n\nInstall log: %LOG%%WSJTX_NOTE%'
-I18N_MSG_DONE_MANUAL=$'4ham Remote Operation is installed (manual mode).\n\nServer control:\n  scripts/server_control.sh start|stop|restart|status|logs\n\nOpen in browser:\n  https://%IP%:8000/\n  https://127.0.0.1:8000/\n\nLogin:\n  Username : %USER%\n  Password : (the one you set)\n\nInstall log: %LOG%%WSJTX_NOTE%'
+I18N_MSG_DONE_MANUAL=$'4ham Remote Operation is installed (manual mode).\n\nServer control:\n  scripts/4ham_control.sh start|stop|restart|status|logs\n\nOpen in browser:\n  https://%IP%:8000/\n  https://127.0.0.1:8000/\n\nLogin:\n  Username : %USER%\n  Password : (the one you set)\n\nInstall log: %LOG%%WSJTX_NOTE%'
 I18N_MSG_WSJTX_NOTE=$'\n\n  Note: WSJT-X not installed. To enable FT8/WSPR later: sudo apt install wsjtx'

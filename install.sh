@@ -412,7 +412,7 @@ rm -f "$_tmp_py"
 unset _op_pass
 
 gauge_step 88 "$I18N_GAUGE_RUNSH"
-chmod +x "$ROOT_DIR/scripts/server_control.sh"
+chmod +x "$ROOT_DIR/scripts/4ham_control.sh"
 chmod +x "$ROOT_DIR/scripts/4ham-remote-launcher.sh"
 
 if [[ "$_install_mode" == "systemd" ]]; then

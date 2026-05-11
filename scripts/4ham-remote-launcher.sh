@@ -55,7 +55,7 @@ while true; do
       if _has_systemd; then
         run_sudo systemctl start "${SERVICE_NAME}" && true
       else
-        bash "$ROOT_DIR/scripts/server_control.sh" start
+        bash "$ROOT_DIR/scripts/4ham_control.sh" start
       fi
       ;;
     stop)
@@ -71,7 +71,7 @@ while true; do
       else
         pkill -f "uvicorn backend.app.main" 2>/dev/null || true
         sleep 1
-        bash "$ROOT_DIR/scripts/server_control.sh" start
+        bash "$ROOT_DIR/scripts/4ham_control.sh" start
       fi
       ;;
     status)
