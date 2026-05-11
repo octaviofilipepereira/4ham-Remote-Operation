@@ -3,138 +3,193 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#08131d" />
+  <meta name="theme-color" content="#11161a" />
   <title>4ham Remote Operation</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body data-connection-state="disconnected" data-ptt-state="rx">
-  <div class="page-shell">
-    <header class="topbar panel panel--tight">
-      <div class="brand-cluster">
-        <div class="brand-mark">4H</div>
-        <div class="brand-copy">
-          <p class="eyebrow">CT7BFV Remote Station</p>
-          <h1>4ham Remote Operation</h1>
-          <p class="brand-summary">A sharper command deck for CAT telemetry and secure WebRTC receive audio.</p>
-        </div>
-      </div>
-
-      <div class="topbar-status">
-        <div class="status-chip">
-          <span class="status-chip__label">Link</span>
-          <span id="conn-state" class="badge badge--disconnected">Offline</span>
-        </div>
-        <div class="status-chip">
-          <span class="status-chip__label">PTT</span>
-          <span id="ptt-badge" class="badge badge--rx">RX</span>
-        </div>
-      </div>
-    </header>
-
-    <main class="console-grid">
-      <section class="hero-panel panel">
-        <div class="hero-copy">
-          <p class="section-kicker">Remote HF control</p>
-          <h2>Built to look like a flagship station instead of a quick prototype.</h2>
-          <p class="hero-text">Monitor live rig state, switch mode instantly, and bring up a secure receive-only audio path from one unified console.</p>
-        </div>
-
-        <div class="hero-metrics">
-          <div class="metric-card">
-            <span class="metric-card__label">On-air frequency</span>
-            <div class="freq-display">
-              <span id="freq-mhz">---.---</span>
-              <span class="freq-unit">MHz</span>
-            </div>
+<body data-connection-state="disconnected" data-ptt-state="rx" data-knob-active="false">
+  <main class="radio-shell">
+    <section class="radio-chassis">
+      <header class="radio-header">
+        <div class="brand-rack">
+          <div class="brand-badge">4H</div>
+          <div class="brand-copy">
+            <p class="rack-label">CT7BFV REMOTE BASE</p>
+            <h1>4ham Remote Operation</h1>
+            <p class="brand-subline">Transceiver-style remote front panel</p>
           </div>
+        </div>
 
-          <div class="metric-stack">
-            <div class="mini-panel">
-              <span class="mini-panel__label">Current mode</span>
-              <strong id="mode-live">USB</strong>
-            </div>
-            <div class="mini-panel">
-              <span class="mini-panel__label">Signal feel</span>
+        <div class="status-rack">
+          <div class="status-module">
+            <span class="status-module__label">RX Link</span>
+            <span id="conn-state" class="badge badge--disconnected">Offline</span>
+          </div>
+          <div class="status-module">
+            <span class="status-module__label">PTT</span>
+            <span id="ptt-badge" class="badge badge--rx">RX</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="radio-main">
+        <aside class="side-panel side-panel--left">
+          <section class="hardware-block meter-block">
+            <div class="block-title">
+              <span class="hardware-label">S-Meter</span>
               <strong id="signal-quality">Standby</strong>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <section class="telemetry-panel panel">
-        <div class="panel-heading">
-          <p class="section-kicker">Rig telemetry</p>
-          <h3>Control surface</h3>
-        </div>
+            <div class="meter-scale" aria-hidden="true">
+              <span>S1</span>
+              <span>S3</span>
+              <span>S5</span>
+              <span>S7</span>
+              <span>S9</span>
+              <span>+20</span>
+              <span>+40</span>
+            </div>
 
-        <div class="panel-grid">
-          <div class="field-card">
-            <label for="mode-select">Operating mode</label>
-            <select id="mode-select">
-              <option>USB</option>
-              <option>LSB</option>
-              <option>CW</option>
-              <option>FM</option>
-              <option>AM</option>
-            </select>
-            <p class="field-note">Mode changes are pushed to the transceiver immediately.</p>
-          </div>
-
-          <div class="field-card">
-            <span class="field-label">S-meter envelope</span>
             <meter id="smeter" class="sr-meter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
             <div class="signal-track" aria-hidden="true">
               <span id="smeter-fill" class="signal-fill"></span>
             </div>
-            <div class="signal-meta">
+
+            <div class="signal-readout">
               <span id="smeter-val">-- dBm</span>
-              <span class="signal-caption">Noise floor to strong copy</span>
+              <span class="signal-hint">Live RF envelope</span>
+            </div>
+          </section>
+
+          <section class="hardware-block audio-block">
+            <div class="block-title">
+              <span class="hardware-label">RX Audio</span>
+              <strong data-audio-readout>Standby</strong>
+            </div>
+
+            <p class="block-copy">Bring up the WebRTC audio path and keep monitoring while tuning the VFO.</p>
+
+            <div class="button-stack">
+              <button id="btn-connect" class="panel-button panel-button--primary">Connect RX</button>
+              <button id="btn-disconnect" class="panel-button" disabled>Disconnect</button>
+            </div>
+          </section>
+
+          <section class="hardware-block step-block">
+            <div class="block-title">
+              <span class="hardware-label">Tune Step</span>
+              <strong data-step-readout>100 Hz</strong>
+            </div>
+
+            <div class="step-grid">
+              <button type="button" class="step-btn" data-step="10">10 Hz</button>
+              <button type="button" class="step-btn is-active" data-step="100">100 Hz</button>
+              <button type="button" class="step-btn" data-step="1000">1 kHz</button>
+              <button type="button" class="step-btn" data-step="10000">10 kHz</button>
+              <button type="button" class="step-btn" data-step="100000">100 kHz</button>
+              <button type="button" class="step-btn" data-step="1000000">1 MHz</button>
+            </div>
+          </section>
+        </aside>
+
+        <section class="display-bay">
+          <div class="display-bezel">
+            <div class="screen-strip">
+              <div class="screen-meta">
+                <span class="screen-meta__label">VFO</span>
+                <strong>A</strong>
+              </div>
+              <div class="screen-meta">
+                <span class="screen-meta__label">Mode</span>
+                <strong data-mode-readout>USB</strong>
+              </div>
+              <div class="screen-meta">
+                <span class="screen-meta__label">Width</span>
+                <strong id="passband-readout">Auto</strong>
+              </div>
+            </div>
+
+            <div class="vfo-screen">
+              <div class="vfo-screen__label-row">
+                <span>Main Tuning</span>
+                <span>Remote Front Panel</span>
+              </div>
+
+              <div id="freq-mhz" class="vfo-frequency" aria-live="polite" aria-label="VFO frequency display"></div>
+
+              <div class="vfo-screen__hint">Use the mouse wheel on the digits or rotate the knob to tune.</div>
+            </div>
+
+            <div class="screen-controls">
+              <div class="mode-slot">
+                <label for="mode-select">Mode selector</label>
+                <select id="mode-select">
+                  <option>USB</option>
+                  <option>LSB</option>
+                  <option>CW</option>
+                  <option>FM</option>
+                  <option>AM</option>
+                </select>
+              </div>
+
+              <div class="nudge-strip">
+                <button type="button" class="softkey" data-multiplier="-10">-10</button>
+                <button type="button" class="softkey" data-multiplier="-1">-1</button>
+                <button type="button" class="softkey softkey--primary" data-multiplier="1">+1</button>
+                <button type="button" class="softkey" data-multiplier="10">+10</button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section class="audio-panel panel">
-        <div class="panel-heading">
-          <p class="section-kicker">WebRTC receive path</p>
-          <h3>Audio deck</h3>
-        </div>
-
-        <div class="audio-stage">
-          <div class="audio-orb" aria-hidden="true">
-            <span class="audio-orb__ring audio-orb__ring--outer"></span>
-            <span class="audio-orb__ring audio-orb__ring--inner"></span>
-            <span class="audio-orb__core"></span>
+          <div class="display-footer">
+            <span>Digit-wheel tuning and knob control prepared for lower-resolution station monitors.</span>
+            <span>HTTPS keeps control and audio on the same secure origin.</span>
           </div>
+        </section>
 
-          <div class="audio-copy">
-            <strong id="audio-state">Audio link offline</strong>
-            <p>Start the secure receive stream when you are ready to monitor the station. The browser keeps the audio path and control API on the same trusted origin.</p>
-          </div>
-        </div>
+        <aside class="side-panel side-panel--right">
+          <section class="hardware-block knob-block">
+            <div class="block-title">
+              <span class="hardware-label">Main VFO</span>
+              <strong data-step-readout>100 Hz</strong>
+            </div>
 
-        <div class="button-row">
-          <button id="btn-connect" class="btn btn--primary">Connect RX Audio</button>
-          <button id="btn-disconnect" class="btn btn--secondary" disabled>Disconnect</button>
-        </div>
+            <button id="vfo-knob" class="vfo-knob" type="button" aria-label="Main tuning knob">
+              <span class="vfo-knob__ring vfo-knob__ring--outer"></span>
+              <span class="vfo-knob__ring vfo-knob__ring--mid"></span>
+              <span class="vfo-knob__face"></span>
+              <span class="vfo-knob__marker"></span>
+              <span class="vfo-knob__cap"></span>
+            </button>
 
-        <audio id="rx-audio" autoplay></audio>
+            <p class="knob-caption">Drag vertically for detents or use the wheel for fine tuning.</p>
+          </section>
+
+          <section class="hardware-block mode-block">
+            <div class="block-title">
+              <span class="hardware-label">Tuning Tools</span>
+              <strong data-step-caption>100 Hz digit selected</strong>
+            </div>
+
+            <p class="block-copy">Click a digit in the VFO window to make that place value the active tuning step.</p>
+
+            <div class="mini-stats">
+              <div class="mini-stat">
+                <span class="mini-stat__label">Current mode</span>
+                <strong data-mode-readout>USB</strong>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">RX path</span>
+                <strong data-audio-readout>Standby</strong>
+              </div>
+            </div>
+          </section>
+        </aside>
       </section>
 
-      <section class="notes-panel panel">
-        <div class="panel-heading">
-          <p class="section-kicker">Operating notes</p>
-          <h3>Session flow</h3>
-        </div>
-
-        <ul class="ops-list">
-          <li>Open the console over HTTPS so control requests and audio negotiation stay on the same secure origin.</li>
-          <li>Bring up RX audio first, then fine-tune mode while watching the live signal envelope.</li>
-          <li>If CAT telemetry pauses, the panel recovers automatically as soon as the rig responds again.</li>
-        </ul>
-      </section>
-    </main>
-  </div>
+      <audio id="rx-audio" autoplay></audio>
+    </section>
+  </main>
 
   <script src="app.js"></script>
 </body>
