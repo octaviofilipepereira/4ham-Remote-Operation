@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Instalar 4ham Remote Operation
+Comment=Instalar o 4ham Remote Operation (instalador grafico whiptail)
+Exec=bash -c 'cd "$(dirname "%k")" && bash install.sh; read -p "Prima Enter para fechar..."'
+Icon=utilities-terminal
+Terminal=true
+Categories=HamRadio;
+StartupNotify=false
