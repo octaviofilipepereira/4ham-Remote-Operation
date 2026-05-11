@@ -10,4 +10,4 @@ bcrypt>=4.1
 pyyaml>=6.0
 jsonschema>=4.22
 aiosqlite>=0.20
-aprslib>=0.7.3
+aprslib>=0.7.0
