@@ -9,6 +9,10 @@
 # Uso:
 #   chmod +x install.sh
 #   ./install.sh
+#
+# ── i18n ──────────────────────────────────────────────────────────────────────
+# Idiomas incluídos: en (English), pt (Português)
+# Para adicionar um idioma: cp locales/en.sh locales/XX.sh e traduzir.
 
 set -euo pipefail
 
@@ -19,20 +23,33 @@ PYTHON_BIN="$VENV_DIR/bin/python"
 LOG_FILE="/tmp/4ham-remote-install-$(date +%Y%m%d-%H%M%S).log"
 SERVICE_NAME="4ham-remote"
 SERVICE_USER="${SUDO_USER:-$(whoami)}"
+INSTALL_LANG="en"
+UI_LANG="en"
 BT="4ham Remote Operation — Installer"
 
 FIFO=""
 GAUGE_PID=""
 declare -a _TMPFILES=()
 
-# ── helpers ─────────────────────────────────────────────────────────────────────
+# ── helpers ────────────────────────────────────────────────────────────────────
 run_sudo() { [[ "${EUID}" -eq 0 ]] && "$@" || sudo "$@"; }
 
 version_ge() {
   [[ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" == "$2" ]]
 }
 
-# ── cleanup ──────────────────────────────────────────────────────────────────────
+# i18n string formatter — substitui %KEY% pelos valores fornecidos
+# Uso: i18n_fmt "$I18N_MSG_FOO"  KEY1 val1  KEY2 val2 ...
+i18n_fmt() {
+  local str="$1"; shift
+  while [[ $# -ge 2 ]]; do
+    str="${str//%$1%/$2}"
+    shift 2
+  done
+  printf '%s' "$str"
+}
+
+# ── cleanup ────────────────────────────────────────────────────────────────────
 cleanup() {
   exec 3>&- 2>/dev/null || true
   [[ -n "${GAUGE_PID:-}" ]] && kill "${GAUGE_PID}" 2>/dev/null || true
@@ -41,7 +58,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# ── gauge ────────────────────────────────────────────────────────────────────────
+# ── gauge ──────────────────────────────────────────────────────────────────────
 start_gauge() {
   FIFO="$(mktemp -u /tmp/4ham-gauge-XXXXXX)"
   mkfifo "$FIFO"
@@ -55,7 +72,7 @@ gauge_step() {
 }
 
 close_gauge() {
-  printf 'XXX\n100\nConcluido.\nXXX\n' >&3 2>/dev/null || true
+  printf 'XXX\n100\n...\nXXX\n' >&3 2>/dev/null || true
   exec 3>&- 2>/dev/null || true
   wait "${GAUGE_PID}" 2>/dev/null || true
   rm -f "${FIFO}"; FIFO=""; GAUGE_PID=""
@@ -63,14 +80,18 @@ close_gauge() {
 
 abort() {
   exec 3>&- 2>/dev/null || true
-  [[ -n "${GAUGE_PID:-}" ]] && { kill "${GAUGE_PID}" 2>/dev/null || true; wait "${GAUGE_PID}" 2>/dev/null || true; GAUGE_PID=""; }
+  [[ -n "${GAUGE_PID:-}" ]] && {
+    kill "${GAUGE_PID}" 2>/dev/null || true
+    wait "${GAUGE_PID}" 2>/dev/null || true
+    GAUGE_PID=""
+  }
   [[ -n "${FIFO:-}" ]] && { rm -f "${FIFO}"; FIFO=""; }
-  whiptail --backtitle "$BT" --title "Erro na instalacao" \
-    --msgbox "Ocorreu um erro durante a instalacao.\n\nDetalhe: $1\n\nLog completo:\n  $LOG_FILE" 13 70
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_ABORT" \
+    --msgbox "$(i18n_fmt "$I18N_MSG_ABORT" DETAIL "$1" LOG "$LOG_FILE")" 13 70
   exit 1
 }
 
-# ── compatibilidade OS ───────────────────────────────────────────────────────────
+# ── OS detection ───────────────────────────────────────────────────────────────
 OS_ID=""; OS_VERSION_ID=""; OS_PRETTY_NAME=""
 detect_os() {
   [[ -f /etc/os-release ]] || return 1
@@ -87,193 +108,226 @@ detect_os() {
   esac
 }
 
-# ── verificacoes iniciais ────────────────────────────────────────────────────────
+# ── load locale ────────────────────────────────────────────────────────────────
+load_locale() {
+  local lang="$1"
+  local locale_sh="$ROOT_DIR/locales/${lang}.sh"
+  [[ -f "$locale_sh" ]] || locale_sh="$ROOT_DIR/locales/en.sh"
+  # shellcheck disable=SC1090
+  source "$locale_sh"
+  BT="$I18N_BT"
+}
+
+# ── list available locales ─────────────────────────────────────────────────────
+list_locales() {
+  for _f in "$ROOT_DIR/locales/"*.sh; do
+    [[ -f "$_f" ]] || continue
+    local _code _name
+    _code=$(bash -c "source \"$_f\" 2>/dev/null && printf '%s' \"\$LANG_CODE\"" 2>/dev/null || true)
+    _name=$(bash -c "source \"$_f\" 2>/dev/null && printf '%s' \"\$LANG_NATIVE_NAME\"" 2>/dev/null || true)
+    [[ -n "$_code" && -n "$_name" ]] && printf '%s\n%s\n' "$_code" "$_name"
+  done
+}
+
+# ── PRE-CHECKS (before language selection) ────────────────────────────────────
 if [[ "${EUID}" -eq 0 ]]; then
-  echo "Nao correr como root. Usar um utilizador normal com acesso sudo: ./install.sh" >&2
+  echo "Do not run as root / Nao correr como root." >&2
+  echo "Use: ./install.sh" >&2
   exit 1
 fi
 
 if ! command -v apt-get &>/dev/null; then
-  echo "Este instalador requer apt (Ubuntu/Debian/Mint/Raspberry Pi OS)." >&2
+  echo "This installer requires apt (Ubuntu / Debian / Mint / Raspberry Pi OS)." >&2
   exit 1
 fi
 
-# garantir whiptail disponivel
 if ! command -v whiptail &>/dev/null; then
-  echo "A instalar whiptail para interface grafica..."
+  echo "Installing whiptail..."
   run_sudo apt-get update -qq
   run_sudo apt-get install -y whiptail
 fi
 
+# ── LANGUAGE SELECTION ─────────────────────────────────────────────────────────
+_locale_menu=()
+while IFS= read -r _item; do
+  _locale_menu+=("$_item")
+done < <(list_locales)
+[[ ${#_locale_menu[@]} -eq 0 ]] && _locale_menu=("en" "English" "pt" "Português")
+
+INSTALL_LANG=$(whiptail \
+  --title "Language / Idioma" \
+  --menu "Select installation language / Seleccione o idioma de instalação:" \
+  12 62 "${#_locale_menu[@]}" \
+  "${_locale_menu[@]}" \
+  3>&1 1>&2 2>&3) || exit 0
+
+load_locale "$INSTALL_LANG"
+mkdir -p "$ROOT_DIR/config"
+printf '%s' "$INSTALL_LANG" > "$ROOT_DIR/config/.installer_lang"
+
+# ── OS CHECK ───────────────────────────────────────────────────────────────────
 if ! detect_os; then
-  whiptail --backtitle "$BT" --title "SO nao suportado" \
-    --msgbox "SO detectado: ${OS_PRETTY_NAME:-desconhecido} (${OS_VERSION_ID:-?})\n\nVersoes minimas suportadas:\n  Ubuntu 20.04+\n  Debian 11+\n  Linux Mint 20+\n  Raspberry Pi OS 11+" \
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_OS_UNSUPPORTED" \
+    --msgbox "$(i18n_fmt "$I18N_MSG_OS_UNSUPPORTED" \
+      OS "${OS_PRETTY_NAME:-unknown}" VER "${OS_VERSION_ID:-?}")" \
     14 62
   exit 1
 fi
 
+# ── PYTHON CHECK ───────────────────────────────────────────────────────────────
 if ! command -v python3 &>/dev/null; then
-  whiptail --backtitle "$BT" --title "Python nao encontrado" \
-    --msgbox "python3 nao encontrado.\nInstalar primeiro: sudo apt install python3" 8 54
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_PYTHON_MISSING" \
+    --msgbox "$I18N_MSG_PYTHON_MISSING" 8 58
   exit 1
 fi
 
+_pyver=$(python3 --version 2>&1)
 _pyok=$(python3 -c "import sys; print('ok' if sys.version_info>=(3,11) else 'old')" 2>/dev/null || echo old)
 if [[ "$_pyok" != "ok" ]]; then
-  whiptail --backtitle "$BT" --title "Versao de Python" \
-    --msgbox "Python 3.11+ necessario.\nDetectado: $(python3 --version 2>&1)" 8 54
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_PYTHON_VERSION" \
+    --msgbox "$(i18n_fmt "$I18N_MSG_PYTHON_VERSION" VER "$_pyver")" 8 58
   exit 1
 fi
 
-# ── ecra de boas-vindas ──────────────────────────────────────────────────────────
-whiptail --backtitle "$BT" --title "Bem-vindo" \
-  --msgbox "\
-Bem-vindo ao instalador do 4ham Remote Operation!
-
-Este assistente ira:
-  1. Instalar dependencias de sistema (Hamlib, FFmpeg, Opus, PortAudio, ...)
-  2. Instalar WSJT-X -- jt9/wsprd para FT8/FT4/WSPR (fase R3, opcional)
-  3. Criar o ambiente Python virtual (venv)
-  4. Instalar dependencias Python (FastAPI, aiortc, sounddevice, ...)
-  5. Configurar o perfil do radio (FT-991A ou Xiegu X6100)
-  6. Gerar certificados TLS para HTTPS (necessario para WebRTC)
-  7. Criar conta de operador (Basic Auth bcrypt)
-  8. Instalar servico systemd (opcional)
-
-Pre-requisitos: acesso a internet e direitos sudo.
-SO detectado: ${OS_PRETTY_NAME} -- suportado.
-
-Prima Enter para continuar." \
+# ── WELCOME ────────────────────────────────────────────────────────────────────
+whiptail --backtitle "$BT" --title "$I18N_TITLE_WELCOME" \
+  --msgbox "$(i18n_fmt "$I18N_MSG_WELCOME" OS "$OS_PRETTY_NAME")" \
   22 68
 
-# ── perfil do radio ──────────────────────────────────────────────────────────────
-_radio_profile=$(whiptail --backtitle "$BT" --title "Perfil do Radio" \
-  --menu "Selecione o radio principal desta estacao:" \
-  14 68 2 \
-  "ft991a" "Yaesu FT-991A  (USB Serial -> rigctld, USB Audio 48kHz)" \
-  "x6100"  "Xiegu X6100    (WiFi/Ethernet nativo, IP configuravel)" \
+# ── UI LANGUAGE ────────────────────────────────────────────────────────────────
+_ui_menu=()
+while IFS= read -r _item; do
+  _ui_menu+=("$_item")
+done < <(list_locales)
+[[ ${#_ui_menu[@]} -eq 0 ]] && _ui_menu=("en" "English" "pt" "Português")
+
+UI_LANG=$(whiptail --backtitle "$BT" --title "$I18N_TITLE_UI_LANG" \
+  --default-item "$INSTALL_LANG" \
+  --menu "$I18N_MSG_UI_LANG" \
+  12 62 "${#_ui_menu[@]}" \
+  "${_ui_menu[@]}" \
   3>&1 1>&2 2>&3) || exit 0
 
-_radio_label="Yaesu FT-991A"
-[[ "$_radio_profile" == "x6100" ]] && _radio_label="Xiegu X6100"
+# ── RADIO PROFILE ──────────────────────────────────────────────────────────────
+_radio_profile=$(whiptail --backtitle "$BT" --title "$I18N_TITLE_RADIO" \
+  --menu "$I18N_MSG_RADIO" \
+  14 68 2 \
+  "ft991a" "$I18N_OPT_FT991A" \
+  "x6100"  "$I18N_OPT_X6100" \
+  3>&1 1>&2 2>&3) || exit 0
 
-# ── IP do X6100 (se seleccionado) ────────────────────────────────────────────────
+_radio_label="$I18N_LABEL_FT991A"
+[[ "$_radio_profile" == "x6100" ]] && _radio_label="$I18N_LABEL_X6100"
+
+# ── X6100 IP ───────────────────────────────────────────────────────────────────
 _x6100_ip="192.168.1.100"
 if [[ "$_radio_profile" == "x6100" ]]; then
-  _x6100_ip=$(whiptail --backtitle "$BT" --title "Xiegu X6100 -- Endereco IP" \
-    --inputbox "Endereco IP do X6100 na rede local:" \
+  _x6100_ip=$(whiptail --backtitle "$BT" --title "$I18N_TITLE_X6100_IP" \
+    --inputbox "$I18N_MSG_X6100_IP" \
     9 60 "192.168.1.100" 3>&1 1>&2 2>&3) || exit 0
 fi
 
-# ── WSJT-X (jt9 + wsprd) ────────────────────────────────────────────────────────
+# ── WSJT-X ─────────────────────────────────────────────────────────────────────
 _install_wsjtx=0
-_wsjtx_label="Nao (instalar depois para FT8/FT4/WSPR)"
+_wsjtx_label="$I18N_LABEL_WSJTX_NO"
 _jt9_found=0; _wsprd_found=0
 command -v jt9   &>/dev/null && _jt9_found=1
 command -v wsprd &>/dev/null && _wsprd_found=1
 
 if [[ $_jt9_found -eq 1 && $_wsprd_found -eq 1 ]]; then
-  _wsjtx_label="Ja instalado (jt9 + wsprd detectados)"
-  whiptail --backtitle "$BT" --title "WSJT-X -- Ja instalado" \
-    --msgbox "jt9 e wsprd ja estao instalados no sistema.\n\nNao e necessario reinstalar -- a instalacao continua." \
-    9 62
+  _wsjtx_label="$I18N_LABEL_WSJTX_FOUND"
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_WSJTX_FOUND" \
+    --msgbox "$I18N_MSG_WSJTX_FOUND" 9 62
 elif [[ $_jt9_found -eq 1 && $_wsprd_found -eq 0 ]]; then
-  whiptail --backtitle "$BT" --title "WSJT-X -- Instalacao parcial" \
-    --msgbox "jt9 encontrado mas wsprd nao esta instalado.\nVai ser feita a instalacao completa do wsjtx." \
-    9 62
-  _install_wsjtx=1
-  _wsjtx_label="Sim (wsjtx -- instalacao corrigida, wsprd em falta)"
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_WSJTX_PARTIAL" \
+    --msgbox "$I18N_MSG_WSJTX_PARTIAL_JT9" 9 62
+  _install_wsjtx=1; _wsjtx_label="$I18N_LABEL_WSJTX_FIX"
 elif [[ $_jt9_found -eq 0 && $_wsprd_found -eq 1 ]]; then
-  whiptail --backtitle "$BT" --title "WSJT-X -- Instalacao parcial" \
-    --msgbox "wsprd encontrado mas jt9 nao esta instalado.\nVai ser feita a instalacao completa do wsjtx." \
-    9 62
-  _install_wsjtx=1
-  _wsjtx_label="Sim (wsjtx -- instalacao corrigida, jt9 em falta)"
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_WSJTX_PARTIAL" \
+    --msgbox "$I18N_MSG_WSJTX_PARTIAL_WSPRD" 9 62
+  _install_wsjtx=1; _wsjtx_label="$I18N_LABEL_WSJTX_FIX"
 else
-  if whiptail --backtitle "$BT" --title "WSJT-X -- Modos Digitais (R3)" \
-    --yesno "\
-Instalar WSJT-X (jt9 + wsprd)?
-
-Necessario para descodificacao de FT8, FT4 e WSPR (fase R3).
-Nao e necessario para a fase R1 (RX audio) nem R2 (TX SSB).
-
-  SIM  ->  sudo apt install wsjtx  (~50 MB)
-  NAO  ->  ignorar por agora" \
-    13 66; then
-    _install_wsjtx=1
-    _wsjtx_label="Sim (wsjtx -- jt9 + wsprd)"
+  if whiptail --backtitle "$BT" --title "$I18N_TITLE_WSJTX_ASK" \
+    --yesno "$I18N_MSG_WSJTX_ASK" 13 66; then
+    _install_wsjtx=1; _wsjtx_label="$I18N_LABEL_WSJTX_YES"
   fi
 fi
 
-# ── modo de instalacao ───────────────────────────────────────────────────────────
-_install_mode=$(whiptail --backtitle "$BT" --title "Modo de Instalacao" \
-  --menu "Como pretende correr o 4ham Remote Operation?" \
+# ── INSTALL MODE ───────────────────────────────────────────────────────────────
+_install_mode=$(whiptail --backtitle "$BT" --title "$I18N_TITLE_INSTALL_MODE" \
+  --menu "$I18N_MSG_INSTALL_MODE" \
   12 70 2 \
-  "systemd" "Servico systemd -- arranque automatico com o sistema (recomendado)" \
-  "manual"  "Arranque manual pelo utilizador -- usar ./run.sh" \
+  "systemd" "$I18N_OPT_SYSTEMD" \
+  "manual"  "$I18N_OPT_MANUAL" \
   3>&1 1>&2 2>&3) || exit 0
 
-_install_mode_label="Servico systemd (auto-start)"
-[[ "$_install_mode" == "manual" ]] && _install_mode_label="Arranque manual (./run.sh)"
+_install_mode_label="$I18N_LABEL_SYSTEMD"
+[[ "$_install_mode" == "manual" ]] && _install_mode_label="$I18N_LABEL_MANUAL"
 
-# ── utilizador operador ──────────────────────────────────────────────────────────
+# ── OPERATOR USERNAME ──────────────────────────────────────────────────────────
 _op_user=""
 while [[ -z "$_op_user" ]]; do
-  _op_user=$(whiptail --backtitle "$BT" --title "Conta de Operador -- Utilizador" \
-    --inputbox "Nome de utilizador para acesso a interface web:" \
+  _op_user=$(whiptail --backtitle "$BT" --title "$I18N_TITLE_OP_USER" \
+    --inputbox "$I18N_MSG_OP_USER" \
     9 62 "ct7bfv" 3>&1 1>&2 2>&3) || exit 0
   _op_user="${_op_user//[[:space:]]/}"
-  [[ -z "$_op_user" ]] && whiptail --backtitle "$BT" --title "Erro" \
-    --msgbox "O nome de utilizador nao pode ser vazio." 7 44
+  [[ -z "$_op_user" ]] && whiptail --backtitle "$BT" --title "$I18N_TITLE_ERR" \
+    --msgbox "$I18N_MSG_ERR_USER_EMPTY" 7 50
 done
 
-# ── password operador ────────────────────────────────────────────────────────────
+# ── OPERATOR PASSWORD ──────────────────────────────────────────────────────────
 _op_pass=""
 while true; do
-  _op_pass=$(whiptail --backtitle "$BT" --title "Conta de Operador -- Password" \
-    --passwordbox "Password para '${_op_user}':" \
+  _op_pass=$(whiptail --backtitle "$BT" --title "$I18N_TITLE_OP_PASS" \
+    --passwordbox "$(i18n_fmt "$I18N_MSG_OP_PASS" USER "$_op_user")" \
     9 62 "" 3>&1 1>&2 2>&3) || exit 0
 
   if [[ -z "$_op_pass" ]]; then
-    whiptail --backtitle "$BT" --title "Erro" --msgbox "A password nao pode ser vazia." 7 42; continue
+    whiptail --backtitle "$BT" --title "$I18N_TITLE_ERR" \
+      --msgbox "$I18N_MSG_ERR_PASS_EMPTY" 7 46
+    continue
   fi
   if [[ ${#_op_pass} -lt 8 ]]; then
-    whiptail --backtitle "$BT" --title "Password Fraca" \
-      --yesno "A password tem menos de 8 caracteres.\nContinuar mesmo assim?" 8 52 || continue
+    whiptail --backtitle "$BT" --title "$I18N_TITLE_WEAK_PASS" \
+      --yesno "$I18N_MSG_WEAK_PASS" 8 54 || continue
   fi
 
-  _op_pass2=$(whiptail --backtitle "$BT" --title "Conta de Operador -- Confirmar Password" \
-    --passwordbox "Confirmar password:" \
+  _op_pass2=$(whiptail --backtitle "$BT" --title "$I18N_TITLE_OP_PASS2" \
+    --passwordbox "$I18N_MSG_OP_PASS2" \
     9 62 "" 3>&1 1>&2 2>&3) || exit 0
 
-  [[ "$_op_pass" == "$_op_pass2" ]] && break
-  whiptail --backtitle "$BT" --title "Erro" --msgbox "As passwords nao coincidem." 7 42
+  if [[ "$_op_pass" == "$_op_pass2" ]]; then break; fi
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_ERR" \
+    --msgbox "$I18N_MSG_ERR_PASS_MISMATCH" 7 52
 done
 unset _op_pass2
 
-# ── confirmacao ──────────────────────────────────────────────────────────────────
-whiptail --backtitle "$BT" --title "Confirmar Instalacao" \
-  --yesno "\
-Pronto para instalar. Resumo:
+# ── CONFIRMATION ───────────────────────────────────────────────────────────────
+_ui_lang_label="$UI_LANG"
+_ui_locale_sh="$ROOT_DIR/locales/${UI_LANG}.sh"
+if [[ -f "$_ui_locale_sh" ]]; then
+  _ui_lang_label=$(bash -c "source \"$_ui_locale_sh\" 2>/dev/null && printf '%s' \"\$LANG_NATIVE_NAME\"" 2>/dev/null || echo "$UI_LANG")
+fi
 
-  SO              : ${OS_PRETTY_NAME}
-  Radio           : $_radio_label
-  WSJT-X (R3)     : $_wsjtx_label
-  Modo instalacao : $_install_mode_label
-  Utilizador      : $_op_user
-  Log             : $LOG_FILE
+whiptail --backtitle "$BT" --title "$I18N_TITLE_CONFIRM" \
+  --yesno "$(i18n_fmt "$I18N_MSG_CONFIRM" \
+    OS  "$OS_PRETTY_NAME" \
+    RADIO "$_radio_label" \
+    WSJTX "$_wsjtx_label" \
+    MODE  "$_install_mode_label" \
+    USER  "$_op_user" \
+    UILANG "$_ui_lang_label" \
+    LOG   "$LOG_FILE")" \
+  20 68 || exit 0
 
-Prosseguir com a instalacao?" \
-  18 68 || exit 0
+# ── INSTALLATION ───────────────────────────────────────────────────────────────
+start_gauge "$I18N_GAUGE_TITLE"
 
-# ── INSTALACAO ───────────────────────────────────────────────────────────────────
-start_gauge "A instalar 4ham Remote Operation -- aguarde..."
-
-gauge_step 5 "A actualizar lista de pacotes..."
+gauge_step 5 "$I18N_GAUGE_APT_UPDATE"
 run_sudo apt-get update -qq >> "$LOG_FILE" 2>&1 \
-  || abort "apt-get update falhou"
+  || abort "apt-get update"
 
-gauge_step 15 "A instalar dependencias de sistema..."
+gauge_step 15 "$I18N_GAUGE_APT_DEPS"
 run_sudo apt-get install -y \
   python3 python3-pip python3-venv python3-dev \
   libhamlib-utils \
@@ -282,114 +336,104 @@ run_sudo apt-get install -y \
   libportaudio2 portaudio19-dev \
   openssl git curl \
   >> "$LOG_FILE" 2>&1 \
-  || abort "Instalacao de pacotes de sistema falhou"
+  || abort "apt-get install"
 
 if [[ $_install_wsjtx -eq 1 ]]; then
-  gauge_step 25 "A instalar WSJT-X (jt9 + wsprd)..."
+  gauge_step 25 "$I18N_GAUGE_WSJTX"
   run_sudo apt-get install -y wsjtx >> "$LOG_FILE" 2>&1 \
-    || { echo "[WARN] wsjtx nao disponivel no repositorio" >> "$LOG_FILE"; _install_wsjtx=0; }
+    || { echo "[WARN] wsjtx unavailable" >> "$LOG_FILE"; _install_wsjtx=0; }
 fi
 
-gauge_step 35 "A criar ambiente Python virtual..."
+gauge_step 35 "$I18N_GAUGE_VENV"
 if [[ ! -x "$PYTHON_BIN" ]]; then
   python3 -m venv "$VENV_DIR" >> "$LOG_FILE" 2>&1 \
-    || abort "Falha ao criar venv"
+    || abort "venv creation"
 fi
 
-gauge_step 45 "A instalar dependencias Python (FastAPI, aiortc, sounddevice, ...)..."
+gauge_step 45 "$I18N_GAUGE_PIP"
 "$PYTHON_BIN" -m pip install --quiet --upgrade pip setuptools wheel >> "$LOG_FILE" 2>&1
 "$PYTHON_BIN" -m pip install --quiet -r "$ROOT_DIR/backend/requirements.txt" >> "$LOG_FILE" 2>&1 \
-  || abort "pip install falhou -- ver $LOG_FILE"
+  || abort "pip install"
 
-gauge_step 60 "A configurar perfil do radio..."
+gauge_step 60 "$I18N_GAUGE_RADIO_CFG"
 _cfg="$ROOT_DIR/config/remote_config.yaml"
-if [[ ! -f "$_cfg" ]]; then
-  cp "$ROOT_DIR/config/remote_config.example.yaml" "$_cfg"
-fi
-# injectar perfil seleccionado
+[[ ! -f "$_cfg" ]] && cp "$ROOT_DIR/config/remote_config.example.yaml" "$_cfg"
 sed -i "s/^  profile:.*/  profile: \"${_radio_profile}\"/" "$_cfg"
-if [[ "$_radio_profile" == "x6100" ]]; then
+[[ "$_radio_profile" == "x6100" ]] && \
   sed -i "s/^    host:.*/    host: \"${_x6100_ip}\"/" "$_cfg"
-fi
 
-gauge_step 70 "A gerar certificados TLS auto-assinados..."
+gauge_step 70 "$I18N_GAUGE_CERTS"
 if [[ ! -f "$ROOT_DIR/certs/cert.pem" ]]; then
   bash "$ROOT_DIR/scripts/gen_certs.sh" >> "$LOG_FILE" 2>&1 \
-    || abort "Geracao de certificados falhou"
+    || abort "TLS cert generation"
 fi
 
-gauge_step 80 "A guardar credenciais do operador..."
+gauge_step 80 "$I18N_GAUGE_CREDS"
 _tmp_py="$(mktemp /tmp/4ham-setup-XXXXXX.py)"
 _TMPFILES+=("$_tmp_py")
 chmod 600 "$_tmp_py"
 
-cat > "$_tmp_py" << 'PYEOF'
-import sys, os
+# Write the Python helper to the temp file — no heredoc, avoids delimiter conflicts
+python3 -c "
+import sys
+content = '''import sys, os
 root     = sys.argv[1]
 username = sys.argv[2]
+ui_lang  = sys.argv[3]
 password = sys.stdin.read()
-
-sys.path.insert(0, os.path.join(root, "backend"))
+sys.path.insert(0, os.path.join(root, \"backend\"))
 import bcrypt, yaml
-
-cfg_path = os.path.join(root, "config", "remote_config.yaml")
-with open(cfg_path, encoding="utf-8") as f:
+cfg_path = os.path.join(root, \"config\", \"remote_config.yaml\")
+with open(cfg_path, encoding=\"utf-8\") as f:
     cfg = yaml.safe_load(f) or {}
-
 pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
-
-cfg.setdefault("auth", {})["users"] = [{
-    "username": username,
-    "password_hash": pw_hash,
-    "role": "operator",
+cfg.setdefault(\"auth\", {})[\"users\"] = [{
+    \"username\": username,
+    \"password_hash\": pw_hash,
+    \"role\": \"operator\",
 }]
-
-with open(cfg_path, "w", encoding="utf-8") as f:
+cfg.setdefault(\"ui\", {})[\"language\"] = ui_lang
+with open(cfg_path, \"w\", encoding=\"utf-8\") as f:
     yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
-PYEOF
+'''
+with open(sys.argv[1], 'w') as fh:
+    fh.write(content)
+" "$_tmp_py"
 
 printf '%s' "$_op_pass" \
-  | "$PYTHON_BIN" "$_tmp_py" "$ROOT_DIR" "$_op_user" >> "$LOG_FILE" 2>&1 \
-  || abort "Falha ao guardar credenciais"
+  | "$PYTHON_BIN" "$_tmp_py" "$ROOT_DIR" "$_op_user" "$UI_LANG" >> "$LOG_FILE" 2>&1 \
+  || abort "saving credentials"
 
 rm -f "$_tmp_py"
 unset _op_pass
 
-gauge_step 88 "A criar script de arranque (run.sh)..."
-cat > "$ROOT_DIR/run.sh" << 'RUNEOF'
-#!/usr/bin/env bash
-# 4ham Remote Operation -- arranque rapido (desenvolvimento / modo manual)
+gauge_step 88 "$I18N_GAUGE_RUNSH"
+# Write run.sh via python3 to avoid heredoc conflicts
+python3 -c "
+import sys
+s = '''#!/usr/bin/env bash
+# 4ham Remote Operation — manual start
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export REMOTE_CONFIG="$ROOT_DIR/config/remote_config.yaml"
-"$ROOT_DIR/.venv/bin/uvicorn" backend.app.main:app \
-    --host 0.0.0.0 --port 8000 \
-    --ssl-certfile "$ROOT_DIR/certs/cert.pem" \
-    --ssl-keyfile  "$ROOT_DIR/certs/key.pem" \
+ROOT_DIR=\"\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\")\" && pwd)\"
+export REMOTE_CONFIG=\"\$ROOT_DIR/config/remote_config.yaml\"
+\"\$ROOT_DIR/.venv/bin/uvicorn\" backend.app.main:app \\
+    --host 0.0.0.0 --port 8000 \\
+    --ssl-certfile \"\$ROOT_DIR/certs/cert.pem\" \\
+    --ssl-keyfile  \"\$ROOT_DIR/certs/key.pem\" \\
     --reload
-RUNEOF
+'''
+with open(sys.argv[1], 'w') as f:
+    f.write(s)
+" "$ROOT_DIR/run.sh"
 chmod +x "$ROOT_DIR/run.sh"
+chmod +x "$ROOT_DIR/scripts/4ham-remote-launcher.sh"
 
 if [[ "$_install_mode" == "systemd" ]]; then
-  gauge_step 95 "A instalar servico systemd..."
+  gauge_step 95 "$I18N_GAUGE_SYSTEMD"
   _svc_file="/etc/systemd/system/${SERVICE_NAME}.service"
-  run_sudo tee "$_svc_file" > /dev/null << EOF
-[Unit]
-Description=4ham Remote Operation
-After=network.target
-
-[Service]
-Type=simple
-User=${SERVICE_USER}
-WorkingDirectory=${ROOT_DIR}
-Environment=REMOTE_CONFIG=${ROOT_DIR}/config/remote_config.yaml
-ExecStart=${VENV_DIR}/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --ssl-certfile ${ROOT_DIR}/certs/cert.pem --ssl-keyfile ${ROOT_DIR}/certs/key.pem
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  printf '[Unit]\nDescription=4ham Remote Operation\nAfter=network.target\n\n[Service]\nType=simple\nUser=%s\nWorkingDirectory=%s\nEnvironment=REMOTE_CONFIG=%s/config/remote_config.yaml\nExecStart=%s/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --ssl-certfile %s/certs/cert.pem --ssl-keyfile %s/certs/key.pem\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n' \
+    "$SERVICE_USER" "$ROOT_DIR" "$ROOT_DIR" "$VENV_DIR" "$ROOT_DIR" "$ROOT_DIR" \
+    | run_sudo tee "$_svc_file" > /dev/null
   run_sudo systemctl daemon-reload  >> "$LOG_FILE" 2>&1
   run_sudo systemctl enable "${SERVICE_NAME}" >> "$LOG_FILE" 2>&1
   run_sudo systemctl start  "${SERVICE_NAME}" >> "$LOG_FILE" 2>&1 || true
@@ -397,51 +441,66 @@ fi
 
 close_gauge
 
-# ── ecra de conclusao ────────────────────────────────────────────────────────────
-_local_ip="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '127.0.0.1')"
+# ── DESKTOP SHORTCUT ───────────────────────────────────────────────────────────
+_desktop_created=0
+if [[ -n "${XDG_CURRENT_DESKTOP:-}" || -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
+  if whiptail --backtitle "$BT" --title "$I18N_TITLE_DESKTOP" \
+    --yesno "$I18N_MSG_DESKTOP" 13 66; then
 
+    if command -v xdg-user-dir >/dev/null 2>&1; then
+      _desktop_dir="${XDG_DESKTOP_DIR:-$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")}"
+    else
+      _desktop_dir="${XDG_DESKTOP_DIR:-$HOME/Desktop}"
+    fi
+    _app_dir="$HOME/.local/share/applications"
+    _launcher="$ROOT_DIR/scripts/4ham-remote-launcher.sh"
+
+    # Load comments from both locales for multilingual .desktop
+    _comment_pt=$(bash -c "source \"$ROOT_DIR/locales/pt.sh\" 2>/dev/null && printf '%s' \"\$I18N_DESKTOP_COMMENT\"" 2>/dev/null || echo "$I18N_DESKTOP_COMMENT")
+    _comment_en=$(bash -c "source \"$ROOT_DIR/locales/en.sh\" 2>/dev/null && printf '%s' \"\$I18N_DESKTOP_COMMENT\"" 2>/dev/null || echo "$I18N_DESKTOP_COMMENT")
+
+    mkdir -p "$_desktop_dir" "$_app_dir"
+
+    python3 -c "
+import sys
+name, launcher, comment_en, comment_pt = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+s = '[Desktop Entry]\nVersion=1.0\nType=Application\nName=%s\nName[en]=%s\nName[pt]=%s\nComment=%s\nComment[en]=%s\nComment[pt]=%s\nExec=bash -c ' % (name,name,name,comment_en,comment_en,comment_pt)
+s += \"'exec \" + launcher + \"'\n\"
+s += 'Icon=network-wired\nTerminal=true\nCategories=HamRadio;Network;\nStartupNotify=false\n'
+with open(sys.argv[5], 'w') as f: f.write(s)
+" "$I18N_DESKTOP_APP_NAME" "$_launcher" \
+      "$_comment_en" "$_comment_pt" \
+      "$_desktop_dir/4ham-Remote-Operation.desktop"
+
+    cp "$_desktop_dir/4ham-Remote-Operation.desktop" \
+       "$_app_dir/4ham-Remote-Operation.desktop"
+    chmod +x "$_desktop_dir/4ham-Remote-Operation.desktop"
+    chmod +x "$_app_dir/4ham-Remote-Operation.desktop"
+
+    command -v gio >/dev/null 2>&1 && \
+      gio set "$_desktop_dir/4ham-Remote-Operation.desktop" metadata::trusted true 2>/dev/null || true
+
+    _desktop_created=1
+  fi
+fi
+
+# ── COMPLETION ─────────────────────────────────────────────────────────────────
+_local_ip="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '127.0.0.1')"
 _wsjtx_note=""
-[[ $_install_wsjtx -eq 0 ]] && _wsjtx_note="\n  WSJT-X nao instalado -- FT8/WSPR requerem: sudo apt install wsjtx"
+[[ $_install_wsjtx -eq 0 ]] && _wsjtx_note="$I18N_MSG_WSJTX_NOTE"
 
 if [[ "$_install_mode" == "systemd" ]]; then
-  whiptail --backtitle "$BT" --title "Instalacao Concluida!" \
-    --msgbox "\
-4ham Remote Operation instalado e em execucao!
-
-Abrir no browser:
-  https://${_local_ip}:8000/
-  https://127.0.0.1:8000/
-
-Login:
-  Utilizador : $_op_user
-  Password   : (a que definiu)
-
-Gestao do servico:
-  Estado   sudo systemctl status ${SERVICE_NAME}
-  Logs     journalctl -u ${SERVICE_NAME} -f
-  Restart  sudo systemctl restart ${SERVICE_NAME}
-  Parar    sudo systemctl stop ${SERVICE_NAME}
-
-Log de instalacao: $LOG_FILE
-${_wsjtx_note}" \
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_DONE" \
+    --ok-button "$I18N_BTN_EXIT_INSTALLER" \
+    --msgbox "$(i18n_fmt "$I18N_MSG_DONE_SYSTEMD" \
+      IP "$_local_ip" USER "$_op_user" SVC "$SERVICE_NAME" \
+      LOG "$LOG_FILE" WSJTX_NOTE "$_wsjtx_note")" \
     24 70
 else
-  whiptail --backtitle "$BT" --title "Instalacao Concluida!" \
-    --msgbox "\
-4ham Remote Operation instalado (modo manual).
-
-Para iniciar o servidor:
-  ./run.sh
-
-Abrir no browser:
-  https://${_local_ip}:8000/
-  https://127.0.0.1:8000/
-
-Login:
-  Utilizador : $_op_user
-  Password   : (a que definiu)
-
-Log de instalacao: $LOG_FILE
-${_wsjtx_note}" \
+  whiptail --backtitle "$BT" --title "$I18N_TITLE_DONE" \
+    --ok-button "$I18N_BTN_EXIT_INSTALLER" \
+    --msgbox "$(i18n_fmt "$I18N_MSG_DONE_MANUAL" \
+      IP "$_local_ip" USER "$_op_user" \
+      LOG "$LOG_FILE" WSJTX_NOTE "$_wsjtx_note")" \
     22 70
 fi
