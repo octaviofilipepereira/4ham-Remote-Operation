@@ -229,12 +229,14 @@ fi
 
 # ── WSJT-X ─────────────────────────────────────────────────────────────────────
 _install_wsjtx=0
+_wsjtx_present=0
 _wsjtx_label="$I18N_LABEL_WSJTX_NO"
 _jt9_found=0; _wsprd_found=0
 command -v jt9   &>/dev/null && _jt9_found=1
 command -v wsprd &>/dev/null && _wsprd_found=1
 
 if [[ $_jt9_found -eq 1 && $_wsprd_found -eq 1 ]]; then
+  _wsjtx_present=1
   _wsjtx_label="$I18N_LABEL_WSJTX_FOUND"
   whiptail --backtitle "$BT" --title "$I18N_TITLE_WSJTX_FOUND" \
     --msgbox "$I18N_MSG_WSJTX_FOUND" 9 62
@@ -342,6 +344,8 @@ if [[ $_install_wsjtx -eq 1 ]]; then
   gauge_step 25 "$I18N_GAUGE_WSJTX"
   run_sudo apt-get install -y wsjtx >> "$LOG_FILE" 2>&1 \
     || { echo "[WARN] wsjtx unavailable" >> "$LOG_FILE"; _install_wsjtx=0; }
+  # Mark as present if installation succeeded
+  [[ $_install_wsjtx -eq 1 ]] && _wsjtx_present=1
 fi
 
 gauge_step 35 "$I18N_GAUGE_VENV"
@@ -487,7 +491,7 @@ fi
 # ── COMPLETION ─────────────────────────────────────────────────────────────────
 _local_ip="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '127.0.0.1')"
 _wsjtx_note=""
-[[ $_install_wsjtx -eq 0 ]] && _wsjtx_note="$I18N_MSG_WSJTX_NOTE"
+[[ $_wsjtx_present -eq 0 ]] && _wsjtx_note="$I18N_MSG_WSJTX_NOTE"
 
 if [[ "$_install_mode" == "systemd" ]]; then
   whiptail --backtitle "$BT" --title "$I18N_TITLE_DONE" \
