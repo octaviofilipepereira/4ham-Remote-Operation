@@ -212,6 +212,20 @@ function nudgeFrequency(deltaHz, step = selectedTuneStep) {
   applyLocalFrequency(currentFrequencyHz + deltaHz, step);
 }
 
+function getKnobPointerAngle(clientX, clientY) {
+  const rect = elKnob.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
+}
+
+function normalizeAngleDelta(delta) {
+  let adjusted = delta;
+  while (adjusted > 180) adjusted -= 360;
+  while (adjusted < -180) adjusted += 360;
+  return adjusted;
+}
+
 async function pollStatus() {
   try {
     const response = await fetch(`${API}/api/rig/status`);
@@ -284,39 +298,72 @@ elKnob.addEventListener("wheel", (event) => {
 elKnob.addEventListener("pointerdown", (event) => {
   if (!Number.isFinite(currentFrequencyHz)) return;
 
-  knobDrag = { pointerId: event.pointerId, lastY: event.clientY, carry: 0 };
+  event.preventDefault();
+
+  knobDrag = {
+    pointerId: event.pointerId,
+    lastAngle: getKnobPointerAngle(event.clientX, event.clientY),
+    accumulatedAngle: 0,
+    moved: false,
+    startX: event.clientX,
+    startY: event.clientY,
+  };
   root.dataset.knobActive = "true";
-  elKnob.setPointerCapture(event.pointerId);
-});
-
-elKnob.addEventListener("pointermove", (event) => {
-  if (!knobDrag || knobDrag.pointerId !== event.pointerId || !Number.isFinite(currentFrequencyHz)) return;
-
-  const deltaY = knobDrag.lastY - event.clientY;
-  knobDrag.lastY = event.clientY;
-  knobDrag.carry += deltaY;
-
-  const detents = knobDrag.carry > 0
-    ? Math.floor(knobDrag.carry / 12)
-    : Math.ceil(knobDrag.carry / 12);
-
-  if (detents !== 0) {
-    knobDrag.carry -= detents * 12;
-    nudgeFrequency(detents * selectedTuneStep, selectedTuneStep);
+  try {
+    elKnob.setPointerCapture(event.pointerId);
+  } catch (_) {
+    // Some browsers or synthetic pointer flows may reject pointer capture.
   }
 });
 
-function releaseKnob(event) {
-  if (!knobDrag || knobDrag.pointerId !== event.pointerId) return;
-  root.dataset.knobActive = "false";
-  knobDrag = null;
-  if (elKnob.hasPointerCapture(event.pointerId)) {
-    elKnob.releasePointerCapture(event.pointerId);
+function handleKnobPointerMove(event) {
+  if (!knobDrag || knobDrag.pointerId !== event.pointerId || !Number.isFinite(currentFrequencyHz)) return;
+
+  const nextAngle = getKnobPointerAngle(event.clientX, event.clientY);
+  const deltaAngle = normalizeAngleDelta(nextAngle - knobDrag.lastAngle);
+  knobDrag.lastAngle = nextAngle;
+  knobDrag.accumulatedAngle += deltaAngle;
+
+  if (!knobDrag.moved) {
+    const dx = event.clientX - knobDrag.startX;
+    const dy = event.clientY - knobDrag.startY;
+    knobDrag.moved = Math.hypot(dx, dy) > 6;
+  }
+
+  const detents = knobDrag.accumulatedAngle > 0
+    ? Math.floor(knobDrag.accumulatedAngle / 10)
+    : Math.ceil(knobDrag.accumulatedAngle / 10);
+
+  if (detents !== 0) {
+    knobDrag.accumulatedAngle -= detents * 10;
+    nudgeFrequency(detents * selectedTuneStep, selectedTuneStep);
   }
 }
 
-elKnob.addEventListener("pointerup", releaseKnob);
-elKnob.addEventListener("pointercancel", releaseKnob);
+function releaseKnob(event) {
+  if (!knobDrag || knobDrag.pointerId !== event.pointerId) return;
+
+  if (!knobDrag.moved && Number.isFinite(currentFrequencyHz)) {
+    const rect = elKnob.getBoundingClientRect();
+    const relativeX = event.clientX - rect.left;
+    const direction = relativeX >= rect.width / 2 ? 1 : -1;
+    nudgeFrequency(direction * selectedTuneStep, selectedTuneStep);
+  }
+
+  root.dataset.knobActive = "false";
+  knobDrag = null;
+  try {
+    if (elKnob.hasPointerCapture(event.pointerId)) {
+      elKnob.releasePointerCapture(event.pointerId);
+    }
+  } catch (_) {
+    // Ignore capture release problems; drag lifecycle is already closed.
+  }
+}
+
+window.addEventListener("pointermove", handleKnobPointerMove);
+window.addEventListener("pointerup", releaseKnob);
+window.addEventListener("pointercancel", releaseKnob);
 
 btnConn.addEventListener("click", connectRx);
 btnDisc.addEventListener("click", disconnectRx);
