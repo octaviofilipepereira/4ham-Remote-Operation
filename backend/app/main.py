@@ -1,6 +1,7 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import yaml
 from fastapi import FastAPI
@@ -80,9 +81,10 @@ def create_app() -> FastAPI:
     app.include_router(webrtc_router)
 
     # servir o frontend estático se a pasta existir
-    frontend_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
-    if os.path.isdir(frontend_path):
-        app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+    # main.py está em backend/app/ — três .parent sobem para a raiz do projecto
+    frontend_path = Path(__file__).resolve().parent.parent.parent / "frontend"
+    if frontend_path.is_dir():
+        app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
 
     return app
 
