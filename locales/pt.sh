@@ -65,9 +65,9 @@ I18N_LABEL_WSJTX_NO="Não (instalar depois para FT8/FT4/WSPR)"
 I18N_TITLE_INSTALL_MODE="Modo de Instalação"
 I18N_MSG_INSTALL_MODE="Como pretende correr o 4ham Remote Operation?"
 I18N_OPT_SYSTEMD="Serviço systemd -- arranque automático com o sistema (recomendado)"
-I18N_OPT_MANUAL="Arranque manual pelo utilizador -- usar ./run.sh"
+I18N_OPT_MANUAL="Arranque manual pelo utilizador -- usar scripts/server_control.sh"
 I18N_LABEL_SYSTEMD="Serviço systemd (arranque automático)"
-I18N_LABEL_MANUAL="Arranque manual (./run.sh)"
+I18N_LABEL_MANUAL="Arranque manual (scripts/server_control.sh)"
 
 # ── Conta de operador ──────────────────────────────────────────────────────────
 I18N_TITLE_OP_USER="Conta de Operador -- Utilizador"
@@ -97,7 +97,7 @@ I18N_GAUGE_PIP="A instalar dependências Python (FastAPI, aiortc, sounddevice, .
 I18N_GAUGE_RADIO_CFG="A configurar perfil do rádio..."
 I18N_GAUGE_CERTS="A gerar certificados TLS auto-assinados..."
 I18N_GAUGE_CREDS="A guardar credenciais do operador..."
-I18N_GAUGE_RUNSH="A criar script de arranque (run.sh)..."
+I18N_GAUGE_RUNSH="A preparar scripts de controlo do servidor..."
 I18N_GAUGE_SYSTEMD="A instalar serviço systemd..."
 
 # ── Erro fatal ─────────────────────────────────────────────────────────────────
@@ -125,5 +125,5 @@ I18N_OPT_L_EXIT="Sair"
 # ── Conclusão ──────────────────────────────────────────────────────────────────
 I18N_TITLE_DONE="Instalação Concluída!"
 I18N_MSG_DONE_SYSTEMD=$'4ham Remote Operation instalado e em execução!\n\nAbrir no browser:\n  https://%IP%:8000/\n  https://127.0.0.1:8000/\n\nLogin:\n  Utilizador : %USER%\n  Password   : (a que definiu)\n\nGestão do serviço:\n  Estado   sudo systemctl status %SVC%\n  Registos journalctl -u %SVC% -f\n  Restart  sudo systemctl restart %SVC%\n  Parar    sudo systemctl stop %SVC%\n\nLog de instalação: %LOG%%WSJTX_NOTE%'
-I18N_MSG_DONE_MANUAL=$'4ham Remote Operation instalado (modo manual).\n\nPara iniciar o servidor:\n  ./run.sh\n\nAbrir no browser:\n  https://%IP%:8000/\n  https://127.0.0.1:8000/\n\nLogin:\n  Utilizador : %USER%\n  Password   : (a que definiu)\n\nLog de instalação: %LOG%%WSJTX_NOTE%'
+I18N_MSG_DONE_MANUAL=$'4ham Remote Operation instalado (modo manual).\n\nControlo do servidor:\n  scripts/server_control.sh start|stop|restart|status|logs\n\nAbrir no browser:\n  https://%IP%:8000/\n  https://127.0.0.1:8000/\n\nLogin:\n  Utilizador : %USER%\n  Password   : (a que definiu)\n\nLog de instalação: %LOG%%WSJTX_NOTE%'
 I18N_MSG_WSJTX_NOTE=$'\n\n  Nota: WSJT-X não instalado. Para activar FT8/WSPR mais tarde: sudo apt install wsjtx'

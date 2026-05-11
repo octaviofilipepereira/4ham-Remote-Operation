@@ -412,24 +412,7 @@ rm -f "$_tmp_py"
 unset _op_pass
 
 gauge_step 88 "$I18N_GAUGE_RUNSH"
-# Write run.sh via python3 to avoid heredoc conflicts
-python3 -c "
-import sys
-s = '''#!/usr/bin/env bash
-# 4ham Remote Operation — manual start
-set -euo pipefail
-ROOT_DIR=\"\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\")\" && pwd)\"
-export REMOTE_CONFIG=\"\$ROOT_DIR/config/remote_config.yaml\"
-\"\$ROOT_DIR/.venv/bin/uvicorn\" backend.app.main:app \\
-    --host 0.0.0.0 --port 8000 \\
-    --ssl-certfile \"\$ROOT_DIR/certs/cert.pem\" \\
-    --ssl-keyfile  \"\$ROOT_DIR/certs/key.pem\" \\
-    --reload
-'''
-with open(sys.argv[1], 'w') as f:
-    f.write(s)
-" "$ROOT_DIR/run.sh"
-chmod +x "$ROOT_DIR/run.sh"
+chmod +x "$ROOT_DIR/scripts/server_control.sh"
 chmod +x "$ROOT_DIR/scripts/4ham-remote-launcher.sh"
 
 if [[ "$_install_mode" == "systemd" ]]; then
