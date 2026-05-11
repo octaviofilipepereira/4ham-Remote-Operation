@@ -3,50 +3,138 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>4ham Remote</title>
+  <meta name="theme-color" content="#08131d" />
+  <title>4ham Remote Operation</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <header>
-    <span class="callsign">CT7BFV</span>
-    <span class="app-title">4ham Remote</span>
-    <span id="conn-state" class="badge badge--disconnected">Disconnected</span>
-  </header>
-
-  <main>
-    <!-- Frequência + modo -->
-    <section class="rig-card">
-      <div class="freq-display">
-        <span id="freq-mhz">---.---</span>
-        <span class="freq-unit">MHz</span>
+<body data-connection-state="disconnected" data-ptt-state="rx">
+  <div class="page-shell">
+    <header class="topbar panel panel--tight">
+      <div class="brand-cluster">
+        <div class="brand-mark">4H</div>
+        <div class="brand-copy">
+          <p class="eyebrow">CT7BFV Remote Station</p>
+          <h1>4ham Remote Operation</h1>
+          <p class="brand-summary">A sharper command deck for CAT telemetry and secure WebRTC receive audio.</p>
+        </div>
       </div>
 
-      <div class="mode-row">
-        <label>Mode</label>
-        <select id="mode-select">
-          <option>USB</option>
-          <option>LSB</option>
-          <option>CW</option>
-          <option>FM</option>
-          <option>AM</option>
-        </select>
-        <span id="ptt-badge" class="badge badge--rx">RX</span>
+      <div class="topbar-status">
+        <div class="status-chip">
+          <span class="status-chip__label">Link</span>
+          <span id="conn-state" class="badge badge--disconnected">Offline</span>
+        </div>
+        <div class="status-chip">
+          <span class="status-chip__label">PTT</span>
+          <span id="ptt-badge" class="badge badge--rx">RX</span>
+        </div>
       </div>
+    </header>
 
-      <div class="smeter-row">
-        <label>S-meter</label>
-        <meter id="smeter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
-        <span id="smeter-val">-- dBm</span>
-      </div>
-    </section>
+    <main class="console-grid">
+      <section class="hero-panel panel">
+        <div class="hero-copy">
+          <p class="section-kicker">Remote HF control</p>
+          <h2>Built to look like a flagship station instead of a quick prototype.</h2>
+          <p class="hero-text">Monitor live rig state, switch mode instantly, and bring up a secure receive-only audio path from one unified console.</p>
+        </div>
 
-    <!-- Áudio RX -->
-    <section class="audio-card">
-      <button id="btn-connect" class="btn btn--primary">▶ Connect RX Audio</button>
-      <button id="btn-disconnect" class="btn btn--secondary" disabled>■ Disconnect</button>
-      <audio id="rx-audio" autoplay></audio>
-    </section>
-  </main>
+        <div class="hero-metrics">
+          <div class="metric-card">
+            <span class="metric-card__label">On-air frequency</span>
+            <div class="freq-display">
+              <span id="freq-mhz">---.---</span>
+              <span class="freq-unit">MHz</span>
+            </div>
+          </div>
+
+          <div class="metric-stack">
+            <div class="mini-panel">
+              <span class="mini-panel__label">Current mode</span>
+              <strong id="mode-live">USB</strong>
+            </div>
+            <div class="mini-panel">
+              <span class="mini-panel__label">Signal feel</span>
+              <strong id="signal-quality">Standby</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="telemetry-panel panel">
+        <div class="panel-heading">
+          <p class="section-kicker">Rig telemetry</p>
+          <h3>Control surface</h3>
+        </div>
+
+        <div class="panel-grid">
+          <div class="field-card">
+            <label for="mode-select">Operating mode</label>
+            <select id="mode-select">
+              <option>USB</option>
+              <option>LSB</option>
+              <option>CW</option>
+              <option>FM</option>
+              <option>AM</option>
+            </select>
+            <p class="field-note">Mode changes are pushed to the transceiver immediately.</p>
+          </div>
+
+          <div class="field-card">
+            <span class="field-label">S-meter envelope</span>
+            <meter id="smeter" class="sr-meter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
+            <div class="signal-track" aria-hidden="true">
+              <span id="smeter-fill" class="signal-fill"></span>
+            </div>
+            <div class="signal-meta">
+              <span id="smeter-val">-- dBm</span>
+              <span class="signal-caption">Noise floor to strong copy</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="audio-panel panel">
+        <div class="panel-heading">
+          <p class="section-kicker">WebRTC receive path</p>
+          <h3>Audio deck</h3>
+        </div>
+
+        <div class="audio-stage">
+          <div class="audio-orb" aria-hidden="true">
+            <span class="audio-orb__ring audio-orb__ring--outer"></span>
+            <span class="audio-orb__ring audio-orb__ring--inner"></span>
+            <span class="audio-orb__core"></span>
+          </div>
+
+          <div class="audio-copy">
+            <strong id="audio-state">Audio link offline</strong>
+            <p>Start the secure receive stream when you are ready to monitor the station. The browser keeps the audio path and control API on the same trusted origin.</p>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button id="btn-connect" class="btn btn--primary">Connect RX Audio</button>
+          <button id="btn-disconnect" class="btn btn--secondary" disabled>Disconnect</button>
+        </div>
+
+        <audio id="rx-audio" autoplay></audio>
+      </section>
+
+      <section class="notes-panel panel">
+        <div class="panel-heading">
+          <p class="section-kicker">Operating notes</p>
+          <h3>Session flow</h3>
+        </div>
+
+        <ul class="ops-list">
+          <li>Open the console over HTTPS so control requests and audio negotiation stay on the same secure origin.</li>
+          <li>Bring up RX audio first, then fine-tune mode while watching the live signal envelope.</li>
+          <li>If CAT telemetry pauses, the panel recovers automatically as soon as the rig responds again.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>

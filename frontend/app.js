@@ -1,89 +1,152 @@
-/* global state */
-const API = "";   // mesmo origin; ajustar se backend noutro host
-let pc    = null;
+const API = "";
+let pc = null;
 let pollId = null;
 
-/* ── DOM refs ────────────────────────────────────────────────────────────── */
-const elFreq    = document.getElementById("freq-mhz");
-const elMode    = document.getElementById("mode-select");
-const elPtt     = document.getElementById("ptt-badge");
-const elSmeter  = document.getElementById("smeter");
-const elSmVal   = document.getElementById("smeter-val");
-const elConn    = document.getElementById("conn-state");
-const elAudio   = document.getElementById("rx-audio");
-const btnConn   = document.getElementById("btn-connect");
-const btnDisc   = document.getElementById("btn-disconnect");
+const root = document.body;
+const elFreq = document.getElementById("freq-mhz");
+const elMode = document.getElementById("mode-select");
+const elModeLive = document.getElementById("mode-live");
+const elPtt = document.getElementById("ptt-badge");
+const elSmeter = document.getElementById("smeter");
+const elSmeterFill = document.getElementById("smeter-fill");
+const elSmVal = document.getElementById("smeter-val");
+const elSignalQuality = document.getElementById("signal-quality");
+const elConn = document.getElementById("conn-state");
+const elAudio = document.getElementById("rx-audio");
+const elAudioState = document.getElementById("audio-state");
+const btnConn = document.getElementById("btn-connect");
+const btnDisc = document.getElementById("btn-disconnect");
 
-/* ── helpers ──────────────────────────────────────────────────────────────── */
 function setConnBadge(state) {
+  const labels = {
+    disconnected: "Offline",
+    connecting: "Linking",
+    connected: "Live",
+    error: "Fault",
+  };
+
+  root.dataset.connectionState = state;
   elConn.className = "badge badge--" + state;
-  elConn.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+  elConn.textContent = labels[state] ?? state;
+}
+
+function setAudioState(text) {
+  elAudioState.textContent = text;
+}
+
+function setPttBadge(isTx) {
+  root.dataset.pttState = isTx ? "tx" : "rx";
+  elPtt.textContent = isTx ? "TX" : "RX";
+  elPtt.className = "badge " + (isTx ? "badge--tx" : "badge--rx");
 }
 
 function fmtFreq(hz) {
-  return (hz / 1e6).toFixed(3).padStart(8, " ");
+  if (!Number.isFinite(hz)) return "---.---";
+  return (hz / 1e6).toFixed(3);
 }
 
-/* ── polling de status ──────────────────────────────────────────────────────── */
+function ensureModeOption(mode) {
+  if (!mode) return;
+
+  const exists = Array.from(elMode.options).some((option) => option.value === mode);
+  if (!exists) {
+    elMode.add(new Option(mode, mode));
+  }
+}
+
+function syncModeUI(mode) {
+  if (!mode) return;
+  ensureModeOption(mode);
+  if (elMode.value !== mode) elMode.value = mode;
+  elModeLive.textContent = mode;
+}
+
+function describeSignal(dbm) {
+  if (!Number.isFinite(dbm)) return "No telemetry";
+  if (dbm >= -45) return "Crushing";
+  if (dbm >= -60) return "Strong";
+  if (dbm >= -75) return "Clean";
+  if (dbm >= -90) return "Usable";
+  if (dbm >= -105) return "Weak";
+  return "Noise floor";
+}
+
+function dbmToPercent(dbm) {
+  if (!Number.isFinite(dbm)) return 0;
+  const bounded = Math.max(-127, Math.min(0, dbm));
+  return ((bounded + 127) / 127) * 100;
+}
+
+function updateSignalState(dbm) {
+  const bounded = Number.isFinite(dbm) ? Math.max(-127, Math.min(0, dbm)) : -127;
+  elSmeter.value = bounded;
+  elSmVal.textContent = `${bounded.toFixed(1)} dBm`;
+  elSignalQuality.textContent = describeSignal(dbm);
+  elSmeterFill.style.width = `${dbmToPercent(dbm)}%`;
+}
+
 async function pollStatus() {
   try {
-    const r = await fetch(`${API}/api/rig/status`);
-    if (!r.ok) return;
-    const d = await r.json();
-    elFreq.textContent   = fmtFreq(d.frequency_hz);
-    elSmeter.value       = d.strength_db;
-    elSmVal.textContent  = d.strength_db.toFixed(1) + " dBm";
-    elPtt.textContent    = d.ptt ? "TX" : "RX";
-    elPtt.className      = "badge " + (d.ptt ? "badge--tx" : "badge--rx");
-    /* sincronizar selector de modo sem disparar o listener */
-    if (elMode.value !== d.mode) elMode.value = d.mode;
-  } catch (_) { /* silencioso — backend pode estar a reiniciar */ }
+    const response = await fetch(`${API}/api/rig/status`);
+    if (!response.ok) return;
+
+    const data = await response.json();
+    elFreq.textContent = fmtFreq(data.frequency_hz);
+    updateSignalState(data.strength_db);
+    setPttBadge(Boolean(data.ptt));
+    syncModeUI(data.mode);
+  } catch (_) {
+    // Backend may be restarting; keep the current UI state.
+  }
 }
 
-/* ── modo ──────────────────────────────────────────────────────────────────── */
 elMode.addEventListener("change", async () => {
+  syncModeUI(elMode.value);
+
   try {
     await fetch(`${API}/api/rig/mode`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: elMode.value, passband_hz: 0 }),
     });
-  } catch (e) { console.error("set_mode:", e); }
+  } catch (error) {
+    console.error("set_mode:", error);
+  }
 });
 
-/* ── WebRTC RX ──────────────────────────────────────────────────────────────── */
 btnConn.addEventListener("click", connectRx);
 btnDisc.addEventListener("click", disconnectRx);
 
 async function connectRx() {
   btnConn.disabled = true;
+  btnDisc.disabled = true;
   setConnBadge("connecting");
+  setAudioState("Negotiating secure audio link");
 
   pc = new RTCPeerConnection({
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   });
 
-  /* receber a track de áudio */
-  pc.ontrack = (ev) => {
-    elAudio.srcObject = ev.streams[0] ?? new MediaStream([ev.track]);
+  pc.ontrack = (event) => {
+    elAudio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+    setAudioState("Audio stream received");
   };
 
-  /* apenas receção de áudio — sendrecv no offer para que o servidor possa enviar */
   pc.addTransceiver("audio", { direction: "recvonly" });
 
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
 
-  /* aguardar gathering completo (simplifica o signalling) */
   await new Promise((resolve) => {
     if (pc.iceGatheringState === "complete") return resolve();
+
     pc.addEventListener("icegatheringstatechange", () => {
       if (pc.iceGatheringState === "complete") resolve();
     });
   });
 
   try {
-    const res = await fetch(`${API}/api/webrtc/offer`, {
+    const response = await fetch(`${API}/api/webrtc/offer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -91,40 +154,78 @@ async function connectRx() {
         type: pc.localDescription.type,
       }),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const answer = await res.json();
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const answer = await response.json();
     await pc.setRemoteDescription(answer);
-  } catch (e) {
-    console.error("WebRTC offer:", e);
+  } catch (error) {
+    console.error("WebRTC offer:", error);
+    if (pc) {
+      pc.close();
+      pc = null;
+    }
     setConnBadge("error");
+    setAudioState("Audio link failed");
     btnConn.disabled = false;
     return;
   }
 
   pc.onconnectionstatechange = () => {
-    const s = pc.connectionState;
-    if (s === "connected") {
-      setConnBadge("connected");
-      btnDisc.disabled = false;
+    const state = pc?.connectionState;
+
+    if (state === "connecting") {
+      setConnBadge("connecting");
+      setAudioState("Finalising audio session");
+      return;
+    }
+
+    if (state === "connected") {
+      clearInterval(pollId);
+      pollStatus();
       pollId = setInterval(pollStatus, 1000);
-    } else if (["failed", "closed", "disconnected"].includes(s)) {
-      setConnBadge("disconnected");
+      setConnBadge("connected");
+      setAudioState("Receive audio live");
+      btnDisc.disabled = false;
+      return;
+    }
+
+    if (["failed", "closed", "disconnected"].includes(state)) {
+      clearInterval(pollId);
+      pollId = null;
+      setConnBadge(state === "failed" ? "error" : "disconnected");
+      setAudioState(state === "failed" ? "Audio session dropped" : "Audio link offline");
       btnConn.disabled = false;
       btnDisc.disabled = true;
-      clearInterval(pollId);
     }
   };
 }
 
 async function disconnectRx() {
   clearInterval(pollId);
-  if (pc) { pc.close(); pc = null; }
-  try { await fetch(`${API}/api/webrtc/close`, { method: "POST" }); } catch (_) {}
+  pollId = null;
+
+  if (pc) {
+    pc.close();
+    pc = null;
+  }
+
+  try {
+    await fetch(`${API}/api/webrtc/close`, { method: "POST" });
+  } catch (_) {
+    // Ignore backend close errors during UI teardown.
+  }
+
   elAudio.srcObject = null;
   setConnBadge("disconnected");
+  setAudioState("Audio link offline");
   btnConn.disabled = false;
   btnDisc.disabled = true;
 }
 
-/* arranque: polling imediato sem áudio */
+setConnBadge("disconnected");
+setPttBadge(false);
+syncModeUI(elMode.value);
+updateSignalState(-127);
+setAudioState("Audio link offline");
 pollStatus();
