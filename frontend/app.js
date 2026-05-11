@@ -11,6 +11,19 @@ let tuneLockUntil = 0;
 let freqCommitTimer = null;
 let knobAngle = 0;
 let knobDrag = null;
+let txHoldActive = false;
+let waterfallSocket = null;
+let waterfallReconnectTimer = null;
+let waterfallCtx = null;
+
+const WATERFALL_PALETTE = [
+  { stop: 0.0, color: [4, 9, 15] },
+  { stop: 0.18, color: [12, 44, 82] },
+  { stop: 0.36, color: [10, 112, 148] },
+  { stop: 0.58, color: [82, 182, 165] },
+  { stop: 0.78, color: [247, 196, 109] },
+  { stop: 1.0, color: [255, 128, 91] },
+];
 
 const root = document.body;
 const elFreq = document.getElementById("freq-mhz");
@@ -24,8 +37,11 @@ const elConn = document.getElementById("conn-state");
 const elAudio = document.getElementById("rx-audio");
 const elPassband = document.getElementById("passband-readout");
 const elKnob = document.getElementById("vfo-knob");
+const elWaterfall = document.getElementById("waterfall-canvas");
+const elWaterfallState = document.getElementById("waterfall-state");
 const btnConn = document.getElementById("btn-connect");
 const btnDisc = document.getElementById("btn-disconnect");
+const btnTx = document.getElementById("btn-tx");
 const modeReadouts = Array.from(document.querySelectorAll("[data-mode-readout]"));
 const audioReadouts = Array.from(document.querySelectorAll("[data-audio-readout]"));
 const stepReadouts = Array.from(document.querySelectorAll("[data-step-readout]"));
@@ -96,10 +112,17 @@ function setTuneStep(step) {
   renderFrequency(currentFrequencyHz);
 }
 
+function setTxButtonState(isActive) {
+  if (!btnTx) return;
+  btnTx.classList.toggle("is-active", isActive);
+  btnTx.textContent = isActive ? "TX LIVE" : "TX HOLD";
+}
+
 function setPttBadge(isTx) {
   root.dataset.pttState = isTx ? "tx" : "rx";
   elPtt.textContent = isTx ? "TX" : "RX";
   elPtt.className = `badge ${isTx ? "badge--tx" : "badge--rx"}`;
+  setTxButtonState(isTx || txHoldActive);
 }
 
 function ensureModeOption(mode) {
@@ -140,6 +163,154 @@ function updateSignalState(dbm) {
   elSmeterFill.style.width = `${dbmToPercent(dbm)}%`;
 }
 
+function setWaterfallState(text) {
+  if (elWaterfallState) {
+    elWaterfallState.textContent = text;
+  }
+}
+
+function getWaterfallContext() {
+  if (!elWaterfall) return null;
+  if (!waterfallCtx) {
+    waterfallCtx = elWaterfall.getContext("2d", { alpha: false, desynchronized: true });
+    if (waterfallCtx) {
+      waterfallCtx.imageSmoothingEnabled = false;
+    }
+  }
+  return waterfallCtx;
+}
+
+function resizeWaterfallCanvas() {
+  const ctx = getWaterfallContext();
+  if (!ctx || !elWaterfall) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.max(1, Math.floor(elWaterfall.clientWidth));
+  const height = Math.max(1, Math.floor(elWaterfall.clientHeight));
+  const targetWidth = Math.floor(width * dpr);
+  const targetHeight = Math.floor(height * dpr);
+
+  if (elWaterfall.width === targetWidth && elWaterfall.height === targetHeight) return;
+
+  elWaterfall.width = targetWidth;
+  elWaterfall.height = targetHeight;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = "#060b10";
+  ctx.fillRect(0, 0, width, height);
+}
+
+function interpolateColor(a, b, ratio) {
+  return a.map((value, index) => Math.round(value + (b[index] - value) * ratio));
+}
+
+function waterfallColor(value) {
+  const normalized = Math.max(0, Math.min(1, value));
+
+  for (let index = 1; index < WATERFALL_PALETTE.length; index += 1) {
+    const prev = WATERFALL_PALETTE[index - 1];
+    const next = WATERFALL_PALETTE[index];
+    if (normalized <= next.stop) {
+      const span = next.stop - prev.stop || 1;
+      return interpolateColor(prev.color, next.color, (normalized - prev.stop) / span);
+    }
+  }
+
+  return WATERFALL_PALETTE[WATERFALL_PALETTE.length - 1].color;
+}
+
+function decodeSpectrumFrame(payload) {
+  if (!payload || payload.encoding !== "delta_int8" || !Array.isArray(payload.fft_delta)) {
+    return [];
+  }
+
+  const ref = Number(payload.fft_ref_db ?? 0);
+  const step = Number(payload.fft_step_db ?? 0.5);
+  return payload.fft_delta.map((delta) => ref + (Number(delta) + 128) * step);
+}
+
+function drawWaterfallRow(values, minDb, maxDb) {
+  const ctx = getWaterfallContext();
+  if (!ctx || !elWaterfall || !values.length) return;
+
+  resizeWaterfallCanvas();
+
+  const width = Math.max(1, Math.floor(elWaterfall.clientWidth));
+  const height = Math.max(1, Math.floor(elWaterfall.clientHeight));
+  const shiftHeight = Math.max(0, height - 1);
+
+  if (shiftHeight > 0) {
+    const existing = ctx.getImageData(0, 0, width, shiftHeight);
+    ctx.putImageData(existing, 0, 1);
+  }
+
+  const row = ctx.createImageData(width, 1);
+  const range = Math.max(1, Number(maxDb) - Number(minDb));
+
+  for (let x = 0; x < width; x += 1) {
+    const index = Math.min(values.length - 1, Math.floor((x / Math.max(1, width - 1)) * (values.length - 1)));
+    const normalized = (values[index] - minDb) / range;
+    const [r, g, b] = waterfallColor(normalized);
+    const offset = x * 4;
+    row.data[offset] = r;
+    row.data[offset + 1] = g;
+    row.data[offset + 2] = b;
+    row.data[offset + 3] = 255;
+  }
+
+  ctx.putImageData(row, 0, 0);
+}
+
+function scheduleWaterfallReconnect() {
+  if (waterfallReconnectTimer || location.protocol === "file:") return;
+  waterfallReconnectTimer = window.setTimeout(() => {
+    waterfallReconnectTimer = null;
+    connectWaterfall();
+  }, 1500);
+}
+
+function connectWaterfall() {
+  if (!elWaterfall) return;
+
+  resizeWaterfallCanvas();
+
+  if (location.protocol === "file:") {
+    setWaterfallState("Preview");
+    return;
+  }
+
+  if (waterfallSocket && [WebSocket.CONNECTING, WebSocket.OPEN].includes(waterfallSocket.readyState)) {
+    return;
+  }
+
+  const scheme = location.protocol === "https:" ? "wss" : "ws";
+  waterfallSocket = new WebSocket(`${scheme}://${location.host}/ws/spectrum`);
+  setWaterfallState("Linking");
+
+  waterfallSocket.addEventListener("open", () => {
+    setWaterfallState("Live");
+  });
+
+  waterfallSocket.addEventListener("message", (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      const frame = decodeSpectrumFrame(payload);
+      drawWaterfallRow(frame, Number(payload.min_db ?? -140), Number(payload.max_db ?? -10));
+    } catch (error) {
+      console.error("waterfall frame:", error);
+    }
+  });
+
+  waterfallSocket.addEventListener("error", () => {
+    setWaterfallState("Fault");
+  });
+
+  waterfallSocket.addEventListener("close", () => {
+    waterfallSocket = null;
+    setWaterfallState("Offline");
+    scheduleWaterfallReconnect();
+  });
+}
+
 function setKnobAngle(angle) {
   knobAngle = angle;
   elKnob.style.setProperty("--knob-angle", `${angle}deg`);
@@ -147,7 +318,7 @@ function setKnobAngle(angle) {
 
 function spinKnob(detents) {
   if (!Number.isFinite(detents) || detents === 0) return;
-  setKnobAngle((knobAngle + detents * 14) % 360);
+  setKnobAngle(knobAngle + detents * 14);
 }
 
 function renderFrequency(frequencyHz) {
@@ -245,6 +416,39 @@ async function pollStatus() {
   } catch (_) {
     // Keep the UI stable if the backend is briefly unavailable.
   }
+}
+
+async function sendPtt(enabled) {
+  try {
+    const response = await fetch(`${API}/api/rig/ptt`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    setPttBadge(enabled);
+  } catch (error) {
+    console.error("set_ptt:", error);
+    txHoldActive = false;
+    setTxButtonState(false);
+    pollStatus();
+  }
+}
+
+function beginTxHold(event) {
+  if (txHoldActive) return;
+  event?.preventDefault();
+  txHoldActive = true;
+  setTxButtonState(true);
+  sendPtt(true);
+}
+
+function endTxHold() {
+  if (!txHoldActive) return;
+  txHoldActive = false;
+  setTxButtonState(false);
+  sendPtt(false);
 }
 
 elMode.addEventListener("change", async () => {
@@ -364,9 +568,26 @@ function releaseKnob(event) {
 window.addEventListener("pointermove", handleKnobPointerMove);
 window.addEventListener("pointerup", releaseKnob);
 window.addEventListener("pointercancel", releaseKnob);
+window.addEventListener("resize", resizeWaterfallCanvas);
+window.addEventListener("blur", endTxHold);
 
 btnConn.addEventListener("click", connectRx);
 btnDisc.addEventListener("click", disconnectRx);
+btnTx.addEventListener("pointerdown", beginTxHold);
+btnTx.addEventListener("keydown", (event) => {
+  if (event.repeat) return;
+  if (event.key === " " || event.key === "Enter") {
+    beginTxHold(event);
+  }
+});
+btnTx.addEventListener("keyup", (event) => {
+  if (event.key === " " || event.key === "Enter") {
+    event.preventDefault();
+    endTxHold();
+  }
+});
+window.addEventListener("pointerup", endTxHold);
+window.addEventListener("pointercancel", endTxHold);
 
 async function connectRx() {
   if (pc) return;
@@ -484,5 +705,7 @@ syncModeUI(elMode.value);
 setTuneStep(selectedTuneStep);
 updateSignalState(-127);
 elPassband.textContent = "Auto";
+resizeWaterfallCanvas();
+connectWaterfall();
 pollStatus();
 pollId = window.setInterval(pollStatus, 1000);

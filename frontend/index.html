@@ -67,11 +67,12 @@
               <strong data-audio-readout>Standby</strong>
             </div>
 
-            <p class="block-copy">Bring up the WebRTC audio path and keep monitoring while tuning the VFO.</p>
+            <p class="block-copy">Bring up the WebRTC audio path and hold TX only while you intend to key the radio.</p>
 
             <div class="button-stack">
               <button id="btn-connect" class="panel-button panel-button--primary">Connect RX</button>
               <button id="btn-disconnect" class="panel-button" disabled>Disconnect</button>
+              <button id="btn-tx" class="panel-button panel-button--tx" type="button">TX HOLD</button>
             </div>
           </section>
 
@@ -118,6 +119,15 @@
               <div id="freq-mhz" class="vfo-frequency" aria-live="polite" aria-label="VFO frequency display"></div>
 
               <div class="vfo-screen__hint">Use the mouse wheel on the digits, click the knob sides, or drag the knob to tune.</div>
+            </div>
+
+            <div class="waterfall-frame">
+              <div class="waterfall-header">
+                <span class="hardware-label">Waterfall</span>
+                <strong id="waterfall-state">Standby</strong>
+              </div>
+
+              <canvas id="waterfall-canvas" class="waterfall-canvas" aria-label="Receiver waterfall display"></canvas>
             </div>
 
             <div class="screen-controls">

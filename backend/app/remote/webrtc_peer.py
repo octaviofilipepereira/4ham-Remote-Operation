@@ -3,25 +3,20 @@ from typing import Optional
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 
+from .audio_capture import AudioCaptureService
 from .audio_rx import AudioRxTrack
 
 logger = logging.getLogger(__name__)
 
 
 class WebRTCPeer:
-    """Gere uma RTCPeerConnection aiortc com uma track de áudio RX.
-
-    *audio_device* — dispositivo sounddevice (nome, índice ou None)
-    *rx_channel*   — canal de captura (0 = L)
-    """
+    """Gere uma RTCPeerConnection aiortc com uma track de áudio RX."""
 
     def __init__(
         self,
-        audio_device: str | int | None = None,
-        rx_channel: int = 0,
+        audio_source: AudioCaptureService,
     ) -> None:
-        self._audio_device = audio_device
-        self._rx_channel = rx_channel
+        self._audio_source = audio_source
         self._pc: Optional[RTCPeerConnection] = None
         self._audio_track: Optional[AudioRxTrack] = None
 
@@ -32,10 +27,7 @@ class WebRTCPeer:
         await self.close()   # fechar ligação anterior se existir
 
         self._pc = RTCPeerConnection()
-        self._audio_track = AudioRxTrack(
-            device=self._audio_device,
-            rx_channel=self._rx_channel,
-        )
+        self._audio_track = AudioRxTrack(source=self._audio_source)
         self._pc.addTrack(self._audio_track)
 
         @self._pc.on("connectionstatechange")

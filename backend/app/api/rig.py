@@ -73,3 +73,20 @@ async def set_mode(body: SetModeRequest, request: Request) -> dict:
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
     return {"ok": True}
+
+
+# ── POST /api/rig/ptt ────────────────────────────────────────────────────────
+
+class SetPTTRequest(BaseModel):
+    enabled: bool = Field(..., description="Estado PTT/TX pretendido")
+
+
+@router.post("/ptt")
+async def set_ptt(body: SetPTTRequest, request: Request) -> dict:
+    """Activa ou desactiva o PTT do rádio."""
+    driver = _driver(request)
+    try:
+        await driver.set_ptt(body.enabled)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    return {"ok": True, "ptt": body.enabled}

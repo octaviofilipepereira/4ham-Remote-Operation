@@ -11,8 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from .api.rig import router as rig_router
 from .api.webrtc import router as webrtc_router
 from .core.auth_middleware import BasicAuthMiddleware
+from .remote.audio_capture import AudioCaptureService
 from .remote.cat_driver import CATDriver
 from .remote.webrtc_peer import WebRTCPeer
+from .websocket.spectrum import router as spectrum_router
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +45,20 @@ async def lifespan(app: FastAPI):
         logger.warning("rigctld não disponível no arranque — será tentado no primeiro comando")
 
     audio_cfg = cfg.get("audio", {})
-    peer = WebRTCPeer(
-        audio_device=os.getenv("AUDIO_DEVICE") or audio_cfg.get("device") or None,
+    audio_source = AudioCaptureService(
+        device=os.getenv("AUDIO_DEVICE") or audio_cfg.get("device") or None,
         rx_channel=int(os.getenv("AUDIO_RX_CHANNEL", audio_cfg.get("rx_channel", 0))),
+    )
+    app.state.audio_capture = audio_source
+    peer = WebRTCPeer(
+        audio_source=audio_source,
     )
     app.state.webrtc_peer = peer
 
     yield
 
     await peer.close()
+    await audio_source.close()
     await driver.close()
 
 
@@ -79,6 +86,7 @@ def create_app() -> FastAPI:
 
     app.include_router(rig_router)
     app.include_router(webrtc_router)
+    app.include_router(spectrum_router)
 
     # servir o frontend estático se a pasta existir
     # main.py está em backend/app/ — três .parent sobem para a raiz do projecto

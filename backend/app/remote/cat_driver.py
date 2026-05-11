@@ -127,6 +127,9 @@ class CATDriver:
         lines = await self._cmd("t")
         return lines[0].strip() == "1"
 
+    async def set_ptt(self, enabled: bool) -> None:
+        await self._cmd(f"T {1 if enabled else 0}")
+
     async def get_status(self) -> RigStatus:
         freq               = await self.get_freq()
         mode, passband     = await self.get_mode()

@@ -423,6 +423,18 @@ body::before {
   border-color: rgba(255, 255, 255, 0.25);
 }
 
+.panel-button--tx {
+  color: #fff1ec;
+  background: linear-gradient(180deg, #6b2d29 0%, #401815 100%);
+  border-color: rgba(255, 132, 117, 0.24);
+}
+
+.panel-button--tx.is-active {
+  color: #200d0a;
+  background: linear-gradient(180deg, #ffd0c4 0%, #ff8e79 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 24px rgba(255, 132, 117, 0.28);
+}
+
 .display-bezel {
   min-height: 0;
   display: grid;
@@ -489,6 +501,41 @@ body::before {
 .display-footer {
   position: relative;
   z-index: 1;
+}
+
+.waterfall-frame {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(19, 25, 29, 0.94), rgba(8, 12, 15, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.waterfall-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.waterfall-header strong {
+  color: var(--teal);
+}
+
+.waterfall-canvas {
+  width: 100%;
+  height: clamp(132px, 18vh, 176px);
+  display: block;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(8, 17, 21, 0.98), rgba(3, 7, 9, 0.98)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 24px);
+  border: 1px solid rgba(146, 255, 228, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(146, 255, 228, 0.08), inset 0 0 32px rgba(0, 0, 0, 0.36);
 }
 
 .vfo-screen__label-row {
@@ -718,10 +765,19 @@ body[data-connection-state="connected"] .vfo-screen {
   box-shadow: inset 0 0 0 2px rgba(139, 239, 219, 0.18), inset 0 0 40px rgba(0, 0, 0, 0.38), 0 0 30px rgba(93, 255, 222, 0.12);
 }
 
+body[data-connection-state="connected"] .waterfall-frame {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 0 1px rgba(146, 255, 228, 0.06);
+}
+
 body[data-ptt-state="tx"] .brand-badge,
 body[data-ptt-state="tx"] .panel-button--primary,
 body[data-ptt-state="tx"] .softkey--primary {
   background: linear-gradient(180deg, #ffd5b3 0%, #ff9e7b 100%);
+}
+
+body[data-ptt-state="tx"] .panel-button--tx {
+  background: linear-gradient(180deg, #ffd0c4 0%, #ff8e79 100%);
+  color: #200d0a;
 }
 
 body[data-knob-active="true"] .vfo-knob {
@@ -765,6 +821,10 @@ body[data-knob-active="true"] .vfo-knob {
 
   .vfo-frequency {
     gap: 2px;
+  }
+
+  .waterfall-canvas {
+    height: 128px;
   }
 }
 
@@ -813,6 +873,10 @@ body[data-knob-active="true"] .vfo-knob {
   .nudge-strip {
     min-width: 0;
   }
+
+  .waterfall-canvas {
+    height: 118px;
+  }
 }
 
 @media (max-height: 840px) {
@@ -841,6 +905,10 @@ body[data-knob-active="true"] .vfo-knob {
 
   .vfo-screen {
     min-height: 150px;
+  }
+
+  .waterfall-canvas {
+    height: 112px;
   }
 
   .vfo-knob {
@@ -878,6 +946,10 @@ body[data-knob-active="true"] .vfo-knob {
   .vfo-screen {
     min-height: 132px;
     padding: 14px;
+  }
+
+  .waterfall-canvas {
+    height: 100px;
   }
 
   .freq-digit,
