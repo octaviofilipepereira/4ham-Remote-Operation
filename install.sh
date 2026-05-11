@@ -211,6 +211,7 @@ print_summary() {
 # ── main ───────────────────────────────────────────────────────────────────────
 main() {
   exec > >(tee -a "$LOG_FILE") 2>&1
+  trap 'echo -e "\n${RED}[ERRO]${RESET} Instalação interrompida. Ver log: $LOG_FILE" >&2' ERR
 
   echo ""
   echo -e "${BOLD}════════════════════════════════════════${RESET}"
@@ -229,7 +230,12 @@ main() {
   create_run_script
 
   echo ""
-  read -r -p "Instalar serviço systemd (requer sudo)? [s/N] " ans
+  if [[ -t 0 ]]; then
+    read -r -p "Instalar serviço systemd (requer sudo)? [s/N] " ans || ans=""
+  else
+    warn "Sessão não interactiva — serviço systemd ignorado. Correr install.sh com 'bash install.sh' para instalar."
+    ans=""
+  fi
   if [[ "${ans,,}" == "s" ]]; then
     install_systemd_service
   else
