@@ -1,11 +1,13 @@
 const API = "";
 const MAX_FREQUENCY_HZ = 999999999;
+const DEFAULT_FREQUENCY_HZ = 7100000;
+const LAST_FREQUENCY_STORAGE_KEY = "4ham.lastFrequencyHz";
 const STEP_PRESETS = [10, 100, 1000, 10000, 100000, 1000000];
 const DIGIT_STEPS = [100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1];
 
 let pc = null;
 let pollId = null;
-let currentFrequencyHz = null;
+let currentFrequencyHz = loadInitialFrequency();
 let selectedTuneStep = 100;
 let tuneLockUntil = 0;
 let freqCommitTimer = null;
@@ -51,6 +53,30 @@ const softkeys = Array.from(document.querySelectorAll(".softkey[data-multiplier]
 
 function clampFrequency(hz) {
   return Math.max(1, Math.min(MAX_FREQUENCY_HZ, Math.round(hz)));
+}
+
+function loadInitialFrequency() {
+  try {
+    const rawValue = window.localStorage.getItem(LAST_FREQUENCY_STORAGE_KEY);
+    const parsedValue = Number(rawValue);
+    if (Number.isFinite(parsedValue) && parsedValue > 0) {
+      return clampFrequency(parsedValue);
+    }
+  } catch (_) {
+    // Ignore storage access problems and fall back to the default VFO.
+  }
+
+  return DEFAULT_FREQUENCY_HZ;
+}
+
+function persistFrequency(frequencyHz) {
+  if (!Number.isFinite(frequencyHz)) return;
+
+  try {
+    window.localStorage.setItem(LAST_FREQUENCY_STORAGE_KEY, String(clampFrequency(frequencyHz)));
+  } catch (_) {
+    // Ignore storage access problems; tuning should remain functional.
+  }
 }
 
 function formatStepLabel(step) {
@@ -370,6 +396,7 @@ function applyLocalFrequency(nextFrequencyHz, step = selectedTuneStep) {
 
   const previousFrequencyHz = currentFrequencyHz ?? clamped;
   currentFrequencyHz = clamped;
+  persistFrequency(currentFrequencyHz);
   tuneLockUntil = Date.now() + 700;
   renderFrequency(currentFrequencyHz);
   scheduleFrequencyCommit();
@@ -406,6 +433,7 @@ async function pollStatus() {
 
     if (currentFrequencyHz === null || Date.now() >= tuneLockUntil) {
       currentFrequencyHz = clampFrequency(data.frequency_hz);
+      persistFrequency(currentFrequencyHz);
       renderFrequency(currentFrequencyHz);
     }
 
