@@ -17,9 +17,8 @@ Last update: 2026-05-13 UTC
 2. [Supported Transceivers](#2-supported-transceivers)
 3. [USB Audio (AF Interface)](#3-usb-audio-af-interface)
 4. [CAT Interface (rigctld)](#4-cat-interface-rigctld)
-5. [RTL-SDR (Wideband RF Spectrum)](#5-rtl-sdr-wideband-rf-spectrum)
-6. [Server Hardware](#6-server-hardware)
-7. [Network Requirements](#7-network-requirements)
+5. [Server Hardware](#5-server-hardware)
+6. [Network Requirements](#6-network-requirements)
 
 ---
 
@@ -39,7 +38,6 @@ Optional but recommended:
 
 | Component | Purpose |
 |---|---|
-| RTL-SDR dongle | Wideband RF spectrum (±50 kHz panadapter) |
 | SSL certificate | Secure HTTPS (self-signed works) |
 | Static IP / DDNS | Stable remote access address |
 
@@ -55,7 +53,7 @@ Transceivers tested or documented for 4HAM Remote Operation:
 |---|---|---|---|---|
 | **Yaesu FT-991A** | 1035 | USB Serial `/dev/ttyUSB0`, 38400 baud | USB Audio CODEC (PCM2903B) — L=RX, R=TX | Primary development radio |
 | **Xiegu X6100** | 3087 | Network (native WiFi/Ethernet) | Network audio (native) | **No USB** — CAT and audio are network-only |
-| **Icom IC-7300** | 373 | USB Serial, 19200 baud | USB Audio — IQ output available | IQ output enables wideband spectrum without RTL-SDR |
+| **Icom IC-7300** | 373 | USB Serial, 19200 baud | USB Audio — IQ output available | IQ output enables native wideband spectrum |
 | **Yaesu FTDX10** | 1118 | USB Serial, 38400 baud | USB Audio | Has built-in scope — future SDR interface possible |
 | **Elecraft K4** | 2050 | Network or USB Serial | Network or USB Audio | Native network CAT |
 
@@ -63,7 +61,7 @@ Transceivers tested or documented for 4HAM Remote Operation:
 
 ### Transceivers with native wideband spectrum
 
-Some transceivers provide IQ or scope data over USB without needing an RTL-SDR:
+Some transceivers provide IQ or scope data over USB, enabling a wideband panadapter view:
 
 | Transceiver | Interface | Span |
 |---|---|---|
@@ -72,7 +70,7 @@ Some transceivers provide IQ or scope data over USB without needing an RTL-SDR:
 | Elecraft K4 | Network audio/IQ | Configurable |
 | Xiegu X6100 | Network native | Built-in scope (physical display only — network spectrum API not yet integrated in 4HAM) |
 
-> **FT-991A note:** The FT-991A does **not** provide IQ or wideband spectrum data over USB. The USB Audio output is demodulated AF only (0–3 kHz for SSB). Without an RTL-SDR, the waterfall shows AF spectrum (0–3 kHz); an RTL-SDR dongle is **optional** and enables a wideband panadapter (±50 kHz centred on the VFO).
+> **FT-991A note:** The FT-991A does **not** provide IQ or wideband spectrum data over USB. The USB Audio output is demodulated AF only (0–3 kHz for SSB). The waterfall shows AF spectrum (0–3 kHz).
 
 ---
 
@@ -132,59 +130,7 @@ See [radio_profiles.md](radio_profiles.md) for full per-radio configuration exam
 
 ---
 
-## 5. RTL-SDR (Wideband RF Spectrum) — Optional
-
-> **The RTL-SDR is entirely optional.** Without it, 4HAM Remote Operation works normally; the waterfall displays AF spectrum (0–3 kHz). Adding an RTL-SDR upgrades the waterfall to a full RF panadapter (±50 kHz centred on the VFO), which is especially useful with radios that do not provide native wideband spectrum over USB (e.g. FT-991A).
-
-An RTL-SDR dongle provides wideband RF spectrum (panadapter view) centred on the VFO frequency. The installer will ask whether you have one connected; if not, simply answer No and the system works with AF spectrum.
-
-### Supported dongles
-
-| Dongle | USB VID:PID | Notes |
-|---|---|---|
-| RTL-SDR Blog v3 | `0bda:2838` | Most common; supported by standard `rtl-sdr` apt package |
-| RTL-SDR Blog v4 | `0bda:2838` | Requires custom driver from `rtlsdrblog/rtl-sdr-blog` |
-| Generic RTL2832U | `0bda:2832` | Works; lower quality |
-
-### Installation
-
-Standard (v3 and generic):
-```bash
-sudo apt install rtl-sdr
-```
-
-RTL-SDR Blog v4:
-```bash
-sudo apt remove -y rtl-sdr librtlsdr0 librtlsdr-dev
-git clone https://github.com/rtlsdrblog/rtl-sdr-blog
-cd rtl-sdr-blog && mkdir build && cd build
-cmake ../ -DINSTALL_UDEV_RULES=ON
-make && sudo make install && sudo ldconfig
-```
-
-Blacklist conflicting kernel modules:
-```bash
-sudo tee /etc/modprobe.d/blacklist-rtl.conf <<'EOF'
-blacklist dvb_usb_rtl28xxu
-blacklist rtl2832
-blacklist rtl2830
-EOF
-sudo modprobe -r dvb_usb_rtl28xxu 2>/dev/null || true
-```
-
-Test:
-```bash
-rtl_test -t
-```
-
-Python bindings (for backend integration):
-```bash
-pip install pyrtlsdr
-```
-
----
-
-## 6. Server Hardware
+## 5. Server Hardware
 
 The server is the Linux machine physically connected to the transceiver, running the 4HAM backend.
 
@@ -196,7 +142,7 @@ The server is the Linux machine physically connected to the transceiver, running
 | RAM | 512 MB |
 | Storage | 1 GB free |
 | OS | Ubuntu 22.04 / Debian 12 / Raspberry Pi OS 11+ (64-bit) |
-| USB ports | 2× (one for CAT/Audio, one for RTL-SDR if used) |
+| USB ports | 1× (CAT/Audio) |
 
 ### Recommended
 
@@ -213,12 +159,11 @@ The server is the Linux machine physically connected to the transceiver, running
 | Architecture | PC Linux x86-64 |
 | USB CAT/Audio | CP2105 Dual UART → FT-991A `/dev/ttyUSB0` |
 | USB Audio | PCM2903B `USB Audio CODEC` |
-| RTL-SDR | RTL2838 `0bda:2838` (present, pending integration) |
 | OS | Linux |
 
 ---
 
-## 7. Network Requirements
+## 6. Network Requirements
 
 ### Ports
 

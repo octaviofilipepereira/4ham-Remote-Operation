@@ -214,7 +214,7 @@ Lower panel (variable height) — displays the time evolution of the spectrum, w
 | Yellow / orange | High | Strong signal |
 | Red / coral | Very high | Very strong signal |
 
-> **Note on FT-991A:** The waterfall shows the AF spectrum (0–3 kHz for SSB), not wideband RF spectrum. The system works normally without an RTL-SDR. Connecting an RTL-SDR dongle to the server is **optional** and enables a wideband RF panadapter (±50 kHz centred on the VFO) — see [hardware_requirements.md](hardware_requirements.md).
+> **Note on FT-991A:** The waterfall shows the AF spectrum (0–3 kHz for SSB). This is normal behaviour for this radio — the FT-991A does not provide wideband RF spectrum over USB.
 
 ---
 

@@ -79,7 +79,7 @@ audio:
 
 ### Known limitations
 
-- **No native wideband spectrum**: USB Audio output is demodulated AF only (0–3 kHz SSB). RTL-SDR required for panadapter view.
+- **No native wideband spectrum**: USB Audio output is demodulated AF only (0–3 kHz SSB). The waterfall shows AF spectrum only.
 - **CAT baud sensitivity**: Must use 38400 exactly. Higher rates are unstable on some FT-991A firmware versions.
 - **PTT via CAT only**: Hardware PTT via RTS/CTS is not required; `T` command via rigctld extended protocol is used.
 
@@ -168,7 +168,7 @@ audio:
 
 ### IQ output (wideband spectrum)
 
-The IC-7300 can output IQ data over USB Audio (±48 kHz), enabling wideband spectrum without RTL-SDR. This requires selecting the IQ output mode in the radio's USB settings and configuring the `IcomUSBIQSource` spectrum source in the backend (planned feature — see [ROADMAP.md](../ROADMAP.md)).
+The IC-7300 can output IQ data over USB Audio (±48 kHz), enabling native wideband spectrum. This requires selecting the IQ output mode in the radio's USB settings and configuring the `IcomUSBIQSource` spectrum source in the backend (planned feature — see [ROADMAP.md](../ROADMAP.md)).
 
 ---
 
