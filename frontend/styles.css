@@ -615,11 +615,42 @@ body::before {
   font-size: 0.84rem;
 }
 
-
-.waterfall-header strong {
-  align-items: center;
+.waterfall-frame {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(19, 25, 29, 0.94), rgba(8, 12, 15, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+.waterfall-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.waterfall-header strong {
+  color: var(--teal);
+}
+
+.waterfall-canvas {
+  width: 100%;
+  height: clamp(132px, 18vh, 176px);
+  display: block;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(8, 17, 21, 0.98), rgba(3, 7, 9, 0.98)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 24px);
+  border: 1px solid rgba(146, 255, 228, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(146, 255, 228, 0.08), inset 0 0 32px rgba(0, 0, 0, 0.36);
+}
+
+.vfo-screen__label-row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -974,8 +1005,14 @@ body[data-knob-active="true"] .vfo-knob {
 }
 
 @media (max-width: 1180px) {
+  .radio-chassis {
+    grid-template-rows: auto auto;
+  }
+
   .radio-main {
     grid-template-columns: 1fr;
+    grid-auto-rows: max-content;
+    align-content: start;
   }
 
   .control-workbench {
