@@ -260,6 +260,7 @@ body::before {
 
 .operation-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 .control-workbench {
@@ -284,12 +285,20 @@ body::before {
   border-radius: var(--radius-lg);
 }
 
+.hardware-block--compact {
+  padding: 10px 12px;
+}
+
 .block-title {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.hardware-block--compact .block-title {
+  margin-bottom: 8px;
 }
 
 .block-title strong,
@@ -316,6 +325,12 @@ body::before {
   gap: 6px;
   color: var(--text-dim);
   margin-bottom: 10px;
+}
+
+.hardware-block--compact .meter-scale {
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 0.64rem;
 }
 
 .sr-meter {
@@ -369,6 +384,15 @@ body::before {
   font-family: var(--display-font);
 }
 
+.hardware-block--compact .signal-track {
+  height: 14px;
+}
+
+.hardware-block--compact .signal-readout {
+  margin-top: 8px;
+  font-size: 0.88rem;
+}
+
 #smeter-val {
   color: var(--amber);
 }
@@ -391,6 +415,11 @@ body::before {
 
 .button-stack {
   margin-top: auto;
+}
+
+.hardware-block--compact .button-stack {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 8px;
 }
 
 .step-grid,
@@ -423,6 +452,12 @@ body::before {
 .step-btn:hover,
 .softkey:hover {
   transform: translateY(-1px);
+}
+
+.hardware-block--compact .panel-button {
+  min-height: 42px;
+  padding: 10px 8px;
+  font-size: 0.82rem;
 }
 
 .panel-button:disabled {
@@ -665,6 +700,11 @@ body::before {
 .display-footer {
   padding: 2px 8px 0;
   font-size: 0.86rem;
+}
+
+.hardware-block--compact .block-copy {
+  margin: 0;
+  font-size: 0.84rem;
 }
 
 .form-field {
@@ -983,6 +1023,10 @@ body[data-knob-active="true"] .vfo-knob {
   .operation-grid,
   .tuning-panel,
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hardware-block--compact .button-stack {
     grid-template-columns: 1fr;
   }
 
