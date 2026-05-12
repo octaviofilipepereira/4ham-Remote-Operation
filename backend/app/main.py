@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI):
     audio_source = AudioCaptureService(
         device=os.getenv("AUDIO_DEVICE") or audio_cfg.get("device") or None,
         rx_channel=int(os.getenv("AUDIO_RX_CHANNEL", audio_cfg.get("rx_channel", 0))),
+        rx_gain=float(os.getenv("AUDIO_RX_GAIN", audio_cfg.get("rx_gain", 1.0))),
     )
     app.state.audio_capture = audio_source
     peer = WebRTCPeer(

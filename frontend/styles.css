@@ -602,6 +602,26 @@ body::before {
   margin-top: auto;
 }
 
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.volume-slider {
+  flex: 1;
+  accent-color: var(--accent, #4a9eff);
+  cursor: pointer;
+}
+
+.volume-val {
+  font-size: 11px;
+  color: var(--text-muted, #8899aa);
+  min-width: 36px;
+  text-align: right;
+}
+
 .hardware-block--compact .button-stack {
   grid-template-columns: 1fr;
   margin-top: 8px;

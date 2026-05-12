@@ -19,9 +19,11 @@ class AudioCaptureService:
         self,
         device: str | int | None = None,
         rx_channel: int = 0,
+        rx_gain: float = 1.0,
     ) -> None:
         self._device = device
         self._rx_channel = rx_channel
+        self._rx_gain = float(rx_gain)
         self._stream: Optional[sd.InputStream] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._lock = asyncio.Lock()
@@ -87,6 +89,9 @@ class AudioCaptureService:
             logger.warning("sounddevice status: %s", status)
 
         mono = indata[:, self._rx_channel].copy()
+        if self._rx_gain != 1.0:
+            scaled = mono.astype(np.float32) * self._rx_gain
+            mono = np.clip(scaled, -32768, 32767).astype(np.int16)
         if self._loop is not None and not self._loop.is_closed():
             self._loop.call_soon_threadsafe(self._fanout, mono)
 

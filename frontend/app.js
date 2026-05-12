@@ -6,6 +6,8 @@ const STEP_PRESETS = [10, 100, 1000, 10000, 100000, 1000000];
 const DIGIT_STEPS = [100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1];
 
 let pc = null;
+let audioCtx = null;
+let gainNode = null;
 let pollId = null;
 let currentFrequencyHz = loadInitialFrequency();
 let selectedTuneStep = 100;
@@ -40,6 +42,8 @@ const elSmVal = document.getElementById("smeter-val");
 const elSignalQuality = document.getElementById("signal-quality");
 const elConn = document.getElementById("conn-state");
 const elAudio = document.getElementById("rx-audio");
+const elVolume = document.getElementById("rx-volume");
+const elVolumeVal = document.getElementById("rx-volume-val");
 const elPassband = document.getElementById("passband-readout");
 const elKnob = document.getElementById("vfo-knob");
 const elWaterfall = document.getElementById("waterfall-canvas");
@@ -754,6 +758,12 @@ window.addEventListener("blur", endTxHold);
 
 btnConn.addEventListener("click", connectRx);
 btnDisc.addEventListener("click", disconnectRx);
+
+elVolume.addEventListener("input", () => {
+  const pct = parseInt(elVolume.value, 10);
+  elVolumeVal.textContent = `${pct}%`;
+  if (gainNode) gainNode.gain.value = pct / 100;
+});
 btnTx.addEventListener("pointerdown", beginTxHold);
 btnTx.addEventListener("keydown", (event) => {
   if (event.repeat) return;
@@ -783,7 +793,19 @@ async function connectRx() {
   });
 
   pc.ontrack = (event) => {
-    elAudio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+    const stream = event.streams[0] ?? new MediaStream([event.track]);
+    // WebAudio GainNode — permite amplificar além de 100%
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = parseFloat(elVolume.value) / 100;
+      const src = audioCtx.createMediaStreamSource(stream);
+      src.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+    } catch (_) {
+      // fallback para audio element directo se WebAudio não disponível
+      elAudio.srcObject = stream;
+    }
     setAudioState("RX stream received");
   };
 
@@ -867,6 +889,12 @@ async function disconnectRx() {
   if (pc) {
     pc.close();
     pc = null;
+  }
+
+  if (audioCtx) {
+    await audioCtx.close().catch(() => {});
+    audioCtx = null;
+    gainNode = null;
   }
 
   try {
