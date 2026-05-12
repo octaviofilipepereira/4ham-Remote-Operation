@@ -305,6 +305,23 @@ body::before {
   margin-bottom: 8px;
 }
 
+.step-block .block-title {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.step-block .block-title strong {
+  font-size: 0.94rem;
+  white-space: nowrap;
+}
+
+.mode-slot label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .block-title strong,
 .screen-meta strong,
 .mini-stat strong {
@@ -439,7 +456,7 @@ body::before {
 }
 
 .hardware-block--compact .button-stack {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   margin-top: 8px;
 }
 
@@ -1217,6 +1234,67 @@ body[data-knob-active="true"] .vfo-knob {
 
   .waterfall-canvas {
     height: 118px;
+  }
+}
+
+@media (max-height: 1050px) {
+  .radio-shell {
+    padding: 8px;
+  }
+
+  .radio-chassis {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .hardware-block,
+  .display-bezel {
+    padding: 11px;
+  }
+
+  .panel-button,
+  .step-btn,
+  .softkey,
+  .log-input,
+  .log-textarea,
+  #mode-select {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .log-textarea {
+    min-height: 82px;
+  }
+
+  .vfo-knob {
+    width: min(100%, 138px);
+  }
+
+  .tuning-panel .block-copy,
+  .tuning-panel .knob-caption {
+    display: none;
+  }
+
+  .band-plan-block {
+    max-height: 220px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .band-plan-list {
+    max-height: 170px;
+    overflow-y: auto;
+  }
+
+  .dx-block {
+    max-height: 96px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .spot-list {
+    max-height: 52px;
+    overflow-y: auto;
   }
 }
 
