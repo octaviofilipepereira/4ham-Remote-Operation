@@ -220,28 +220,34 @@ function syncModeUI(mode) {
   setModeReadout(mode);
 }
 
-function describeSignal(dbm) {
-  if (!Number.isFinite(dbm)) return "Standby";
-  if (dbm >= -45) return "Broadcast";
-  if (dbm >= -60) return "Strong";
-  if (dbm >= -75) return "Clean";
-  if (dbm >= -90) return "Usable";
-  if (dbm >= -105) return "Weak";
-  return "Noise floor";
+// rigctld `l STRENGTH` devolve dB relativos a S9: 0 = S9, −6 dB por unidade S abaixo.
+// Referência IARU HF: S9 = −73 dBm.
+const _S9_DBM = -73;
+const _STR_MIN = -54;  // Hamlib noise floor (≈ S0/S1)
+const _STR_MAX = 60;   // Hamlib máximo (≈ S9+60 dB)
+
+function strengthToSUnit(db) {
+  if (!Number.isFinite(db)) return "--";
+  if (db >= 0) return `S9+${Math.round(db)}`;
+  const s = Math.max(1, Math.min(9, Math.round(9 + db / 6)));
+  return `S${s}`;
 }
 
-function dbmToPercent(dbm) {
-  if (!Number.isFinite(dbm)) return 0;
-  const bounded = Math.max(-127, Math.min(0, dbm));
-  return ((bounded + 127) / 127) * 100;
+function strengthToPercent(db) {
+  if (!Number.isFinite(db)) return 0;
+  const bounded = Math.max(_STR_MIN, Math.min(_STR_MAX, db));
+  return ((bounded - _STR_MIN) / (_STR_MAX - _STR_MIN)) * 100;
 }
 
-function updateSignalState(dbm) {
-  const bounded = Number.isFinite(dbm) ? Math.max(-127, Math.min(0, dbm)) : -127;
+function updateSignalState(db) {
+  const bounded = Number.isFinite(db)
+    ? Math.max(_STR_MIN, Math.min(_STR_MAX, db))
+    : _STR_MIN;
   elSmeter.value = bounded;
-  elSmVal.textContent = `${bounded.toFixed(1)} dBm`;
-  elSignalQuality.textContent = describeSignal(dbm);
-  elSmeterFill.style.width = `${dbmToPercent(dbm)}%`;
+  const absDbm = Number.isFinite(db) ? Math.round(db + _S9_DBM) : null;
+  elSmVal.textContent = absDbm !== null ? `${absDbm} dBm` : "-- dBm";
+  elSignalQuality.textContent = Number.isFinite(db) ? strengthToSUnit(db) : "Standby";
+  elSmeterFill.style.width = `${strengthToPercent(db)}%`;
 }
 
 function setWaterfallState(text) {
