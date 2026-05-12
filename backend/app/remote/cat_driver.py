@@ -75,15 +75,24 @@ class CATDriver:
     # ── protocolo rigctld ────────────────────────────────────────────────────
 
     async def _cmd(self, cmd: str) -> list[str]:
-        """Envia *cmd* e recolhe linhas de resposta até ``RPRT <código>``."""
+        """Envia *cmd* no protocolo extendido rigctld (prefixo '+').
+
+        Formato de resposta extendida:
+          <command_name>: [params]  ← linha de cabeçalho (ignorada)
+          [Key: Value | valor_raw]  ← linhas de dados (0 ou mais)
+          RPRT <código>             ← terminador
+
+        Devolve lista dos *valores* extraídos (sem chaves nem cabeçalho).
+        """
         async with self._lock:
             await self._ensure_connected()
             try:
                 assert self._writer is not None
                 assert self._reader is not None
-                self._writer.write((cmd + "\n").encode())
+                self._writer.write(("+" + cmd + "\n").encode())
                 await self._writer.drain()
                 lines: list[str] = []
+                header_skipped = False
                 while True:
                     raw = await asyncio.wait_for(self._reader.readline(), _CMD_TIMEOUT)
                     if not raw:
@@ -94,8 +103,16 @@ class CATDriver:
                         if code != 0:
                             raise RuntimeError(f"rigctld RPRT {code} para '{cmd}'")
                         return lines
+                    if not header_skipped:
+                        # Primeira linha é sempre o cabeçalho (ex: "get_freq:" ou "get_level: STRENGTH")
+                        header_skipped = True
+                        continue
                     if text:
-                        lines.append(text)
+                        # Linhas de dados: "Key: Value" ou valor raw (ex: "-44")
+                        if ": " in text:
+                            lines.append(text.split(": ", 1)[1])
+                        else:
+                            lines.append(text)
             except (OSError, ConnectionResetError, asyncio.TimeoutError) as exc:
                 logger.warning("falha no comando '%s': %s — a reconectar", cmd, exc)
                 await self.close()
