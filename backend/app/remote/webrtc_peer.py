@@ -1,12 +1,16 @@
 import logging
 from typing import Optional
 
-from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 
 from .audio_capture import AudioCaptureService
 from .audio_rx import AudioRxTrack
 
 logger = logging.getLogger(__name__)
+
+_ICE_CONFIG = RTCConfiguration(
+    iceServers=[RTCIceServer(urls=["stun:stun.l.google.com:19302"])]
+)
 
 
 class WebRTCPeer:
@@ -26,7 +30,7 @@ class WebRTCPeer:
         """Processa um SDP offer do browser e devolve o SDP answer."""
         await self.close()   # fechar ligação anterior se existir
 
-        self._pc = RTCPeerConnection()
+        self._pc = RTCPeerConnection(configuration=_ICE_CONFIG)
         self._audio_track = AudioRxTrack(source=self._audio_source)
         self._pc.addTrack(self._audio_track)
 

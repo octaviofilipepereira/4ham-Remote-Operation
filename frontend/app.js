@@ -794,9 +794,12 @@ async function connectRx() {
 
   await new Promise((resolve) => {
     if (pc.iceGatheringState === "complete") return resolve();
-
+    const timeout = setTimeout(resolve, 8000);  // fallback: 8s
     pc.addEventListener("icegatheringstatechange", () => {
-      if (pc.iceGatheringState === "complete") resolve();
+      if (pc.iceGatheringState === "complete") {
+        clearTimeout(timeout);
+        resolve();
+      }
     });
   });
 
