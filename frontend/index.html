@@ -191,22 +191,16 @@
           <section class="hardware-block dx-block">
             <div class="block-title">
               <span class="hardware-label">DX Spots</span>
-              <strong>Queue</strong>
+              <strong id="dx-band-label">20 m</strong>
             </div>
 
-            <div class="info-stack spot-list">
-              <article class="spot-item spot-item--empty">
-                <strong>Cluster feed por ligar</strong>
-                <span>Reserva esta área para spots DX em directo, WSJT-X ou cluster telnet.</span>
-              </article>
-              <article class="spot-item">
-                <strong>Fila pronta</strong>
-                <span>O layout já suporta uma lista contínua de spots no lado direito.</span>
-              </article>
-              <article class="spot-item">
-                <strong>Operação simplificada</strong>
-                <span>Sem duplicação de “Current mode” e “RX path” fora da área essencial.</span>
-              </article>
+            <div class="freq-ruler" id="freq-ruler" aria-label="Régua de frequências com spots DX">
+              <div class="freq-ruler__scale" id="freq-ruler-scale"></div>
+              <div class="freq-ruler__spots" id="freq-ruler-spots"></div>
+              <div class="freq-ruler__cursor" id="freq-ruler-cursor">
+                <div class="freq-ruler__cursor-line"></div>
+                <span class="freq-ruler__cursor-label" id="freq-ruler-cursor-label">14.195</span>
+              </div>
             </div>
           </section>
         </aside>

@@ -283,24 +283,141 @@ body::before {
 }
 
 .dx-column {
-  align-content: start;
+  align-content: stretch;
 }
 
 .dx-column .dx-block {
+  display: flex;
+  flex-direction: column;
   height: 100%;
 }
 
-.dx-column .spot-list {
-  overflow-y: auto;
+/* ── Freq ruler ─────────────────────────────── */
+.freq-ruler {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(8,17,21,0.96), rgba(3,7,9,0.98));
+  border: 1px solid rgba(146,255,228,0.12);
+  overflow: hidden;
 }
 
-.dx-column .spot-item strong {
-  font-size: 0.88rem;
+.freq-ruler__scale {
+  position: relative;
+  border-right: 1px solid rgba(255,255,255,0.1);
 }
 
-.dx-column .spot-item span {
-  font-size: 0.78rem;
-  word-break: break-word;
+.freq-ruler__scale-tick {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  transform: translateY(-50%);
+}
+
+.freq-ruler__scale-tick::after {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 1px;
+  background: rgba(255,255,255,0.3);
+}
+
+.freq-ruler__scale-tick--major::after {
+  width: 10px;
+  background: rgba(146,255,228,0.55);
+}
+
+.freq-ruler__scale-label {
+  font-family: var(--display-font);
+  font-size: 0.56rem;
+  color: var(--text-dim);
+  line-height: 1;
+  white-space: nowrap;
+  padding-right: 2px;
+}
+
+.freq-ruler__scale-tick--major .freq-ruler__scale-label {
+  color: var(--teal-soft);
+}
+
+.freq-ruler__spots {
+  position: relative;
+}
+
+.freq-ruler__spot {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+}
+
+.freq-ruler__spot-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 6px rgba(146,255,228,0.55);
+}
+
+.freq-ruler__spot-dot--dx {
+  background: var(--amber);
+  box-shadow: 0 0 6px rgba(247,196,109,0.55);
+}
+
+.freq-ruler__spot-dot--rare {
+  background: var(--red);
+  box-shadow: 0 0 6px rgba(255,132,117,0.55);
+}
+
+.freq-ruler__spot-call {
+  font-family: var(--display-font);
+  font-size: 0.62rem;
+  color: var(--teal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.freq-ruler__spot-dot--dx ~ .freq-ruler__spot-call {
+  color: var(--amber);
+}
+
+.freq-ruler__spot-dot--rare ~ .freq-ruler__spot-call {
+  color: var(--red);
+}
+
+.freq-ruler__cursor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.freq-ruler__cursor-line {
+  height: 1px;
+  background: rgba(247,196,109,0.7);
+  box-shadow: 0 0 4px rgba(247,196,109,0.4);
+}
+
+.freq-ruler__cursor-label {
+  position: absolute;
+  right: 6px;
+  top: 3px;
+  font-family: var(--display-font);
+  font-size: 0.6rem;
+  color: var(--amber);
 }
 
 .log-column {

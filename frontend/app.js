@@ -451,6 +451,7 @@ function applyLocalFrequency(nextFrequencyHz, step = selectedTuneStep) {
   tuneLockUntil = Date.now() + 700;
   renderFrequency(currentFrequencyHz);
   scheduleFrequencyCommit();
+  document.dispatchEvent(new CustomEvent("4ham:freqchange", { detail: currentFrequencyHz }));
 
   const detents = Math.round((clamped - previousFrequencyHz) / (step || 1));
   spinKnob(detents || Math.sign(clamped - previousFrequencyHz));
@@ -790,3 +791,134 @@ resizeWaterfallCanvas();
 connectWaterfall();
 pollStatus();
 pollId = window.setInterval(pollStatus, 1000);
+
+/* ── Freq Ruler (DX Spots column) ───────────────────────────────────────── */
+(function () {
+  const BAND_RANGES = [
+    { label: "80 m", lo: 3500000,  hi: 3800000  },
+    { label: "40 m", lo: 7000000,  hi: 7200000  },
+    { label: "30 m", lo: 10100000, hi: 10150000 },
+    { label: "20 m", lo: 14000000, hi: 14350000 },
+    { label: "17 m", lo: 18068000, hi: 18168000 },
+    { label: "15 m", lo: 21000000, hi: 21450000 },
+    { label: "12 m", lo: 24890000, hi: 24990000 },
+    { label: "10 m", lo: 28000000, hi: 29700000 },
+  ];
+
+  /* Spots simulados — serão substituídos por dados reais do cluster */
+  const DEMO_SPOTS = [
+    { call: "VK2GR",   freqHz: 14195000, type: "dx"   },
+    { call: "PY5EG",   freqHz: 14225000, type: "dx"   },
+    { call: "ZL2IFB",  freqHz: 14152000, type: "rare" },
+    { call: "EA8TL",   freqHz: 14070000, type: "dx"   },
+    { call: "OH2BH",   freqHz: 14260000, type: "dx"   },
+    { call: "G3LHJ",   freqHz: 14178000, type: ""     },
+    { call: "W6RJ",    freqHz: 14030000, type: ""     },
+    { call: "JA1NVF",  freqHz: 14020000, type: "rare" },
+    { call: "LU5HTV",  freqHz: 14310000, type: "dx"   },
+    { call: "CT1BFV",  freqHz: 14195000, type: ""     },
+  ];
+
+  const elRuler     = document.getElementById("freq-ruler");
+  const elScale     = document.getElementById("freq-ruler-scale");
+  const elSpots     = document.getElementById("freq-ruler-spots");
+  const elCursor    = document.getElementById("freq-ruler-cursor");
+  const elCursorLbl = document.getElementById("freq-ruler-cursor-label");
+  const elBandLbl   = document.getElementById("dx-band-label");
+
+  if (!elRuler) return;
+
+  let rulerBand = null;
+
+  function freqToMhzLabel(hz) {
+    return (hz / 1e6).toFixed(3);
+  }
+
+  function buildRuler(band) {
+    rulerBand = band;
+    elScale.innerHTML = "";
+    elSpots.innerHTML = "";
+    if (elBandLbl) elBandLbl.textContent = band.label;
+
+    const span = band.hi - band.lo;
+    const h = elRuler.clientHeight - 32; /* subtract block-title approx */
+
+    /* Scale ticks: every 25 kHz minor, 50 kHz major */
+    const step = span <= 200000 ? 10000 : span <= 500000 ? 25000 : 50000;
+    const majorEvery = 2; /* every 2nd tick is major */
+    let tick = Math.ceil(band.lo / step) * step;
+    let idx = 0;
+    while (tick <= band.hi) {
+      const pct = (tick - band.lo) / span * 100;
+      const major = (idx % majorEvery === 0);
+      const el = document.createElement("div");
+      el.className = "freq-ruler__scale-tick" + (major ? " freq-ruler__scale-tick--major" : "");
+      el.style.top = pct + "%";
+      if (major) {
+        const lbl = document.createElement("span");
+        lbl.className = "freq-ruler__scale-label";
+        lbl.textContent = freqToMhzLabel(tick);
+        el.appendChild(lbl);
+      }
+      elScale.appendChild(el);
+      tick += step;
+      idx++;
+    }
+
+    /* Spots */
+    const spots = DEMO_SPOTS.filter(s => s.freqHz >= band.lo && s.freqHz <= band.hi);
+    spots.forEach(spot => {
+      const pct = (spot.freqHz - band.lo) / span * 100;
+      const el = document.createElement("div");
+      el.className = "freq-ruler__spot";
+      el.style.top = pct + "%";
+      el.title = spot.call + " — " + freqToMhzLabel(spot.freqHz) + " MHz";
+
+      const dot = document.createElement("div");
+      dot.className = "freq-ruler__spot-dot" +
+        (spot.type === "dx" ? " freq-ruler__spot-dot--dx" :
+         spot.type === "rare" ? " freq-ruler__spot-dot--rare" : "");
+
+      const lbl = document.createElement("span");
+      lbl.className = "freq-ruler__spot-call";
+      lbl.textContent = spot.call;
+
+      el.appendChild(dot);
+      el.appendChild(lbl);
+      elSpots.appendChild(el);
+    });
+  }
+
+  function updateCursor(freqHz) {
+    if (!rulerBand) return;
+    const inBand = freqHz >= rulerBand.lo && freqHz <= rulerBand.hi;
+    elCursor.style.display = inBand ? "" : "none";
+    if (!inBand) return;
+    const pct = (freqHz - rulerBand.lo) / (rulerBand.hi - rulerBand.lo) * 100;
+    elCursor.style.top = pct + "%";
+    if (elCursorLbl) elCursorLbl.textContent = freqToMhzLabel(freqHz);
+  }
+
+  function getBandForFreq(hz) {
+    return BAND_RANGES.find(b => hz >= b.lo && hz <= b.hi) || BAND_RANGES[3]; /* default 20m */
+  }
+
+  /* Initial render */
+  const initBand = getBandForFreq(currentFrequencyHz);
+  buildRuler(initBand);
+  updateCursor(currentFrequencyHz);
+
+  /* Re-render when frequency changes (observe currentFrequencyHz via custom event) */
+  document.addEventListener("4ham:freqchange", (e) => {
+    const hz = e.detail;
+    const band = getBandForFreq(hz);
+    if (!rulerBand || band.label !== rulerBand.label) buildRuler(band);
+    updateCursor(hz);
+  });
+
+  /* Also re-render on resize */
+  new ResizeObserver(() => {
+    if (rulerBand) buildRuler(rulerBand);
+    updateCursor(currentFrequencyHz);
+  }).observe(elRuler);
+})();
