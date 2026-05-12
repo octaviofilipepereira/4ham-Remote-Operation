@@ -1174,7 +1174,7 @@ body[data-knob-active="true"] .vfo-knob {
 @media (max-width: 1440px) {
   .radio-main {
     /* À medida que a largura diminui: esquerda cresce, direita encolhe */
-    grid-template-columns: minmax(0, 1.38fr) minmax(165px, 0.38fr) minmax(220px, 0.68fr);
+    grid-template-columns: minmax(0, 1.36fr) minmax(165px, 0.38fr) minmax(220px, 0.68fr);
   }
 }
 
