@@ -219,6 +219,33 @@ _radio_profile=$(whiptail --backtitle "$BT" --title "$I18N_TITLE_RADIO" \
 _radio_label="$I18N_LABEL_FT991A"
 [[ "$_radio_profile" == "x6100" ]] && _radio_label="$I18N_LABEL_X6100"
 
+# ── RTL-SDR (apenas para rádios sem espectro RF nativo) ──────────────────────────────
+# Rádios sem espectro RF nativo: ft991a (e futuras variáncias AF-only)
+# Rádios com espectro nativo (saltar pergunta): x6100 (scope nativo)
+_use_rtlsdr=0
+_use_rtlsdr_v4=0
+_rtlsdr_label="$I18N_LABEL_RTLSDR_NO"
+_spectrum_source="audio_fft"
+
+case "$_radio_profile" in
+  ft991a)
+    if whiptail --backtitle "$BT" --title "$I18N_TITLE_RTLSDR_ASK" \
+      --yesno "$(i18n_fmt "$I18N_MSG_RTLSDR_ASK" RADIO "$_radio_label")" \
+      18 72; then
+      _use_rtlsdr=1
+      _rtlsdr_label="$I18N_LABEL_RTLSDR_YES"
+      _spectrum_source="rtlsdr"
+
+      # Perguntar se é RTL-SDR Blog v4
+      if whiptail --backtitle "$BT" --title "$I18N_TITLE_RTLSDR_V4" \
+        --yesno "$I18N_MSG_RTLSDR_V4" 13 70; then
+        _use_rtlsdr_v4=1
+      fi
+    fi
+    ;;
+  # x6100 e futuros rádios com espectro nativo: não perguntar
+esac
+
 # ── X6100 IP ───────────────────────────────────────────────────────────────────
 _x6100_ip="192.168.1.100"
 if [[ "$_radio_profile" == "x6100" ]]; then
@@ -315,12 +342,13 @@ whiptail --backtitle "$BT" --title "$I18N_TITLE_CONFIRM" \
   --yesno "$(i18n_fmt "$I18N_MSG_CONFIRM" \
     OS  "$OS_PRETTY_NAME" \
     RADIO "$_radio_label" \
+    RTLSDR "$_rtlsdr_label" \
     WSJTX "$_wsjtx_label" \
     MODE  "$_install_mode_label" \
     USER  "$_op_user" \
     UILANG "$_ui_lang_label" \
     LOG   "$LOG_FILE")" \
-  20 68 || exit 0
+  22 68 || exit 0
 
 # ── INSTALLATION ───────────────────────────────────────────────────────────────
 start_gauge "$I18N_GAUGE_TITLE"
@@ -350,6 +378,48 @@ if [[ $_install_wsjtx -eq 1 ]]; then
     || { echo "[WARN] wsjtx unavailable" >> "$LOG_FILE"; _install_wsjtx=0; }
   # Mark as present if installation succeeded
   [[ $_install_wsjtx -eq 1 ]] && _wsjtx_present=1
+fi
+
+if [[ $_use_rtlsdr -eq 1 ]]; then
+  if [[ $_use_rtlsdr_v4 -eq 1 ]]; then
+    gauge_step 29 "$I18N_GAUGE_RTLSDR_V4"
+    # Instalar dependências de compilação
+    run_sudo apt-get install -y git cmake libusb-1.0-0-dev build-essential >> "$LOG_FILE" 2>&1 \
+      || echo "[WARN] dependências v4 falharam" >> "$LOG_FILE"
+    # Remover driver conflituoso do apt
+    run_sudo apt-get remove -y rtl-sdr librtlsdr0 librtlsdr-dev >> "$LOG_FILE" 2>&1 || true
+    # Compilar driver RTL-SDR Blog v4
+    _rtlsdr_build_dir="$(mktemp -d /tmp/rtlsdr-blog-XXXXXX)"
+    _TMPFILES+=("$_rtlsdr_build_dir")
+    git clone --depth=1 https://github.com/rtlsdrblog/rtl-sdr-blog "$_rtlsdr_build_dir" >> "$LOG_FILE" 2>&1 \
+      || { echo "[WARN] clone rtl-sdr-blog falhou — a usar driver apt" >> "$LOG_FILE"; _use_rtlsdr_v4=0; }
+    if [[ $_use_rtlsdr_v4 -eq 1 ]]; then
+      mkdir -p "$_rtlsdr_build_dir/build"
+      cmake -S "$_rtlsdr_build_dir" -B "$_rtlsdr_build_dir/build" -DINSTALL_UDEV_RULES=ON >> "$LOG_FILE" 2>&1
+      make -C "$_rtlsdr_build_dir/build" >> "$LOG_FILE" 2>&1
+      run_sudo make -C "$_rtlsdr_build_dir/build" install >> "$LOG_FILE" 2>&1
+      run_sudo ldconfig >> "$LOG_FILE" 2>&1
+      # Blacklist módulos conflituosos do kernel
+      run_sudo tee /etc/modprobe.d/blacklist-rtl.conf > /dev/null <<'EOF'
+blacklist dvb_usb_rtl28xxu
+blacklist rtl2832
+blacklist rtl2830
+EOF
+      run_sudo modprobe -r dvb_usb_rtl28xxu 2>/dev/null || true
+    fi
+  else
+    gauge_step 29 "$I18N_GAUGE_RTLSDR"
+    run_sudo apt-get install -y rtl-sdr usbutils >> "$LOG_FILE" 2>&1 \
+      || echo "[WARN] rtl-sdr apt install falhou" >> "$LOG_FILE"
+  fi
+
+  # Adicionar utilizador ao grupo plugdev (acesso ao USB sem sudo)
+  run_sudo usermod -aG plugdev "$SERVICE_USER" >> "$LOG_FILE" 2>&1 \
+    || echo "[WARN] usermod plugdev falhou" >> "$LOG_FILE"
+
+  # Instalar pyrtlsdr (binding Python)
+  "$PYTHON_BIN" -m pip install --quiet pyrtlsdr >> "$LOG_FILE" 2>&1 \
+    || echo "[WARN] pyrtlsdr pip install falhou — RTL-SDR pode não funcionar" >> "$LOG_FILE"
 fi
 
 gauge_step 35 "$I18N_GAUGE_VENV"
@@ -409,6 +479,7 @@ content = '''import sys, os
 root     = sys.argv[1]
 username = sys.argv[2]
 ui_lang  = sys.argv[3]
+spectrum_source = sys.argv[4] if len(sys.argv) > 4 else \"audio_fft\"
 password = sys.stdin.read()
 sys.path.insert(0, os.path.join(root, \"backend\"))
 import bcrypt, yaml
@@ -422,6 +493,15 @@ cfg.setdefault(\"auth\", {})[\"users\"] = [{
     \"role\": \"operator\",
 }]
 cfg.setdefault(\"ui\", {})[\"language\"] = ui_lang
+cfg.setdefault(\"spectrum\", {})[\"source\"] = spectrum_source
+if spectrum_source == \"rtlsdr\":
+    cfg[\"spectrum\"].setdefault(\"rtlsdr\", {}).update({
+        \"device_index\": 0,
+        \"sample_rate\": 250000,
+        \"ppm_correction\": 0,
+        \"gain\": 30.0,
+        \"span_hz\": 100000,
+    })
 with open(cfg_path, \"w\", encoding=\"utf-8\") as f:
     yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
 '''
@@ -430,7 +510,7 @@ with open(sys.argv[1], 'w') as fh:
 " "$_tmp_py"
 
 printf '%s' "$_op_pass" \
-  | "$PYTHON_BIN" "$_tmp_py" "$ROOT_DIR" "$_op_user" "$UI_LANG" >> "$LOG_FILE" 2>&1 \
+  | "$PYTHON_BIN" "$_tmp_py" "$ROOT_DIR" "$_op_user" "$UI_LANG" "$_spectrum_source" >> "$LOG_FILE" 2>&1 \
   || abort "saving credentials"
 
 rm -f "$_tmp_py"

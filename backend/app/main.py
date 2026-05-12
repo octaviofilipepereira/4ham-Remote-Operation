@@ -55,11 +55,42 @@ async def lifespan(app: FastAPI):
     )
     app.state.webrtc_peer = peer
 
+    # ── Fonte de espectro (audio_fft ou rtlsdr) ───────────────────────────────
+    spectrum_cfg = cfg.get("spectrum", {})
+    source_type = spectrum_cfg.get("source", "audio_fft")
+    if source_type == "rtlsdr":
+        from .dsp.rtlsdr_source import RTLSDRSource, _HAS_RTLSDR
+        if _HAS_RTLSDR:
+            rtlsdr_cfg = spectrum_cfg.get("rtlsdr", {})
+            spectrum_source = RTLSDRSource(
+                cat_driver=driver,
+                device_index=int(rtlsdr_cfg.get("device_index", 0)),
+                sample_rate=int(rtlsdr_cfg.get("sample_rate", 250000)),
+                ppm=int(rtlsdr_cfg.get("ppm_correction", 0)),
+                gain=float(rtlsdr_cfg.get("gain", 30.0)),
+                span_hz=int(rtlsdr_cfg.get("span_hz", 100000)),
+            )
+            logger.info("Fonte de espectro: RTL-SDR (device_index=%d)", rtlsdr_cfg.get("device_index", 0))
+        else:
+            logger.warning(
+                "spectrum.source=rtlsdr configurado mas pyrtlsdr não está instalado — "
+                "a usar AudioFFTSource como substituto"
+            )
+            from .dsp.spectrum_source import AudioFFTSource
+            spectrum_source = AudioFFTSource(audio_source)
+    else:
+        from .dsp.spectrum_source import AudioFFTSource
+        spectrum_source = AudioFFTSource(audio_source)
+        logger.info("Fonte de espectro: AudioFFT (AF do rádio)")
+
+    app.state.spectrum_source = spectrum_source
+
     yield
 
     await peer.close()
     await audio_source.close()
     await driver.close()
+    await spectrum_source.stop()
 
 
 def create_app() -> FastAPI:

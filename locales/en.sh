@@ -85,7 +85,7 @@ I18N_MSG_ERR_PASS_MISMATCH="Passwords do not match. Please try again."
 
 # ── Confirmation ───────────────────────────────────────────────────────────────
 I18N_TITLE_CONFIRM="Confirm Installation"
-I18N_MSG_CONFIRM=$'Ready to install. Summary:\n\n  OS              : %OS%\n  Radio           : %RADIO%\n  WSJT-X (R3)     : %WSJTX%\n  Install mode    : %MODE%\n  Username        : %USER%\n  UI Language     : %UILANG%\n  Log             : %LOG%\n\nProceed with installation?'
+I18N_MSG_CONFIRM=$'Ready to install. Summary:\n\n  OS              : %OS%\n  Radio           : %RADIO%\n  RF Spectrum     : %RTLSDR%\n  WSJT-X (R3)     : %WSJTX%\n  Install mode    : %MODE%\n  Username        : %USER%\n  UI Language     : %UILANG%\n  Log             : %LOG%\n\nProceed with installation?'
 
 # ── Gauge steps ────────────────────────────────────────────────────────────────
 I18N_GAUGE_TITLE="Installing 4ham Remote Operation -- please wait..."
@@ -100,6 +100,8 @@ I18N_GAUGE_CREDS="Saving operator credentials..."
 I18N_GAUGE_RUNSH="Preparing server control scripts..."
 I18N_GAUGE_DIALOUT="Adding user to dialout group (serial port access)..."
 I18N_GAUGE_AUDIO_DETECT="Detecting USB audio device..."
+I18N_GAUGE_RTLSDR="Installing RTL-SDR driver and pyrtlsdr..."
+I18N_GAUGE_RTLSDR_V4="Compiling RTL-SDR Blog v4 driver..."
 I18N_GAUGE_SYSTEMD="Installing systemd service..."
 
 # ── Abort ──────────────────────────────────────────────────────────────────────

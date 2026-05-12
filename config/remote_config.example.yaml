@@ -49,6 +49,18 @@ ptt:
     - [24890000, 24990000]   # 12m
     - [28000000, 29700000]   # 10m
 
+spectrum:
+  # Fonte do espectro para a waterfall/panadapter:
+  #   audio_fft  — FFT do áudio AF do rádio (0-3 kHz, comportamento base)
+  #   rtlsdr     — Espectro RF wideband via dongle RTL-SDR (±50 kHz centrado no VFO)
+  source: "audio_fft"
+  rtlsdr:
+    device_index: 0       # Índice do dongle RTL-SDR (0 para o primeiro)
+    sample_rate: 250000   # Hz — mínimo 225001; 250000 dá ±125 kHz de span
+    ppm_correction: 0     # Correcção de frequência em PPM
+    gain: 30.0            # Ganho em dB (0 = auto)
+    span_hz: 100000       # Span visível (Hz); centrado no VFO — apenas informativo
+
 decoders:
   ft8:
     enabled: true

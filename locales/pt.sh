@@ -85,7 +85,7 @@ I18N_MSG_ERR_PASS_MISMATCH="As passwords não coincidem. Tente novamente."
 
 # ── Confirmação ────────────────────────────────────────────────────────────────
 I18N_TITLE_CONFIRM="Confirmar Instalação"
-I18N_MSG_CONFIRM=$'Pronto para instalar. Resumo:\n\n  SO              : %OS%\n  Rádio           : %RADIO%\n  WSJT-X (R3)     : %WSJTX%\n  Modo instalação : %MODE%\n  Utilizador      : %USER%\n  Idioma interface: %UILANG%\n  Log             : %LOG%\n\nProsseguir com a instalação?'
+I18N_MSG_CONFIRM=$'Pronto para instalar. Resumo:\n\n  SO              : %OS%\n  Rádio           : %RADIO%\n  Espectro RF     : %RTLSDR%\n  WSJT-X (R3)     : %WSJTX%\n  Modo instalação : %MODE%\n  Utilizador      : %USER%\n  Idioma interface: %UILANG%\n  Log             : %LOG%\n\nProsseguir com a instalação?'
 
 # ── Passos da barra de progresso ───────────────────────────────────────────────
 I18N_GAUGE_TITLE="A instalar 4ham Remote Operation -- aguarde..."
@@ -100,6 +100,8 @@ I18N_GAUGE_CREDS="A guardar credenciais do operador..."
 I18N_GAUGE_RUNSH="A preparar scripts de controlo do servidor..."
 I18N_GAUGE_DIALOUT="A adicionar utilizador ao grupo dialout (acesso à porta série)..."
 I18N_GAUGE_AUDIO_DETECT="A detectar dispositivo de áudio USB..."
+I18N_GAUGE_RTLSDR="A instalar driver RTL-SDR e pyrtlsdr..."
+I18N_GAUGE_RTLSDR_V4="A compilar driver RTL-SDR Blog v4..."
 I18N_GAUGE_SYSTEMD="A instalar serviço systemd..."
 
 # ── Erro fatal ─────────────────────────────────────────────────────────────────
