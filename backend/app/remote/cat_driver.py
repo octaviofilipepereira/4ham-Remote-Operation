@@ -168,3 +168,32 @@ class CATDriver:
         return lines[0].strip() == "1"
 
     async def get_status(self) -> RigStatus:
+        """Polling de status via ligação DEDICADA (não bloqueia set_freq).
+
+        Envia 4 comandos em pipeline e lê as 4 respostas dentro do _poll_lock,
+        independente do _lock usado pelos set_*. Assim set_freq nunca espera
+        pelo polling de status.
+        """
+        async with self._poll_lock:
+            await self._ensure_poll_connected()
+            try:
+                assert self._poll_w is not None and self._poll_r is not None
+                self._poll_w.write(b"+f\n+m\n+l STRENGTH\n+t\n")
+                await self._poll_w.drain()
+                freq_l, mode_l, strength_l, ptt_l = [
+                    await self._read_response(self._poll_r) for _ in range(4)
+                ]
+            except (OSError, ConnectionResetError, asyncio.TimeoutError) as exc:
+                logger.warning("falha no get_status: %s — a reconectar", exc)
+                if self._poll_w and not self._poll_w.is_closing():
+                    self._poll_w.close()
+                self._poll_r = self._poll_w = None
+                raise
+
+        return RigStatus(
+            frequency_hz=int(freq_l[0]),
+            mode=mode_l[0],
+            passband_hz=int(mode_l[1]) if len(mode_l) > 1 else 0,
+            strength_db=float(strength_l[0]),
+            ptt=ptt_l[0].strip() == "1",
+        )
