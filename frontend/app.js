@@ -17,8 +17,9 @@ let txHoldActive = false;
 let waterfallSocket = null;
 let waterfallReconnectTimer = null;
 let waterfallCtx = null;
-let waterfallPeaks = null;        // Float64Array — pico por bin, em dB
-const WATERFALL_PEAK_DECAY = 0.92; // por frame a 10fps: sinal persiste ~2s
+let spectrumCtx = null;
+let specSmooth = null;          // Float32Array — buffer de suavização por pixel
+const SPEC_SMOOTH_ALPHA = 0.18; // 0 = máximo smooth, 1 = instantaneo
 
 const WATERFALL_PALETTE = [
   { stop: 0.0, color: [4, 9, 15] },
@@ -42,6 +43,7 @@ const elAudio = document.getElementById("rx-audio");
 const elPassband = document.getElementById("passband-readout");
 const elKnob = document.getElementById("vfo-knob");
 const elWaterfall = document.getElementById("waterfall-canvas");
+const elSpectrum = document.getElementById("spectrum-canvas");
 const elWaterfallState = document.getElementById("waterfall-state");
 const elQsoFrequency = document.getElementById("qso-frequency");
 const elQsoMode = document.getElementById("qso-mode");
@@ -313,22 +315,6 @@ function drawWaterfallRow(values, minDb, maxDb) {
 
   resizeWaterfallCanvas();
 
-  // Inicializar ou redimensionar o buffer de picos
-  if (!waterfallPeaks || waterfallPeaks.length !== values.length) {
-    waterfallPeaks = new Float64Array(values);
-  } else {
-    // Peak hold com decaimento exponencial em espaço dB:
-    // peak[i] = max(peak[i] * decay + minDb * (1 - decay), values[i])
-    // O decay em dB equivale a multiplicar na escala linear — usa-se
-    // interpolação linear em dB para que o decaimento seja perceptivamente uniforme.
-    for (let i = 0; i < values.length; i += 1) {
-      waterfallPeaks[i] = Math.max(
-        waterfallPeaks[i] * WATERFALL_PEAK_DECAY + minDb * (1 - WATERFALL_PEAK_DECAY),
-        values[i]
-      );
-    }
-  }
-
   const width = Math.max(1, Math.floor(elWaterfall.clientWidth));
   const height = Math.max(1, Math.floor(elWaterfall.clientHeight));
   const shiftHeight = Math.max(0, height - 1);
@@ -342,8 +328,8 @@ function drawWaterfallRow(values, minDb, maxDb) {
   const range = Math.max(1, Number(maxDb) - Number(minDb));
 
   for (let x = 0; x < width; x += 1) {
-    const index = Math.min(waterfallPeaks.length - 1, Math.floor((x / Math.max(1, width - 1)) * (waterfallPeaks.length - 1)));
-    const normalized = (waterfallPeaks[index] - minDb) / range;
+    const index = Math.min(values.length - 1, Math.floor((x / Math.max(1, width - 1)) * (values.length - 1)));
+    const normalized = (values[index] - minDb) / range;
     const [r, g, b] = waterfallColor(normalized);
     const offset = x * 4;
     row.data[offset] = r;
@@ -353,6 +339,86 @@ function drawWaterfallRow(values, minDb, maxDb) {
   }
 
   ctx.putImageData(row, 0, 0);
+}
+
+function getSpectrumContext() {
+  if (!elSpectrum) return null;
+  if (!spectrumCtx) {
+    spectrumCtx = elSpectrum.getContext("2d", { alpha: false });
+  }
+  return spectrumCtx;
+}
+
+function drawSpectrum(values, minDb, maxDb) {
+  const ctx = getSpectrumContext();
+  if (!ctx || !elSpectrum || !values.length) return;
+
+  const W = elSpectrum.offsetWidth > 0 ? elSpectrum.offsetWidth : (elSpectrum.width || 640);
+  const H = elSpectrum.height || 80;
+  if (elSpectrum.width !== W) elSpectrum.width = W;
+
+  const range = Math.max(1, Number(maxDb) - Number(minDb));
+
+  // Inicializar ou redimensionar o buffer de suavização
+  if (!specSmooth || specSmooth.length !== W) {
+    specSmooth = new Float32Array(W);
+    for (let x = 0; x < W; x++) {
+      const idx = Math.min(values.length - 1, Math.floor((x / Math.max(1, W - 1)) * (values.length - 1)));
+      specSmooth[x] = Math.max(0, Math.min(1, (values[idx] - minDb) / range));
+    }
+  }
+
+  // Actualizar buffer com suavização exponencial
+  for (let x = 0; x < W; x++) {
+    const idx = Math.min(values.length - 1, Math.floor((x / Math.max(1, W - 1)) * (values.length - 1)));
+    const v = Math.max(0, Math.min(1, (values[idx] - minDb) / range));
+    specSmooth[x] = specSmooth[x] * (1 - SPEC_SMOOTH_ALPHA) + v * SPEC_SMOOTH_ALPHA;
+  }
+
+  // Fundo
+  ctx.fillStyle = "#060b10";
+  ctx.fillRect(0, 0, W, H);
+
+  // Linhas de grelha subtis
+  ctx.strokeStyle = "rgba(255,255,255,0.04)";
+  ctx.lineWidth = 1;
+  for (let g = 1; g <= 3; g++) {
+    const y = Math.round(H * g / 4) + 0.5;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Área preenchida com gradiente de cor (paleta igual à waterfall)
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  for (let s = 0; s <= 8; s++) {
+    const [r, g, b] = waterfallColor(1 - s / 8);
+    grad.addColorStop(s / 8, `rgba(${r},${g},${b},${Math.max(0, 0.48 - s * 0.05)})`);
+  }
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  for (let x = 0; x < W; x++) ctx.lineTo(x, H - specSmooth[x] * (H - 3));
+  ctx.lineTo(W - 1, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Contorno brilhante no topo
+  ctx.beginPath();
+  for (let x = 0; x < W; x++) {
+    const y = H - specSmooth[x] * (H - 3);
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  const [lr, lg, lb] = waterfallColor(0.85);
+  ctx.strokeStyle = `rgba(${lr},${lg},${lb},0.88)`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function clearSpectrum() {
+  const ctx = getSpectrumContext();
+  if (!ctx || !elSpectrum) return;
+  ctx.fillStyle = "#060b10";
+  ctx.fillRect(0, 0, elSpectrum.width || 640, elSpectrum.height || 80);
+  specSmooth = null;
 }
 
 function scheduleWaterfallReconnect() {
@@ -382,7 +448,6 @@ function connectWaterfall() {
   setWaterfallState("Linking");
 
   waterfallSocket.addEventListener("open", () => {
-    waterfallPeaks = null; // reset picos ao reconectar
     setWaterfallState("Live");
   });
 
@@ -390,7 +455,10 @@ function connectWaterfall() {
     try {
       const payload = JSON.parse(event.data);
       const frame = decodeSpectrumFrame(payload);
-      drawWaterfallRow(frame, Number(payload.min_db ?? -140), Number(payload.max_db ?? -10));
+      const minDb = Number(payload.min_db ?? -140);
+      const maxDb = Number(payload.max_db ?? -10);
+      drawSpectrum(frame, minDb, maxDb);
+      drawWaterfallRow(frame, minDb, maxDb);
     } catch (error) {
       console.error("waterfall frame:", error);
     }
@@ -403,6 +471,7 @@ function connectWaterfall() {
   waterfallSocket.addEventListener("close", () => {
     waterfallSocket = null;
     setWaterfallState("Offline");
+    clearSpectrum();
     scheduleWaterfallReconnect();
   });
 }
