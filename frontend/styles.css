@@ -336,7 +336,7 @@ body::before {
 
 .freq-ruler__scale-label {
   font-family: var(--display-font);
-  font-size: 0.56rem;
+  font-size: 0.70rem;
   color: var(--text-dim);
   line-height: 1;
   white-space: nowrap;
@@ -383,7 +383,7 @@ body::before {
 
 .freq-ruler__spot-call {
   font-family: var(--display-font);
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   color: var(--teal);
   white-space: nowrap;
   overflow: hidden;
