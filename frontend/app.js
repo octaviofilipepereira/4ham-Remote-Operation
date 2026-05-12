@@ -17,6 +17,8 @@ let txHoldActive = false;
 let waterfallSocket = null;
 let waterfallReconnectTimer = null;
 let waterfallCtx = null;
+let waterfallPeaks = null;        // Float64Array — pico por bin, em dB
+const WATERFALL_PEAK_DECAY = 0.92; // por frame a 10fps: sinal persiste ~2s
 
 const WATERFALL_PALETTE = [
   { stop: 0.0, color: [4, 9, 15] },
@@ -311,6 +313,22 @@ function drawWaterfallRow(values, minDb, maxDb) {
 
   resizeWaterfallCanvas();
 
+  // Inicializar ou redimensionar o buffer de picos
+  if (!waterfallPeaks || waterfallPeaks.length !== values.length) {
+    waterfallPeaks = new Float64Array(values);
+  } else {
+    // Peak hold com decaimento exponencial em espaço dB:
+    // peak[i] = max(peak[i] * decay + minDb * (1 - decay), values[i])
+    // O decay em dB equivale a multiplicar na escala linear — usa-se
+    // interpolação linear em dB para que o decaimento seja perceptivamente uniforme.
+    for (let i = 0; i < values.length; i += 1) {
+      waterfallPeaks[i] = Math.max(
+        waterfallPeaks[i] * WATERFALL_PEAK_DECAY + minDb * (1 - WATERFALL_PEAK_DECAY),
+        values[i]
+      );
+    }
+  }
+
   const width = Math.max(1, Math.floor(elWaterfall.clientWidth));
   const height = Math.max(1, Math.floor(elWaterfall.clientHeight));
   const shiftHeight = Math.max(0, height - 1);
@@ -324,8 +342,8 @@ function drawWaterfallRow(values, minDb, maxDb) {
   const range = Math.max(1, Number(maxDb) - Number(minDb));
 
   for (let x = 0; x < width; x += 1) {
-    const index = Math.min(values.length - 1, Math.floor((x / Math.max(1, width - 1)) * (values.length - 1)));
-    const normalized = (values[index] - minDb) / range;
+    const index = Math.min(waterfallPeaks.length - 1, Math.floor((x / Math.max(1, width - 1)) * (waterfallPeaks.length - 1)));
+    const normalized = (waterfallPeaks[index] - minDb) / range;
     const [r, g, b] = waterfallColor(normalized);
     const offset = x * 4;
     row.data[offset] = r;
@@ -364,6 +382,7 @@ function connectWaterfall() {
   setWaterfallState("Linking");
 
   waterfallSocket.addEventListener("open", () => {
+    waterfallPeaks = null; // reset picos ao reconectar
     setWaterfallState("Live");
   });
 
