@@ -972,6 +972,12 @@ body::before {
   align-content: start;
 }
 
+.band-plan-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .band-row,
 .spot-item {
   display: grid;
@@ -1285,8 +1291,7 @@ body[data-knob-active="true"] .vfo-knob {
 
   .band-plan-block {
     min-height: 0;
-    max-height: 248px;
-    overflow: auto;
+    overflow: hidden;
   }
 
   .band-plan-list,
@@ -1432,13 +1437,11 @@ body[data-knob-active="true"] .vfo-knob {
   }
 
   .band-plan-block {
-    max-height: 220px;
     min-height: 0;
     overflow: hidden;
   }
 
   .band-plan-list {
-    max-height: 170px;
     overflow-y: auto;
   }
 }
