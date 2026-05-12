@@ -241,12 +241,13 @@ body::before {
 .radio-main {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.92fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(180px, 0.42fr) minmax(260px, 0.72fr);
   gap: clamp(10px, 1.5vw, 18px);
 }
 
 .control-column,
 .log-column,
+.dx-column,
 .tuning-panel,
 .operation-grid {
   min-height: 0;
@@ -281,8 +282,29 @@ body::before {
   display: grid;
 }
 
+.dx-column {
+  align-content: start;
+}
+
+.dx-column .dx-block {
+  height: 100%;
+}
+
+.dx-column .spot-list {
+  overflow-y: auto;
+}
+
+.dx-column .spot-item strong {
+  font-size: 0.88rem;
+}
+
+.dx-column .spot-item span {
+  font-size: 0.78rem;
+  word-break: break-word;
+}
+
 .log-column {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .hardware-block {
@@ -1028,6 +1050,14 @@ body[data-knob-active="true"] .vfo-knob {
     align-items: start;
   }
 
+  .dx-column {
+    display: none;
+  }
+
+  .log-column {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
   .control-workbench {
     grid-template-columns: 1fr;
   }
@@ -1055,6 +1085,14 @@ body[data-knob-active="true"] .vfo-knob {
     grid-template-columns: 1fr;
     grid-auto-rows: max-content;
     align-content: start;
+  }
+
+  .dx-column {
+    display: grid;
+  }
+
+  .log-column {
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
 }
 
@@ -1127,8 +1165,7 @@ body[data-knob-active="true"] .vfo-knob {
     min-height: 82px;
   }
 
-  .band-plan-block,
-  .dx-block {
+  .band-plan-block {
     min-height: 0;
     max-height: 248px;
     overflow: auto;
@@ -1284,17 +1321,6 @@ body[data-knob-active="true"] .vfo-knob {
 
   .band-plan-list {
     max-height: 170px;
-    overflow-y: auto;
-  }
-
-  .dx-block {
-    max-height: 96px;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .spot-list {
-    max-height: 52px;
     overflow-y: auto;
   }
 }
