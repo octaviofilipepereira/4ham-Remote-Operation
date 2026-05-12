@@ -290,24 +290,25 @@ body::before {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow-y: auto;
 }
 
 /* ── Freq ruler ─────────────────────────────── */
 .freq-ruler {
   position: relative;
-  flex: 0 0 auto;
-  min-height: max(100%, 480px);
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 58px 1fr;
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(8,17,21,0.96), rgba(3,7,9,0.98));
   border: 1px solid rgba(146,255,228,0.12);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .freq-ruler__scale {
   position: relative;
+  min-height: 560px;
   overflow: hidden;
   border-right: 1px solid rgba(255,255,255,0.1);
 }
@@ -350,6 +351,7 @@ body::before {
 
 .freq-ruler__spots {
   position: relative;
+  min-height: 560px;
 }
 
 .freq-ruler__spot {
@@ -1172,7 +1174,7 @@ body[data-knob-active="true"] .vfo-knob {
 @media (max-width: 1440px) {
   .radio-main {
     /* À medida que a largura diminui: esquerda cresce, direita encolhe */
-    grid-template-columns: minmax(0, 1.45fr) minmax(165px, 0.38fr) minmax(220px, 0.68fr);
+    grid-template-columns: minmax(0, 1.38fr) minmax(165px, 0.38fr) minmax(220px, 0.68fr);
   }
 }
 
