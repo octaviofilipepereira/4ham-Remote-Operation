@@ -403,8 +403,14 @@ function renderFrequency(frequencyHz) {
     ? String(clampFrequency(frequencyHz)).padStart(9, "0").slice(-9).split("")
     : ["-", "-", "-", "-", "-", "-", "-", "-", "-"];
 
-  const html = [0, 3, 6].map((start, groupIndex) => {
-    const group = digits.slice(start, start + 3).map((digit, offset) => {
+  /* Format: MM.KKK.HH (14.166.00) — skips 100 MHz and 1 Hz digits */
+  const GROUPS = [
+    { start: 1, len: 2 },  /* 10 MHz, 1 MHz */
+    { start: 3, len: 3 },  /* 100 kHz, 10 kHz, 1 kHz */
+    { start: 6, len: 2 },  /* 100 Hz, 10 Hz */
+  ];
+  const html = GROUPS.map(({ start, len }, groupIndex) => {
+    const group = digits.slice(start, start + len).map((digit, offset) => {
       const step = DIGIT_STEPS[start + offset];
       const selectedClass = step === selectedTuneStep ? " is-selected" : "";
       const content = digit === "-" ? "&mdash;" : digit;
