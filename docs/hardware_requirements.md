@@ -54,7 +54,7 @@ Transceivers tested or documented for 4HAM Remote Operation:
 | Transceiver | Hamlib model | CAT port | Audio | Notes |
 |---|---|---|---|---|
 | **Yaesu FT-991A** | 1035 | USB Serial `/dev/ttyUSB0`, 38400 baud | USB Audio CODEC (PCM2903B) — L=RX, R=TX | Primary development radio |
-| **Xiegu X6100** | 3087 | Network (native WiFi/Ethernet) | Network audio (native) | No USB required |
+| **Xiegu X6100** | 3087 | Network (native WiFi/Ethernet) | Network audio (native) | **No USB** — CAT and audio are network-only |
 | **Icom IC-7300** | 373 | USB Serial, 19200 baud | USB Audio — IQ output available | IQ output enables wideband spectrum without RTL-SDR |
 | **Yaesu FTDX10** | 1118 | USB Serial, 38400 baud | USB Audio | Has built-in scope — future SDR interface possible |
 | **Elecraft K4** | 2050 | Network or USB Serial | Network or USB Audio | Native network CAT |
@@ -70,7 +70,7 @@ Some transceivers provide IQ or scope data over USB without needing an RTL-SDR:
 | Icom IC-7300, IC-7610 | USB IQ output | ±48 kHz |
 | Yaesu FTDX10, FTDX101 | USB scope data | ±50 kHz |
 | Elecraft K4 | Network audio/IQ | Configurable |
-| Xiegu X6100 | Network native | Built-in scope |
+| Xiegu X6100 | Network native | Built-in scope (physical display only — network spectrum API not yet integrated in 4HAM) |
 
 > **FT-991A note:** The FT-991A does **not** provide IQ or wideband spectrum data over USB. The USB Audio output is demodulated AF only (0–3 kHz for SSB). Without an RTL-SDR, the waterfall shows AF spectrum (0–3 kHz); an RTL-SDR dongle is **optional** and enables a wideband panadapter (±50 kHz centred on the VFO).
 
