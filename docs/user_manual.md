@@ -214,7 +214,7 @@ Painel inferior (altura variável) — exibe a evolução temporal do espectro, 
 | Amarelo / laranja | Alta | Sinal forte |
 | Vermelho / coral | Muito alta | Sinal muito forte |
 
-> **Nota sobre o FT-991A:** A waterfall mostra o espectro AF (0–3 kHz para SSB), não espectro RF wideband. Para ver actividade na banda completa (±50 kHz), é necessário RTL-SDR — ver [hardware_requirements.md](hardware_requirements.md).
+> **Nota sobre o FT-991A:** A waterfall mostra o espectro AF (0–3 kHz para SSB), não espectro RF wideband. O sistema funciona normalmente sem RTL-SDR. Ligar um dongle RTL-SDR ao servidor é **opcional** e permite obter um panadapter RF (±50 kHz centrado no VFO) — ver [hardware_requirements.md](hardware_requirements.md).
 
 ---
 

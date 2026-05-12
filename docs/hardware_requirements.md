@@ -72,7 +72,7 @@ Some transceivers provide IQ or scope data over USB without needing an RTL-SDR:
 | Elecraft K4 | Network audio/IQ | Configurable |
 | Xiegu X6100 | Network native | Built-in scope |
 
-> **FT-991A note:** The FT-991A does **not** provide IQ or wideband spectrum data over USB. The USB Audio output is demodulated AF only (0–3 kHz for SSB). An RTL-SDR is required for wideband spectrum with the FT-991A.
+> **FT-991A note:** The FT-991A does **not** provide IQ or wideband spectrum data over USB. The USB Audio output is demodulated AF only (0–3 kHz for SSB). Without an RTL-SDR, the waterfall shows AF spectrum (0–3 kHz); an RTL-SDR dongle is **optional** and enables a wideband panadapter (±50 kHz centred on the VFO).
 
 ---
 
@@ -132,11 +132,11 @@ See [radio_profiles.md](radio_profiles.md) for full per-radio configuration exam
 
 ---
 
-## 5. RTL-SDR (Wideband RF Spectrum)
+## 5. RTL-SDR (Wideband RF Spectrum) — Optional
 
-An RTL-SDR dongle provides wideband RF spectrum (panadapter view) centred on the VFO frequency.
+> **The RTL-SDR is entirely optional.** Without it, 4HAM Remote Operation works normally; the waterfall displays AF spectrum (0–3 kHz). Adding an RTL-SDR upgrades the waterfall to a full RF panadapter (±50 kHz centred on the VFO), which is especially useful with radios that do not provide native wideband spectrum over USB (e.g. FT-991A).
 
-> **Status:** RTL-SDR integration is planned but not yet implemented in 4HAM Remote Operation. The hardware is already detected on the reference server (`0bda:2838` RTL2838).
+An RTL-SDR dongle provides wideband RF spectrum (panadapter view) centred on the VFO frequency. The installer will ask whether you have one connected; if not, simply answer No and the system works with AF spectrum.
 
 ### Supported dongles
 
