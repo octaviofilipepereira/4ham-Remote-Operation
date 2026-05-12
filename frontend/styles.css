@@ -783,6 +783,7 @@ body::before {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 10px;
+  min-height: 0;
   padding: 12px 14px 14px;
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(19, 25, 29, 0.94), rgba(8, 12, 15, 0.98));
@@ -803,7 +804,7 @@ body::before {
 
 .waterfall-canvas {
   width: 100%;
-  height: clamp(132px, 18vh, 176px);
+  height: 100%;
   display: block;
   border-radius: 16px;
   background:
@@ -1280,10 +1281,6 @@ body[data-knob-active="true"] .vfo-knob {
     padding: 8px 10px;
   }
 
-  .waterfall-canvas {
-    height: 140px;
-  }
-
   .panel-button,
   .step-btn,
   .softkey,
@@ -1341,9 +1338,6 @@ body[data-knob-active="true"] .vfo-knob {
     gap: 2px;
   }
 
-  .waterfall-canvas {
-    height: 128px;
-  }
 }
 
 @media (max-width: 560px) {
@@ -1406,9 +1400,6 @@ body[data-knob-active="true"] .vfo-knob {
     grid-template-columns: 1fr;
   }
 
-  .waterfall-canvas {
-    height: 118px;
-  }
 }
 
 @media (max-height: 1050px) {
@@ -1487,10 +1478,6 @@ body[data-knob-active="true"] .vfo-knob {
     min-height: 150px;
   }
 
-  .waterfall-canvas {
-    height: 112px;
-  }
-
   .vfo-knob {
     width: min(100%, 148px);
   }
@@ -1526,10 +1513,6 @@ body[data-knob-active="true"] .vfo-knob {
   .vfo-screen {
     min-height: 132px;
     padding: 14px;
-  }
-
-  .waterfall-canvas {
-    height: 100px;
   }
 
   .freq-digit,
