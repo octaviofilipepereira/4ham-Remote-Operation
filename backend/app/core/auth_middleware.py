@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import binascii
 import logging
@@ -47,9 +48,19 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
             return self._challenge()
 
         user = self._users.get(username)
-        if user is None or not bcrypt.checkpw(
-            password.encode(), user["password_hash"].encode()
-        ):
+        if user is None:
+            return self._challenge()
+
+        # bcrypt.checkpw é síncrono e bloqueante — correr em thread pool
+        # para não bloquear o event loop do asyncio (crítico em ARM/Pi)
+        loop = asyncio.get_running_loop()
+        ok = await loop.run_in_executor(
+            None,
+            bcrypt.checkpw,
+            password.encode(),
+            user["password_hash"].encode(),
+        )
+        if not ok:
             logger.warning("Autenticação falhada para utilizador '%s' em %s", username, request.url.path)
             return self._challenge()
 
