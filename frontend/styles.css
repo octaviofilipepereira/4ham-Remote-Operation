@@ -1075,6 +1075,10 @@ body[data-knob-active="true"] .vfo-knob {
     padding-bottom: 10px;
   }
 
+  .audio-block .button-stack {
+    grid-template-columns: 1fr;
+  }
+
   .log-textarea {
     min-height: 82px;
   }
