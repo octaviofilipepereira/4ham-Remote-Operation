@@ -148,14 +148,52 @@ class CATDriver:
         await self._cmd(f"T {1 if enabled else 0}")
 
     async def get_status(self) -> RigStatus:
-        freq               = await self.get_freq()
-        mode, passband     = await self.get_mode()
-        strength           = await self.get_level("STRENGTH")
-        ptt                = await self.get_ptt()
+        """Obtém todos os campos num único round-trip (pipeline de 4 comandos).
+
+        Ao enviar os 4 comandos de uma vez e ler as 4 respostas dentro de uma
+        única aquisição do lock, reduz o tempo de bloqueio de 4×RTT para 1×RTT.
+        Isto permite que set_freq/set_mode/set_ptt adquiram o lock muito mais
+        depressa, eliminando o delay visível na mudança de frequência.
+        """
+        async with self._lock:
+            await self._ensure_connected()
+            try:
+                assert self._writer is not None
+                assert self._reader is not None
+                # Pipeline: 4 comandos em simultâneo
+                self._writer.write(b"+f\n+m\n+l STRENGTH\n+t\n")
+                await self._writer.drain()
+
+                results: list[list[str]] = []
+                for _ in range(4):
+                    lines: list[str] = []
+                    header_skipped = False
+                    while True:
+                        raw = await asyncio.wait_for(self._reader.readline(), _CMD_TIMEOUT)
+                        if not raw:
+                            raise ConnectionResetError("rigctld fechou a ligação")
+                        text = raw.decode().rstrip("\r\n")
+                        if text.startswith("RPRT"):
+                            code = int(text.split()[1])
+                            if code != 0:
+                                raise RuntimeError(f"rigctld RPRT {code} no get_status")
+                            results.append(lines)
+                            break
+                        if not header_skipped:
+                            header_skipped = True
+                            continue
+                        if text:
+                            lines.append(text.split(": ", 1)[1] if ": " in text else text)
+            except (OSError, ConnectionResetError, asyncio.TimeoutError) as exc:
+                logger.warning("falha no get_status: %s — a reconectar", exc)
+                await self.close()
+                raise
+
+        freq_lines, mode_lines, strength_lines, ptt_lines = results
         return RigStatus(
-            frequency_hz=freq,
-            mode=mode,
-            passband_hz=passband,
-            strength_db=strength,
-            ptt=ptt,
+            frequency_hz=int(freq_lines[0]),
+            mode=mode_lines[0],
+            passband_hz=int(mode_lines[1]) if len(mode_lines) > 1 else 0,
+            strength_db=float(strength_lines[0]),
+            ptt=ptt_lines[0].strip() == "1",
         )
