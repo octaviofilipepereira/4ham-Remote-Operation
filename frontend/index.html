@@ -52,6 +52,33 @@
                   </div>
                 </div>
 
+                <div class="vfo-meter vfo-meter--console">
+                  <div class="vfo-meter__header">
+                    <span class="hardware-label">S-Meter</span>
+                    <strong id="signal-quality">Standby</strong>
+                  </div>
+
+                  <div class="meter-scale" aria-hidden="true">
+                    <span>S1</span>
+                    <span>S3</span>
+                    <span>S5</span>
+                    <span>S7</span>
+                    <span>S9</span>
+                    <span>+20</span>
+                    <span>+40</span>
+                  </div>
+
+                  <meter id="smeter" class="sr-meter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
+                  <div class="signal-track" aria-hidden="true">
+                    <span id="smeter-fill" class="signal-fill"></span>
+                  </div>
+
+                  <div class="signal-readout vfo-meter__readout">
+                    <span id="smeter-val">-- dBm</span>
+                    <span class="signal-hint">Live RF envelope</span>
+                  </div>
+                </div>
+
                 <div class="vfo-screen">
                   <div class="vfo-screen__label-row">
                     <span>Main VFO</span>
@@ -118,46 +145,15 @@
                   <strong data-step-readout>100 Hz</strong>
                 </div>
 
-                <div class="knob-block__body">
-                  <div class="knob-block__dial">
-                    <button id="vfo-knob" class="vfo-knob" type="button" aria-label="Main tuning knob">
-                      <span class="vfo-knob__ring vfo-knob__ring--outer"></span>
-                      <span class="vfo-knob__ring vfo-knob__ring--mid"></span>
-                      <span class="vfo-knob__face"></span>
-                      <span class="vfo-knob__marker"></span>
-                      <span class="vfo-knob__cap"></span>
-                    </button>
+                <button id="vfo-knob" class="vfo-knob" type="button" aria-label="Main tuning knob">
+                  <span class="vfo-knob__ring vfo-knob__ring--outer"></span>
+                  <span class="vfo-knob__ring vfo-knob__ring--mid"></span>
+                  <span class="vfo-knob__face"></span>
+                  <span class="vfo-knob__marker"></span>
+                  <span class="vfo-knob__cap"></span>
+                </button>
 
-                    <p class="knob-caption">Arrasta em arco, clique lateral ou wheel.</p>
-                  </div>
-
-                  <div class="vfo-meter">
-                    <div class="vfo-meter__header">
-                      <span class="hardware-label">S-Meter</span>
-                      <strong id="signal-quality">Standby</strong>
-                    </div>
-
-                    <div class="meter-scale" aria-hidden="true">
-                      <span>S1</span>
-                      <span>S3</span>
-                      <span>S5</span>
-                      <span>S7</span>
-                      <span>S9</span>
-                      <span>+20</span>
-                      <span>+40</span>
-                    </div>
-
-                    <meter id="smeter" class="sr-meter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
-                    <div class="signal-track" aria-hidden="true">
-                      <span id="smeter-fill" class="signal-fill"></span>
-                    </div>
-
-                    <div class="signal-readout vfo-meter__readout">
-                      <span id="smeter-val">-- dBm</span>
-                      <span class="signal-hint">Live RF envelope</span>
-                    </div>
-                  </div>
-                </div>
+                <p class="knob-caption">Arrasta em arco, clique lateral ou wheel.</p>
               </section>
 
               <section class="hardware-block step-block">

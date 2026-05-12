@@ -575,42 +575,51 @@ body::before {
   z-index: 1;
 }
 
-.waterfall-frame {
+.vfo-meter {
+  width: 100%;
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 10px;
-  padding: 12px 14px 14px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(19, 25, 29, 0.94), rgba(8, 12, 15, 0.98));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  gap: 8px;
 }
 
-.waterfall-header {
+.vfo-meter__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
+
+.vfo-meter__header strong {
+  font-size: 0.96rem;
+}
+
+.vfo-meter--console {
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(28, 57, 53, 0.55), rgba(13, 28, 26, 0.68));
+  border: 1px solid rgba(146, 255, 228, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.vfo-meter--console .meter-scale {
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 0.64rem;
+}
+
+.vfo-meter--console .signal-track {
+  height: 14px;
+}
+
+.vfo-meter--console .signal-readout {
+  margin-top: 8px;
+  font-size: 0.84rem;
+}
+
 
 .waterfall-header strong {
-  color: var(--teal);
+  align-items: center;
 }
 
-.waterfall-canvas {
-  width: 100%;
-  height: clamp(132px, 18vh, 176px);
-  display: block;
-  border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(8, 17, 21, 0.98), rgba(3, 7, 9, 0.98)),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 28px),
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 24px);
-  border: 1px solid rgba(146, 255, 228, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(146, 255, 228, 0.08), inset 0 0 32px rgba(0, 0, 0, 0.36);
-}
-
-.vfo-screen__label-row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -908,11 +917,6 @@ body::before {
   text-align: center;
 }
 
-.vfo-meter__readout {
-  margin-top: 0;
-  font-size: 0.84rem;
-}
-
 .mini-stats {
   margin-top: auto;
 }
@@ -1011,10 +1015,6 @@ body[data-knob-active="true"] .vfo-knob {
     gap: 2px;
   }
 
-  .knob-block__body {
-    grid-template-columns: 1fr;
-  }
-
   .waterfall-canvas {
     height: 128px;
   }
@@ -1073,10 +1073,6 @@ body[data-knob-active="true"] .vfo-knob {
   .operation-grid,
   .tuning-panel,
   .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .knob-block__body {
     grid-template-columns: 1fr;
   }
 
