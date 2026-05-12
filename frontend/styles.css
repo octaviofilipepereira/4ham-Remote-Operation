@@ -311,7 +311,7 @@ body::before {
 
 .freq-ruler__scale {
   position: relative;
-  min-height: 600px;
+  /* altura controlada pelo JS (RULER_PX) para garantir overflow → scroll */
   overflow: hidden;
   border-right: 1px solid rgba(255,255,255,0.1);
 }
@@ -354,7 +354,7 @@ body::before {
 
 .freq-ruler__spots {
   position: relative;
-  min-height: 600px;
+  /* altura controlada pelo JS (RULER_PX) */
 }
 
 .freq-ruler__spot {

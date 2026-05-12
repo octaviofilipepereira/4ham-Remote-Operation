@@ -100,7 +100,8 @@ function formatPassband(passbandHz) {
 }
 
 function formatLogFrequency(frequencyHz) {
-  return String(clampFrequency(frequencyHz)).padStart(9, "0").replace(/(\d{3})(\d{3})(\d{3})/, "$1.$2.$3");
+  /* Formato: 14.200 (MHz, 3 casas decimais, sem zeros à esquerda no MHz) */
+  return (clampFrequency(frequencyHz) / 1000000).toFixed(3);
 }
 
 function getBandLabel(frequencyHz) {
@@ -834,7 +835,11 @@ pollId = window.setInterval(pollStatus, 1000);
 
   if (!elRuler) return;
 
+  /* Canvas de altura fixa em px — garante overflow → scroll no contentor */
+  const RULER_PX = 1400;
+
   let rulerBand = null;
+  let lastHz = currentFrequencyHz;
 
   function freqToMhzLabel(hz) {
     return (hz / 1e6).toFixed(3);
@@ -846,20 +851,23 @@ pollId = window.setInterval(pollStatus, 1000);
     elSpots.innerHTML = "";
     if (elBandLbl) elBandLbl.textContent = band.label;
 
-    const span = band.hi - band.lo;
-    const h = elRuler.clientHeight - 32; /* subtract block-title approx */
+    /* Impor altura fixa ao canvas — isto cria overflow no .freq-ruler */
+    elScale.style.height = RULER_PX + 'px';
+    elSpots.style.height = RULER_PX + 'px';
 
-    /* Scale ticks: every 25 kHz minor, 50 kHz major */
+    const span = band.hi - band.lo;
+
+    /* Scale ticks: every 10/25/50 kHz minor, every 2nd is major */
     const step = span <= 200000 ? 10000 : span <= 500000 ? 25000 : 50000;
-    const majorEvery = 2; /* every 2nd tick is major */
+    const majorEvery = 2;
     let tick = Math.ceil(band.lo / step) * step;
     let idx = 0;
     while (tick <= band.hi) {
-      const pct = (tick - band.lo) / span * 100;
+      const px = ((tick - band.lo) / span) * RULER_PX;
       const major = (idx % majorEvery === 0);
       const el = document.createElement("div");
       el.className = "freq-ruler__scale-tick" + (major ? " freq-ruler__scale-tick--major" : "");
-      el.style.top = pct + "%";
+      el.style.top = px.toFixed(1) + 'px';
       if (major) {
         const lbl = document.createElement("span");
         lbl.className = "freq-ruler__scale-label";
@@ -874,10 +882,10 @@ pollId = window.setInterval(pollStatus, 1000);
     /* Spots */
     const spots = DEMO_SPOTS.filter(s => s.freqHz >= band.lo && s.freqHz <= band.hi);
     spots.forEach(spot => {
-      const pct = (spot.freqHz - band.lo) / span * 100;
+      const px = ((spot.freqHz - band.lo) / span) * RULER_PX;
       const el = document.createElement("div");
       el.className = "freq-ruler__spot";
-      el.style.top = pct + "%";
+      el.style.top = px.toFixed(1) + 'px';
       el.title = spot.call + " — " + freqToMhzLabel(spot.freqHz) + " MHz";
 
       const dot = document.createElement("div");
@@ -893,6 +901,10 @@ pollId = window.setInterval(pollStatus, 1000);
       el.appendChild(lbl);
       elSpots.appendChild(el);
     });
+
+    /* Centrar a frequência actual após construir o canvas */
+    const initPx = ((lastHz - band.lo) / span) * RULER_PX;
+    elRuler.scrollTop = Math.max(0, initPx - elRuler.clientHeight / 2);
   }
 
   function updateCursor(freqHz) {
@@ -900,8 +912,11 @@ pollId = window.setInterval(pollStatus, 1000);
     const inBand = freqHz >= rulerBand.lo && freqHz <= rulerBand.hi;
     elCursor.style.display = inBand ? "" : "none";
     if (!inBand) return;
-    const pct = (freqHz - rulerBand.lo) / (rulerBand.hi - rulerBand.lo) * 100;
-    elCursor.style.top = pct + "%";
+    const pct = (freqHz - rulerBand.lo) / (rulerBand.hi - rulerBand.lo);
+    const px = pct * RULER_PX;
+    /* O cursor é position:absolute no .freq-ruler (scroll container);
+       ajustar top pelo scrollTop para acompanhar o conteúdo visualmente */
+    elCursor.style.top = (px - elRuler.scrollTop).toFixed(1) + 'px';
     if (elCursorLbl) elCursorLbl.textContent = freqToMhzLabel(freqHz);
   }
 
@@ -914,17 +929,21 @@ pollId = window.setInterval(pollStatus, 1000);
   buildRuler(initBand);
   updateCursor(currentFrequencyHz);
 
-  /* Re-render when frequency changes (observe currentFrequencyHz via custom event) */
+  /* Actualizar cursor quando o utilizador faz scroll (viewport move, conteúdo fica) */
+  elRuler.addEventListener('scroll', () => updateCursor(lastHz));
+
+  /* Re-render quando a frequência muda */
   document.addEventListener("4ham:freqchange", (e) => {
     const hz = e.detail;
+    lastHz = hz;
     const band = getBandForFreq(hz);
     if (!rulerBand || band.label !== rulerBand.label) buildRuler(band);
     updateCursor(hz);
   });
 
-  /* Also re-render on resize */
+  /* Re-render no resize */
   new ResizeObserver(() => {
     if (rulerBand) buildRuler(rulerBand);
-    updateCursor(currentFrequencyHz);
+    updateCursor(lastHz);
   }).observe(elRuler);
 })();
