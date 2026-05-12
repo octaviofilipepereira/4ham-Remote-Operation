@@ -541,11 +541,11 @@ body::before {
 
 .vfo-screen {
   position: relative;
-  min-height: clamp(180px, 28vh, 290px);
+  min-height: clamp(160px, 23vh, 240px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: clamp(16px, 2vh, 24px);
+  padding: clamp(12px, 1.5vh, 18px);
   border-radius: 22px;
   background:
     linear-gradient(180deg, var(--screen-top) 0%, var(--screen-mid) 58%, var(--screen-low) 100%);
@@ -665,7 +665,7 @@ body::before {
   justify-content: center;
   flex-wrap: nowrap;
   gap: clamp(4px, 0.7vw, 10px);
-  min-height: clamp(104px, 18vh, 146px);
+  min-height: clamp(84px, 14vh, 124px);
   color: #eafff8;
   font-family: var(--display-font);
   font-variant-numeric: tabular-nums;
