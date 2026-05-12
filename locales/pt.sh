@@ -98,6 +98,8 @@ I18N_GAUGE_RADIO_CFG="A configurar perfil do rádio..."
 I18N_GAUGE_CERTS="A gerar certificados TLS auto-assinados..."
 I18N_GAUGE_CREDS="A guardar credenciais do operador..."
 I18N_GAUGE_RUNSH="A preparar scripts de controlo do servidor..."
+I18N_GAUGE_DIALOUT="A adicionar utilizador ao grupo dialout (acesso à porta série)..."
+I18N_GAUGE_AUDIO_DETECT="A detectar dispositivo de áudio USB..."
 I18N_GAUGE_SYSTEMD="A instalar serviço systemd..."
 
 # ── Erro fatal ─────────────────────────────────────────────────────────────────

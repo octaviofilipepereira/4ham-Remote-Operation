@@ -98,6 +98,8 @@ I18N_GAUGE_RADIO_CFG="Configuring radio profile..."
 I18N_GAUGE_CERTS="Generating self-signed TLS certificates..."
 I18N_GAUGE_CREDS="Saving operator credentials..."
 I18N_GAUGE_RUNSH="Preparing server control scripts..."
+I18N_GAUGE_DIALOUT="Adding user to dialout group (serial port access)..."
+I18N_GAUGE_AUDIO_DETECT="Detecting USB audio device..."
 I18N_GAUGE_SYSTEMD="Installing systemd service..."
 
 # ── Abort ──────────────────────────────────────────────────────────────────────

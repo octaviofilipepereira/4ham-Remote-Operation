@@ -340,6 +340,10 @@ run_sudo apt-get install -y \
   >> "$LOG_FILE" 2>&1 \
   || abort "apt-get install"
 
+gauge_step 20 "$I18N_GAUGE_DIALOUT"
+run_sudo usermod -aG dialout "$SERVICE_USER" >> "$LOG_FILE" 2>&1 \
+  || echo "[WARN] usermod dialout falhou" >> "$LOG_FILE"
+
 if [[ $_install_wsjtx -eq 1 ]]; then
   gauge_step 25 "$I18N_GAUGE_WSJTX"
   run_sudo apt-get install -y wsjtx >> "$LOG_FILE" 2>&1 \
@@ -359,12 +363,33 @@ gauge_step 45 "$I18N_GAUGE_PIP"
 "$PYTHON_BIN" -m pip install --quiet -r "$ROOT_DIR/backend/requirements.txt" >> "$LOG_FILE" 2>&1 \
   || abort "pip install"
 
+# Auto-detectar dispositivo de áudio USB (procurar USB Audio / PCM29xx / Burr-Brown)
+gauge_step 52 "$I18N_GAUGE_AUDIO_DETECT"
+_audio_device=$("$PYTHON_BIN" -c "
+import sounddevice as sd
+devs = sd.query_devices()
+for d in devs:
+    name = d['name']
+    if d['max_input_channels'] > 0 and any(k in name for k in ('USB Audio', 'USB AUDIO', 'PCM29', 'Burr-Brown')):
+        print(name)
+        break
+" 2>/dev/null || echo "")
+if [[ -n "$_audio_device" ]]; then
+  echo "[INFO] Dispositivo de áudio detectado: $_audio_device" >> "$LOG_FILE"
+else
+  echo "[WARN] Nenhum dispositivo USB Audio detectado — a usar null (default)" >> "$LOG_FILE"
+fi
+
 gauge_step 60 "$I18N_GAUGE_RADIO_CFG"
 _cfg="$ROOT_DIR/config/remote_config.yaml"
 [[ ! -f "$_cfg" ]] && cp "$ROOT_DIR/config/remote_config.example.yaml" "$_cfg"
 sed -i "s/^  profile:.*/  profile: \"${_radio_profile}\"/" "$_cfg"
 [[ "$_radio_profile" == "x6100" ]] && \
   sed -i "s/^    host:.*/    host: \"${_x6100_ip}\"/" "$_cfg"
+# Escrever o device de áudio detectado
+if [[ -n "${_audio_device:-}" ]]; then
+  sed -i "s|^  device:.*|  device: \"${_audio_device}\"|" "$_cfg"
+fi
 
 gauge_step 70 "$I18N_GAUGE_CERTS"
 if [[ ! -f "$ROOT_DIR/certs/cert.pem" ]]; then
