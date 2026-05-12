@@ -259,7 +259,7 @@ body::before {
 }
 
 .operation-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   align-items: start;
 }
 
@@ -321,6 +321,23 @@ body::before {
 .dx-block {
   display: flex;
   flex-direction: column;
+}
+
+.vfo-meter {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.vfo-meter__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.vfo-meter__header strong {
+  font-size: 0.96rem;
 }
 
 .meter-scale {
@@ -799,14 +816,29 @@ body::before {
 }
 
 .knob-block {
+  gap: 10px;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.knob-block__body {
+  display: grid;
+  grid-template-columns: minmax(138px, 170px) minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+}
+
+.knob-block__dial {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
 }
 
 .vfo-knob {
   --knob-angle: 0deg;
   position: relative;
-  width: min(100%, 218px);
+  width: min(100%, 162px);
   aspect-ratio: 1;
   border: 0;
   background: none;
@@ -814,7 +846,7 @@ body::before {
   align-self: center;
   cursor: ns-resize;
   touch-action: none;
-  margin: 6px auto 0;
+  margin: 0 auto;
 }
 
 .vfo-knob__ring,
@@ -871,8 +903,14 @@ body::before {
 }
 
 .knob-caption {
-  margin: 12px 0 0;
+  margin: 0;
+  font-size: 0.82rem;
   text-align: center;
+}
+
+.vfo-meter__readout {
+  margin-top: 0;
+  font-size: 0.84rem;
 }
 
 .mini-stats {
@@ -973,6 +1011,10 @@ body[data-knob-active="true"] .vfo-knob {
     gap: 2px;
   }
 
+  .knob-block__body {
+    grid-template-columns: 1fr;
+  }
+
   .waterfall-canvas {
     height: 128px;
   }
@@ -1034,6 +1076,10 @@ body[data-knob-active="true"] .vfo-knob {
     grid-template-columns: 1fr;
   }
 
+  .knob-block__body {
+    grid-template-columns: 1fr;
+  }
+
   .hardware-block--compact .button-stack {
     grid-template-columns: 1fr;
   }
@@ -1076,7 +1122,7 @@ body[data-knob-active="true"] .vfo-knob {
   }
 
   .vfo-knob {
-    width: min(100%, 174px);
+    width: min(100%, 148px);
   }
 
   .hardware-block,
