@@ -1102,7 +1102,7 @@ body[data-knob-active="true"] .vfo-knob {
   }
 
   .audio-block .button-stack {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
   .log-textarea {
