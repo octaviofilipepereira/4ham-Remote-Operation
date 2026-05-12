@@ -298,7 +298,7 @@ body::before {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 38px 1fr;
+  grid-template-columns: 58px 1fr;
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(8,17,21,0.96), rgba(3,7,9,0.98));
   border: 1px solid rgba(146,255,228,0.12);
@@ -307,6 +307,7 @@ body::before {
 
 .freq-ruler__scale {
   position: relative;
+  overflow: hidden;
   border-right: 1px solid rgba(255,255,255,0.1);
 }
 
