@@ -34,109 +34,111 @@
 
       <section class="radio-main">
         <section class="control-column">
-          <div class="operation-grid">
-            <section class="hardware-block hardware-block--compact meter-block">
-              <div class="block-title">
-                <span class="hardware-label">S-Meter</span>
-                <strong id="signal-quality">Standby</strong>
-              </div>
-
-              <div class="meter-scale" aria-hidden="true">
-                <span>S1</span>
-                <span>S3</span>
-                <span>S5</span>
-                <span>S7</span>
-                <span>S9</span>
-                <span>+20</span>
-                <span>+40</span>
-              </div>
-
-              <meter id="smeter" class="sr-meter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
-              <div class="signal-track" aria-hidden="true">
-                <span id="smeter-fill" class="signal-fill"></span>
-              </div>
-
-              <div class="signal-readout">
-                <span id="smeter-val">-- dBm</span>
-                <span class="signal-hint">Live RF envelope</span>
-              </div>
-            </section>
-
-            <section class="hardware-block hardware-block--compact audio-block">
-              <div class="block-title">
-                <span class="hardware-label">Radio Operation</span>
-                <strong data-audio-readout>Standby</strong>
-              </div>
-
-              <p class="block-copy">RX link, TX hold e controlo rápido.</p>
-
-              <div class="button-stack">
-                <button id="btn-connect" class="panel-button panel-button--primary">Connect RX</button>
-                <button id="btn-disconnect" class="panel-button" disabled>Disconnect</button>
-                <button id="btn-tx" class="panel-button panel-button--tx" type="button">TX HOLD</button>
-              </div>
-            </section>
-          </div>
-
           <div class="control-workbench">
-            <section class="display-bay">
-              <div class="display-bezel">
-                <div class="screen-strip">
-                  <div class="screen-meta">
-                    <span class="screen-meta__label">VFO</span>
-                    <strong>A</strong>
-                  </div>
-                  <div class="screen-meta">
-                    <span class="screen-meta__label">Mode</span>
-                    <strong data-mode-readout>USB</strong>
-                  </div>
-                  <div class="screen-meta">
-                    <span class="screen-meta__label">Width</span>
-                    <strong id="passband-readout">Auto</strong>
-                  </div>
-                </div>
-
-                <div class="vfo-screen">
-                  <div class="vfo-screen__label-row">
-                    <span>Main VFO</span>
-                    <span>Remote Console</span>
+            <div class="vfo-column">
+              <div class="operation-grid">
+                <section class="hardware-block hardware-block--compact meter-block">
+                  <div class="block-title">
+                    <span class="hardware-label">S-Meter</span>
+                    <strong id="signal-quality">Standby</strong>
                   </div>
 
-                  <div id="freq-mhz" class="vfo-frequency" aria-live="polite" aria-label="VFO frequency display"></div>
-
-                  <div class="vfo-screen__hint">Roda o knob, usa o wheel nos dígitos ou os botões rápidos para sintonizar.</div>
-                </div>
-
-                <div class="waterfall-frame">
-                  <div class="waterfall-header">
-                    <span class="hardware-label">Waterfall</span>
-                    <strong id="waterfall-state">Standby</strong>
+                  <div class="meter-scale" aria-hidden="true">
+                    <span>S1</span>
+                    <span>S3</span>
+                    <span>S5</span>
+                    <span>S7</span>
+                    <span>S9</span>
+                    <span>+20</span>
+                    <span>+40</span>
                   </div>
 
-                  <canvas id="waterfall-canvas" class="waterfall-canvas" aria-label="Receiver waterfall display"></canvas>
-                </div>
-
-                <div class="screen-controls">
-                  <div class="mode-slot">
-                    <label for="mode-select">Mode selector</label>
-                    <select id="mode-select">
-                      <option>USB</option>
-                      <option>LSB</option>
-                      <option>CW</option>
-                      <option>FM</option>
-                      <option>AM</option>
-                    </select>
+                  <meter id="smeter" class="sr-meter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
+                  <div class="signal-track" aria-hidden="true">
+                    <span id="smeter-fill" class="signal-fill"></span>
                   </div>
 
-                  <div class="nudge-strip">
-                    <button type="button" class="softkey" data-multiplier="-10">-10</button>
-                    <button type="button" class="softkey" data-multiplier="-1">-1</button>
-                    <button type="button" class="softkey softkey--primary" data-multiplier="1">+1</button>
-                    <button type="button" class="softkey" data-multiplier="10">+10</button>
+                  <div class="signal-readout">
+                    <span id="smeter-val">-- dBm</span>
+                    <span class="signal-hint">Live RF envelope</span>
                   </div>
-                </div>
+                </section>
+
+                <section class="hardware-block hardware-block--compact audio-block">
+                  <div class="block-title">
+                    <span class="hardware-label">Radio Operation</span>
+                    <strong data-audio-readout>Standby</strong>
+                  </div>
+
+                  <p class="block-copy">RX link, TX hold e controlo rápido.</p>
+
+                  <div class="button-stack">
+                    <button id="btn-connect" class="panel-button panel-button--primary">Connect RX</button>
+                    <button id="btn-disconnect" class="panel-button" disabled>Disconnect</button>
+                    <button id="btn-tx" class="panel-button panel-button--tx" type="button">TX HOLD</button>
+                  </div>
+                </section>
               </div>
-            </section>
+
+              <section class="display-bay">
+                <div class="display-bezel">
+                  <div class="screen-strip">
+                    <div class="screen-meta">
+                      <span class="screen-meta__label">VFO</span>
+                      <strong>A</strong>
+                    </div>
+                    <div class="screen-meta">
+                      <span class="screen-meta__label">Mode</span>
+                      <strong data-mode-readout>USB</strong>
+                    </div>
+                    <div class="screen-meta">
+                      <span class="screen-meta__label">Width</span>
+                      <strong id="passband-readout">Auto</strong>
+                    </div>
+                  </div>
+
+                  <div class="vfo-screen">
+                    <div class="vfo-screen__label-row">
+                      <span>Main VFO</span>
+                      <span>Remote Console</span>
+                    </div>
+
+                    <div id="freq-mhz" class="vfo-frequency" aria-live="polite" aria-label="VFO frequency display"></div>
+
+                    <div class="vfo-screen__hint">Roda o knob, usa o wheel nos dígitos ou os botões rápidos para sintonizar.</div>
+                  </div>
+
+                  <div class="waterfall-frame">
+                    <div class="waterfall-header">
+                      <span class="hardware-label">Waterfall</span>
+                      <strong id="waterfall-state">Standby</strong>
+                    </div>
+
+                    <canvas id="waterfall-canvas" class="waterfall-canvas" aria-label="Receiver waterfall display"></canvas>
+                  </div>
+
+                  <div class="screen-controls">
+                    <div class="mode-slot">
+                      <label for="mode-select">Mode selector</label>
+                      <select id="mode-select">
+                        <option>USB</option>
+                        <option>LSB</option>
+                        <option>CW</option>
+                        <option>FM</option>
+                        <option>AM</option>
+                      </select>
+                    </div>
+
+                    <div class="nudge-strip">
+                      <button type="button" class="softkey" data-multiplier="-10">-10</button>
+                      <button type="button" class="softkey" data-multiplier="-1">-1</button>
+                      <button type="button" class="softkey softkey--primary" data-multiplier="1">+1</button>
+                      <button type="button" class="softkey" data-multiplier="10">+10</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
 
             <aside class="tuning-panel">
               <section class="hardware-block knob-block">

@@ -247,6 +247,7 @@ body::before {
 
 .control-column,
 .log-column,
+.vfo-column,
 .tuning-panel,
 .operation-grid {
   min-height: 0;
@@ -255,12 +256,16 @@ body::before {
 }
 
 .control-column {
-  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
 }
 
 .operation-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
+}
+
+.vfo-column {
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .control-workbench {
@@ -934,6 +939,10 @@ body[data-knob-active="true"] .vfo-knob {
 
   .control-workbench {
     grid-template-columns: 1fr;
+  }
+
+  .vfo-column {
+    min-height: auto;
   }
 
   .tuning-panel {
