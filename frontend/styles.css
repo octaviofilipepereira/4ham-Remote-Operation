@@ -290,13 +290,14 @@ body::before {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow-y: auto;
 }
 
 /* ── Freq ruler ─────────────────────────────── */
 .freq-ruler {
   position: relative;
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: max(100%, 480px);
   display: grid;
   grid-template-columns: 58px 1fr;
   border-radius: 12px;
