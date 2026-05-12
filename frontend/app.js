@@ -41,6 +41,10 @@ const elPassband = document.getElementById("passband-readout");
 const elKnob = document.getElementById("vfo-knob");
 const elWaterfall = document.getElementById("waterfall-canvas");
 const elWaterfallState = document.getElementById("waterfall-state");
+const elQsoFrequency = document.getElementById("qso-frequency");
+const elQsoMode = document.getElementById("qso-mode");
+const elQsoBand = document.getElementById("qso-band");
+const elQsoTime = document.getElementById("qso-time");
 const btnConn = document.getElementById("btn-connect");
 const btnDisc = document.getElementById("btn-disconnect");
 const btnTx = document.getElementById("btn-tx");
@@ -50,6 +54,7 @@ const stepReadouts = Array.from(document.querySelectorAll("[data-step-readout]")
 const stepCaptions = Array.from(document.querySelectorAll("[data-step-caption]"));
 const stepButtons = Array.from(document.querySelectorAll(".step-btn"));
 const softkeys = Array.from(document.querySelectorAll(".softkey[data-multiplier]"));
+const bandPlanRows = Array.from(document.querySelectorAll("[data-band]"));
 
 function clampFrequency(hz) {
   return Math.max(1, Math.min(MAX_FREQUENCY_HZ, Math.round(hz)));
@@ -94,6 +99,47 @@ function formatPassband(passbandHz) {
   return `${passbandHz} Hz`;
 }
 
+function formatLogFrequency(frequencyHz) {
+  return String(clampFrequency(frequencyHz)).padStart(9, "0").replace(/(\d{3})(\d{3})(\d{3})/, "$1.$2.$3");
+}
+
+function getBandLabel(frequencyHz) {
+  if (!Number.isFinite(frequencyHz)) return "";
+  if (frequencyHz >= 3500000 && frequencyHz < 4000000) return "80m";
+  if (frequencyHz >= 7000000 && frequencyHz < 7300000) return "40m";
+  if (frequencyHz >= 10100000 && frequencyHz < 10150000) return "30m";
+  if (frequencyHz >= 14000000 && frequencyHz < 14350000) return "20m";
+  if (frequencyHz >= 18068000 && frequencyHz < 18168000) return "17m";
+  if (frequencyHz >= 21000000 && frequencyHz < 21450000) return "15m";
+  if (frequencyHz >= 24890000 && frequencyHz < 24990000) return "12m";
+  if (frequencyHz >= 28000000 && frequencyHz < 29700000) return "10m";
+  if (frequencyHz >= 50000000 && frequencyHz < 54000000) return "6m";
+  return "General";
+}
+
+function syncQsoFrequencyContext(frequencyHz) {
+  if (elQsoFrequency && Number.isFinite(frequencyHz)) {
+    elQsoFrequency.value = formatLogFrequency(frequencyHz);
+  }
+
+  const bandLabel = getBandLabel(frequencyHz);
+  if (elQsoBand) {
+    elQsoBand.value = bandLabel;
+  }
+
+  bandPlanRows.forEach((row) => {
+    row.classList.toggle("is-active", row.dataset.band === bandLabel);
+  });
+}
+
+function syncUtcField() {
+  if (!elQsoTime) return;
+  const now = new Date();
+  const hours = String(now.getUTCHours()).padStart(2, "0");
+  const minutes = String(now.getUTCMinutes()).padStart(2, "0");
+  elQsoTime.value = `${hours}:${minutes}Z`;
+}
+
 function setConnBadge(state) {
   const labels = {
     disconnected: "Offline",
@@ -117,6 +163,10 @@ function setModeReadout(mode) {
   modeReadouts.forEach((node) => {
     node.textContent = mode;
   });
+
+  if (elQsoMode) {
+    elQsoMode.value = mode ?? "";
+  }
 }
 
 function setTuneStep(step) {
@@ -367,6 +417,7 @@ function renderFrequency(frequencyHz) {
   }).join("");
 
   elFreq.innerHTML = html;
+  syncQsoFrequencyContext(hasValue ? frequencyHz : null);
 }
 
 function scheduleFrequencyCommit() {
@@ -733,6 +784,8 @@ syncModeUI(elMode.value);
 setTuneStep(selectedTuneStep);
 updateSignalState(-127);
 elPassband.textContent = "Auto";
+syncUtcField();
+window.setInterval(syncUtcField, 30000);
 resizeWaterfallCanvas();
 connectWaterfall();
 pollStatus();

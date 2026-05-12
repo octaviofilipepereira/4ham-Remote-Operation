@@ -33,165 +33,254 @@
       </header>
 
       <section class="radio-main">
-        <aside class="side-panel side-panel--left">
-          <section class="hardware-block meter-block">
-            <div class="block-title">
-              <span class="hardware-label">S-Meter</span>
-              <strong id="signal-quality">Standby</strong>
-            </div>
-
-            <div class="meter-scale" aria-hidden="true">
-              <span>S1</span>
-              <span>S3</span>
-              <span>S5</span>
-              <span>S7</span>
-              <span>S9</span>
-              <span>+20</span>
-              <span>+40</span>
-            </div>
-
-            <meter id="smeter" class="sr-meter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
-            <div class="signal-track" aria-hidden="true">
-              <span id="smeter-fill" class="signal-fill"></span>
-            </div>
-
-            <div class="signal-readout">
-              <span id="smeter-val">-- dBm</span>
-              <span class="signal-hint">Live RF envelope</span>
-            </div>
-          </section>
-
-          <section class="hardware-block audio-block">
-            <div class="block-title">
-              <span class="hardware-label">RX Audio</span>
-              <strong data-audio-readout>Standby</strong>
-            </div>
-
-            <p class="block-copy">Bring up the WebRTC audio path and hold TX only while you intend to key the radio.</p>
-
-            <div class="button-stack">
-              <button id="btn-connect" class="panel-button panel-button--primary">Connect RX</button>
-              <button id="btn-disconnect" class="panel-button" disabled>Disconnect</button>
-              <button id="btn-tx" class="panel-button panel-button--tx" type="button">TX HOLD</button>
-            </div>
-          </section>
-
-          <section class="hardware-block step-block">
-            <div class="block-title">
-              <span class="hardware-label">Tune Step</span>
-              <strong data-step-readout>100 Hz</strong>
-            </div>
-
-            <div class="step-grid">
-              <button type="button" class="step-btn" data-step="10">10 Hz</button>
-              <button type="button" class="step-btn is-active" data-step="100">100 Hz</button>
-              <button type="button" class="step-btn" data-step="1000">1 kHz</button>
-              <button type="button" class="step-btn" data-step="10000">10 kHz</button>
-              <button type="button" class="step-btn" data-step="100000">100 kHz</button>
-              <button type="button" class="step-btn" data-step="1000000">1 MHz</button>
-            </div>
-          </section>
-        </aside>
-
-        <section class="display-bay">
-          <div class="display-bezel">
-            <div class="screen-strip">
-              <div class="screen-meta">
-                <span class="screen-meta__label">VFO</span>
-                <strong>A</strong>
-              </div>
-              <div class="screen-meta">
-                <span class="screen-meta__label">Mode</span>
-                <strong data-mode-readout>USB</strong>
-              </div>
-              <div class="screen-meta">
-                <span class="screen-meta__label">Width</span>
-                <strong id="passband-readout">Auto</strong>
-              </div>
-            </div>
-
-            <div class="vfo-screen">
-              <div class="vfo-screen__label-row">
-                <span>Main Tuning</span>
-                <span>Remote Front Panel</span>
+        <section class="control-column">
+          <div class="operation-grid">
+            <section class="hardware-block meter-block">
+              <div class="block-title">
+                <span class="hardware-label">S-Meter</span>
+                <strong id="signal-quality">Standby</strong>
               </div>
 
-              <div id="freq-mhz" class="vfo-frequency" aria-live="polite" aria-label="VFO frequency display"></div>
-
-              <div class="vfo-screen__hint">Use the mouse wheel on the digits, click the knob sides, or drag the knob to tune.</div>
-            </div>
-
-            <div class="waterfall-frame">
-              <div class="waterfall-header">
-                <span class="hardware-label">Waterfall</span>
-                <strong id="waterfall-state">Standby</strong>
+              <div class="meter-scale" aria-hidden="true">
+                <span>S1</span>
+                <span>S3</span>
+                <span>S5</span>
+                <span>S7</span>
+                <span>S9</span>
+                <span>+20</span>
+                <span>+40</span>
               </div>
 
-              <canvas id="waterfall-canvas" class="waterfall-canvas" aria-label="Receiver waterfall display"></canvas>
-            </div>
-
-            <div class="screen-controls">
-              <div class="mode-slot">
-                <label for="mode-select">Mode selector</label>
-                <select id="mode-select">
-                  <option>USB</option>
-                  <option>LSB</option>
-                  <option>CW</option>
-                  <option>FM</option>
-                  <option>AM</option>
-                </select>
+              <meter id="smeter" class="sr-meter" min="-127" max="0" low="-90" high="-50" value="-127"></meter>
+              <div class="signal-track" aria-hidden="true">
+                <span id="smeter-fill" class="signal-fill"></span>
               </div>
 
-              <div class="nudge-strip">
-                <button type="button" class="softkey" data-multiplier="-10">-10</button>
-                <button type="button" class="softkey" data-multiplier="-1">-1</button>
-                <button type="button" class="softkey softkey--primary" data-multiplier="1">+1</button>
-                <button type="button" class="softkey" data-multiplier="10">+10</button>
+              <div class="signal-readout">
+                <span id="smeter-val">-- dBm</span>
+                <span class="signal-hint">Live RF envelope</span>
               </div>
-            </div>
+            </section>
+
+            <section class="hardware-block audio-block">
+              <div class="block-title">
+                <span class="hardware-label">Radio Operation</span>
+                <strong data-audio-readout>Standby</strong>
+              </div>
+
+              <p class="block-copy">RX link, TX hold e controlo rápido da operação principal do rádio.</p>
+
+              <div class="button-stack">
+                <button id="btn-connect" class="panel-button panel-button--primary">Connect RX</button>
+                <button id="btn-disconnect" class="panel-button" disabled>Disconnect</button>
+                <button id="btn-tx" class="panel-button panel-button--tx" type="button">TX HOLD</button>
+              </div>
+            </section>
           </div>
 
-          <div class="display-footer">
-            <span>Digit-wheel tuning and knob control prepared for lower-resolution station monitors.</span>
-            <span>HTTPS keeps control and audio on the same secure origin.</span>
+          <div class="control-workbench">
+            <section class="display-bay">
+              <div class="display-bezel">
+                <div class="screen-strip">
+                  <div class="screen-meta">
+                    <span class="screen-meta__label">VFO</span>
+                    <strong>A</strong>
+                  </div>
+                  <div class="screen-meta">
+                    <span class="screen-meta__label">Mode</span>
+                    <strong data-mode-readout>USB</strong>
+                  </div>
+                  <div class="screen-meta">
+                    <span class="screen-meta__label">Width</span>
+                    <strong id="passband-readout">Auto</strong>
+                  </div>
+                </div>
+
+                <div class="vfo-screen">
+                  <div class="vfo-screen__label-row">
+                    <span>Main VFO</span>
+                    <span>Remote Console</span>
+                  </div>
+
+                  <div id="freq-mhz" class="vfo-frequency" aria-live="polite" aria-label="VFO frequency display"></div>
+
+                  <div class="vfo-screen__hint">Roda o knob, usa o wheel nos dígitos ou os botões rápidos para sintonizar.</div>
+                </div>
+
+                <div class="waterfall-frame">
+                  <div class="waterfall-header">
+                    <span class="hardware-label">Waterfall</span>
+                    <strong id="waterfall-state">Standby</strong>
+                  </div>
+
+                  <canvas id="waterfall-canvas" class="waterfall-canvas" aria-label="Receiver waterfall display"></canvas>
+                </div>
+
+                <div class="screen-controls">
+                  <div class="mode-slot">
+                    <label for="mode-select">Mode selector</label>
+                    <select id="mode-select">
+                      <option>USB</option>
+                      <option>LSB</option>
+                      <option>CW</option>
+                      <option>FM</option>
+                      <option>AM</option>
+                    </select>
+                  </div>
+
+                  <div class="nudge-strip">
+                    <button type="button" class="softkey" data-multiplier="-10">-10</button>
+                    <button type="button" class="softkey" data-multiplier="-1">-1</button>
+                    <button type="button" class="softkey softkey--primary" data-multiplier="1">+1</button>
+                    <button type="button" class="softkey" data-multiplier="10">+10</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <aside class="tuning-panel">
+              <section class="hardware-block knob-block">
+                <div class="block-title">
+                  <span class="hardware-label">Main VFO</span>
+                  <strong data-step-readout>100 Hz</strong>
+                </div>
+
+                <button id="vfo-knob" class="vfo-knob" type="button" aria-label="Main tuning knob">
+                  <span class="vfo-knob__ring vfo-knob__ring--outer"></span>
+                  <span class="vfo-knob__ring vfo-knob__ring--mid"></span>
+                  <span class="vfo-knob__face"></span>
+                  <span class="vfo-knob__marker"></span>
+                  <span class="vfo-knob__cap"></span>
+                </button>
+
+                <p class="knob-caption">Arrasta em arco, usa clique lateral, ou o wheel para ajuste fino.</p>
+              </section>
+
+              <section class="hardware-block step-block">
+                <div class="block-title">
+                  <span class="hardware-label">Tuning Tools</span>
+                  <strong data-step-caption>100 Hz digit selected</strong>
+                </div>
+
+                <p class="block-copy">Escolhe o passo activo e combina-o com os botões rápidos do VFO.</p>
+
+                <div class="step-grid">
+                  <button type="button" class="step-btn" data-step="10">10 Hz</button>
+                  <button type="button" class="step-btn is-active" data-step="100">100 Hz</button>
+                  <button type="button" class="step-btn" data-step="1000">1 kHz</button>
+                  <button type="button" class="step-btn" data-step="10000">10 kHz</button>
+                  <button type="button" class="step-btn" data-step="100000">100 kHz</button>
+                  <button type="button" class="step-btn" data-step="1000000">1 MHz</button>
+                </div>
+              </section>
+            </aside>
           </div>
         </section>
 
-        <aside class="side-panel side-panel--right">
-          <section class="hardware-block knob-block">
+        <aside class="log-column">
+          <section class="hardware-block qso-block">
             <div class="block-title">
-              <span class="hardware-label">Main VFO</span>
-              <strong data-step-readout>100 Hz</strong>
+              <span class="hardware-label">QSO Log</span>
+              <strong>Ready</strong>
             </div>
 
-            <button id="vfo-knob" class="vfo-knob" type="button" aria-label="Main tuning knob">
-              <span class="vfo-knob__ring vfo-knob__ring--outer"></span>
-              <span class="vfo-knob__ring vfo-knob__ring--mid"></span>
-              <span class="vfo-knob__face"></span>
-              <span class="vfo-knob__marker"></span>
-              <span class="vfo-knob__cap"></span>
-            </button>
+            <div class="form-grid">
+              <label class="form-field">
+                <span class="form-label">Callsign</span>
+                <input class="log-input" type="text" name="callsign" placeholder="CT1ABC" />
+              </label>
 
-            <p class="knob-caption">Drag the knob in an arc, click left or right, or use the wheel for fine tuning.</p>
+              <label class="form-field">
+                <span class="form-label">UTC</span>
+                <input id="qso-time" class="log-input" type="text" name="utc" readonly />
+              </label>
+
+              <label class="form-field">
+                <span class="form-label">Frequency</span>
+                <input id="qso-frequency" class="log-input" type="text" name="frequency" readonly />
+              </label>
+
+              <label class="form-field">
+                <span class="form-label">Mode</span>
+                <input id="qso-mode" class="log-input" type="text" name="mode" readonly />
+              </label>
+
+              <label class="form-field">
+                <span class="form-label">Band</span>
+                <input id="qso-band" class="log-input" type="text" name="band" readonly />
+              </label>
+
+              <label class="form-field">
+                <span class="form-label">RST Sent</span>
+                <input class="log-input" type="text" name="rst-sent" placeholder="59" />
+              </label>
+
+              <label class="form-field">
+                <span class="form-label">RST RX</span>
+                <input class="log-input" type="text" name="rst-rx" placeholder="59" />
+              </label>
+
+              <label class="form-field form-field--full">
+                <span class="form-label">Notes</span>
+                <textarea class="log-textarea" name="notes" rows="4" placeholder="Locator, nome, potência, observações..."></textarea>
+              </label>
+            </div>
           </section>
 
-          <section class="hardware-block mode-block">
+          <section class="hardware-block band-plan-block">
             <div class="block-title">
-              <span class="hardware-label">Tuning Tools</span>
-              <strong data-step-caption>100 Hz digit selected</strong>
+              <span class="hardware-label">Band Plan</span>
+              <strong>HF</strong>
             </div>
 
-            <p class="block-copy">Click a digit in the VFO window to make that place value the active tuning step.</p>
+            <div class="info-stack band-plan-list">
+              <article class="band-row" data-band="80m">
+                <strong>80 m</strong>
+                <span>3.500 - 3.800 MHz</span>
+                <small>CW, digital e SSB regional</small>
+              </article>
+              <article class="band-row" data-band="40m">
+                <strong>40 m</strong>
+                <span>7.000 - 7.200 MHz</span>
+                <small>DX, nets e operação geral</small>
+              </article>
+              <article class="band-row" data-band="20m">
+                <strong>20 m</strong>
+                <span>14.000 - 14.350 MHz</span>
+                <small>DX de longo curso e digital</small>
+              </article>
+              <article class="band-row" data-band="15m">
+                <strong>15 m</strong>
+                <span>21.000 - 21.450 MHz</span>
+                <small>Boa abertura diurna</small>
+              </article>
+              <article class="band-row" data-band="10m">
+                <strong>10 m</strong>
+                <span>28.000 - 29.700 MHz</span>
+                <small>Propagação variável e FM alta</small>
+              </article>
+            </div>
+          </section>
 
-            <div class="mini-stats">
-              <div class="mini-stat">
-                <span class="mini-stat__label">Current mode</span>
-                <strong data-mode-readout>USB</strong>
-              </div>
-              <div class="mini-stat">
-                <span class="mini-stat__label">RX path</span>
-                <strong data-audio-readout>Standby</strong>
-              </div>
+          <section class="hardware-block dx-block">
+            <div class="block-title">
+              <span class="hardware-label">DX Spots</span>
+              <strong>Queue</strong>
+            </div>
+
+            <div class="info-stack spot-list">
+              <article class="spot-item spot-item--empty">
+                <strong>Cluster feed por ligar</strong>
+                <span>Reserva esta área para spots DX em directo, WSJT-X ou cluster telnet.</span>
+              </article>
+              <article class="spot-item">
+                <strong>Fila pronta</strong>
+                <span>O layout já suporta uma lista contínua de spots no lado direito.</span>
+              </article>
+              <article class="spot-item">
+                <strong>Operação simplificada</strong>
+                <span>Sem duplicação de “Current mode” e “RX path” fora da área essencial.</span>
+              </article>
             </div>
           </section>
         </aside>
