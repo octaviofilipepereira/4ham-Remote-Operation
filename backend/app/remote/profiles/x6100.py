@@ -12,6 +12,11 @@ class X6100Profile:
 
     name: str = "Xiegu X6100"
     hamlib_model: int = 3087
+    default_baud: int = 115200
+    # X6100 liga via rede — não usa porta série USB.
+    default_serial_port: str | None = None
+    # Padrão glob para /dev/serial/by-id/ — None porque a ligação é por rede.
+    serial_by_id_pattern: str | None = None
     rigctld_host: str = "192.168.1.100"   # endereço IP do X6100, configurável
     rigctld_port: int = 4532
     # Deixar vazio para usar áudio de rede nativo; preencher para USB Audio

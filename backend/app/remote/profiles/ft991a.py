@@ -21,6 +21,10 @@ class FT991AProfile:
     # O RigctldManager resolve o path real antes de arrancar o rigctld.
     default_serial_port: str = "auto"
     default_baud: int = 38400
+    # Padrão glob para auto-detecção em /dev/serial/by-id/
+    # CP2105 Dual UART: interface 0 = CAT, interface 1 = 2.ª UART.
+    # None significa que este rádio não usa porta série USB.
+    serial_by_id_pattern: str | None = "*CP2105*if00*"
     rigctld_host: str = "localhost"
     rigctld_port: int = 4532
     audio_device: str = "USB Audio CODEC"

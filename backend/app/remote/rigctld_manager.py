@@ -2,11 +2,13 @@
 
 Fluxo de arranque
 -----------------
-1. Ler ``serial_port`` do config (pode ser um path explícito ou ``"auto"``).
-2. Detectar a porta via ``/dev/serial/by-id/`` se necessário.
-3. Verificar se o rigctld já está a escutar na porta configurada.
-4. Se não estiver, arrancar o rigctld como subprocess gerido pelo backend.
-5. Monitorizar o processo e registar se terminar inesperadamente.
+1. Carregar o perfil activo (``rig.profile`` no config).
+2. Ler ``serial_port`` do config (path explícito ou ``"auto"``).
+3. Se ``"auto"``, usar o ``serial_by_id_pattern`` do perfil para procurar
+   em ``/dev/serial/by-id/``.
+4. Verificar se o rigctld já está a escutar na porta configurada.
+5. Se não estiver, arrancar o rigctld como subprocess gerido pelo backend.
+6. Monitorizar o processo e registar se terminar inesperadamente.
 """
 
 import asyncio
@@ -16,17 +18,25 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Padrão glob para identificar a porta CAT do FT-991A (CP2105, interface 0)
-# O CP2105 cria dois symlinks: ...-if00-port0 (CAT) e ...-if01-port0 (2.ª UART).
-_BY_ID_PATTERN_CAT = "*CP2105*if00*"
 
+def detect_serial_port(
+    explicit_port: str | None = None,
+    by_id_pattern: str | None = None,
+    radio_name: str = "rádio",
+) -> str | None:
+    """Devolve o path da porta série do rádio configurado.
 
-def detect_serial_port(explicit_port: str | None = None) -> str | None:
-    """Devolve o path da porta série do FT-991A.
-
-    Se *explicit_port* for fornecido e não for ``"auto"``, usa-o directamente
-    (desde que o path exista no sistema de ficheiros).  Caso contrário,
-    procura em ``/dev/serial/by-id/`` pelos symlinks do CP2105 interface 0.
+    Parâmetros
+    ----------
+    explicit_port:
+        Path explícito (e.g. ``/dev/ttyUSB0`` ou path by-id) ou ``"auto"``.
+        Se for ``None`` ou ``"auto"``, tenta auto-detecção.
+    by_id_pattern:
+        Padrão glob para procurar em ``/dev/serial/by-id/``.
+        Vem do campo ``serial_by_id_pattern`` do perfil activo.
+        Se for ``None``, a auto-detecção não é possível para este rádio.
+    radio_name:
+        Nome do rádio para incluir nas mensagens de log.
 
     Devolve ``None`` se a porta não for encontrada.
     """
@@ -41,17 +51,26 @@ def detect_serial_port(explicit_port: str | None = None) -> str | None:
         )
 
     # Auto-detecção via /dev/serial/by-id/
+    if by_id_pattern is None:
+        logger.warning(
+            "Perfil '%s' não define padrão de detecção USB "
+            "(serial_by_id_pattern=None) — configure serial_port explicitamente.",
+            radio_name,
+        )
+        return None
+
     by_id = Path("/dev/serial/by-id")
     if by_id.is_dir():
-        matches = sorted(by_id.glob(_BY_ID_PATTERN_CAT))
+        matches = sorted(by_id.glob(by_id_pattern))
         if matches:
             port = str(matches[0])
-            logger.info("FT-991A detectado automaticamente: %s", port)
+            logger.info("%s detectado automaticamente: %s", radio_name, port)
             return port
         logger.warning(
-            "Nenhum CP2105 (if00) encontrado em /dev/serial/by-id/ "
-            "(padrão: %s). Verifique a ligação USB do FT-991A.",
-            _BY_ID_PATTERN_CAT,
+            "Nenhum dispositivo USB correspondente ao perfil '%s' encontrado "
+            "em /dev/serial/by-id/ (padrão: %s). Verifique a ligação USB.",
+            radio_name,
+            by_id_pattern,
         )
     else:
         logger.warning("/dev/serial/by-id/ não existe — auto-detecção indisponível")

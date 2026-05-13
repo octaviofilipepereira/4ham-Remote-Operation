@@ -13,6 +13,7 @@ from .api.webrtc import router as webrtc_router
 from .core.auth_middleware import BasicAuthMiddleware
 from .remote.audio_capture import AudioCaptureService
 from .remote.cat_driver import CATDriver
+from .remote.profiles import load_profile
 from .remote.rigctld_manager import RigctldManager, detect_serial_port
 from .remote.webrtc_peer import WebRTCPeer
 from .websocket.spectrum import router as spectrum_router
@@ -40,28 +41,49 @@ async def lifespan(app: FastAPI):
     rigctld_host = os.getenv("RIGCTLD_HOST", rigctld_cfg.get("host", "127.0.0.1"))
     rigctld_port = int(os.getenv("RIGCTLD_PORT", rigctld_cfg.get("port", 4532)))
 
+    # ── Carregar o perfil activo ──────────────────────────────────────────────
+    # O perfil define os defaults de hardware (hamlib_model, baud,
+    # padrão de detecção USB).  O config pode sobrepor qualquer destes valores.
+    profile_name = rig_cfg.get("profile", "ft991a")
+    profile = load_profile(profile_name)
+    if profile is None:
+        logger.error(
+            "Perfil '%s' não foi carregado — verifique rig.profile no config",
+            profile_name,
+        )
+
+    profile_hamlib_model = getattr(profile, "hamlib_model", 1035)
+    profile_baud = getattr(profile, "default_baud", 38400)
+    profile_serial_pattern = getattr(profile, "serial_by_id_pattern", None)
+    profile_default_port = getattr(profile, "default_serial_port", None)
+
     # ── Arranque automático do rigctld ────────────────────────────────────────
-    # Detecta a porta série do FT-991A via /dev/serial/by-id/ (ou config)
-    # e arranca o rigctld caso ainda não esteja a correr.
+    # Prioridade: variável de ambiente > config > default do perfil
     serial_port_cfg = os.getenv(
         "RIG_SERIAL_PORT",
-        rig_cfg.get("serial_port", "auto"),
+        rig_cfg.get("serial_port", profile_default_port or "auto"),
     )
-    serial_port = detect_serial_port(serial_port_cfg)
+    serial_port = detect_serial_port(
+        explicit_port=serial_port_cfg,
+        by_id_pattern=profile_serial_pattern,
+        radio_name=getattr(profile, "name", profile_name),
+    )
 
     rigctld_manager: RigctldManager | None = None
     if serial_port:
         rigctld_manager = RigctldManager(
             serial_port=serial_port,
-            hamlib_model=int(rig_cfg.get("hamlib_model", 1035)),
-            baud=int(rig_cfg.get("baud", 38400)),
+            hamlib_model=int(rig_cfg.get("hamlib_model", profile_hamlib_model)),
+            baud=int(rig_cfg.get("baud", profile_baud)),
             listen_host=rigctld_host,
             listen_port=rigctld_port,
         )
         await rigctld_manager.start()
     else:
         logger.warning(
-            "Porta série não detectada — o rigctld terá de estar a correr manualmente"
+            "Porta série não detectada para o perfil '%s' — "
+            "o rigctld terá de estar a correr manualmente",
+            profile_name,
         )
 
     driver = CATDriver(
