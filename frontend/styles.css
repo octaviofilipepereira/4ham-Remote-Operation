@@ -616,6 +616,18 @@ body::before {
 
 #swr-val {
   color: var(--teal);
+  font-family: var(--display-font);
+}
+
+.vfo-meter__swr-sub {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(146, 255, 228, 0.1);
+}
+
+.vfo-meter__header--sub {
+  font-size: 0.82rem;
 }
 
 .block-copy,
