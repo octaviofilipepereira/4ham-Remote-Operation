@@ -602,6 +602,25 @@ body::before {
   margin-top: auto;
 }
 
+.lang-toggle {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.45);
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0.18em 0.55em;
+  border-radius: 3px;
+  cursor: pointer;
+  align-self: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+.lang-toggle:hover {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
 .volume-row {
   display: flex;
   align-items: center;

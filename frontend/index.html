@@ -26,19 +26,20 @@
           <div class="brand-copy">
             <p class="rack-label">CT7BFV REMOTE BASE</p>
             <h1>4ham Remote Operation</h1>
-            <p class="brand-subline">Painel remoto estilo transceptor</p>
+            <p class="brand-subline" data-i18n="brand_subline">Painel remoto estilo transceptor</p>
           </div>
         </div>
 
         <div class="status-rack">
           <div class="status-module">
-            <span class="status-module__label">Ligação RX</span>
+            <span class="status-module__label" data-i18n="rx_link_label">Ligação RX</span>
             <span id="conn-state" class="badge badge--disconnected">Offline</span>
           </div>
           <div class="status-module">
             <span class="status-module__label">PTT</span>
             <span id="ptt-badge" class="badge badge--rx">RX</span>
           </div>
+          <button id="lang-toggle" class="lang-toggle" type="button">EN</button>
         </div>
       </header>
 
@@ -53,18 +54,18 @@
                     <strong>A</strong>
                   </div>
                   <div class="screen-meta">
-                    <span class="screen-meta__label">Modo</span>
+                    <span class="screen-meta__label" data-i18n="screen_mode">Modo</span>
                     <strong data-mode-readout>USB</strong>
                   </div>
                   <div class="screen-meta">
-                    <span class="screen-meta__label">Largura</span>
+                    <span class="screen-meta__label" data-i18n="screen_width">Largura</span>
                     <strong id="passband-readout">Auto</strong>
                   </div>
                 </div>
 
                 <div class="vfo-meter vfo-meter--console">
                   <div class="vfo-meter__header">
-                    <span class="hardware-label">S-Metro</span>
+                    <span class="hardware-label" data-i18n="smeter_label">S-Metro</span>
                     <strong id="signal-quality">Em espera</strong>
                   </div>
 
@@ -85,34 +86,34 @@
 
                   <div class="signal-readout vfo-meter__readout">
                     <span id="smeter-val">-- dBm</span>
-                    <span class="signal-hint">S-meter via CAT (HF: S9 = −73 dBm)</span>
+                    <span class="signal-hint" data-i18n="signal_hint">S-metro via CAT (HF: S9 = −73 dBm)</span>
                   </div>
                 </div>
 
                 <div class="vfo-screen">
                   <div class="vfo-screen__label-row">
-                    <span>VFO Principal</span>
-                    <span>Consola Remota</span>
+                    <span data-i18n="vfo_main">VFO Principal</span>
+                    <span data-i18n="vfo_console">Consola Remota</span>
                   </div>
 
-                  <div id="freq-mhz" class="vfo-frequency" aria-live="polite" aria-label="Freqüencia do VFO"></div>
+                  <div id="freq-mhz" class="vfo-frequency" aria-live="polite" data-i18n-aria="freq_display_aria"></div>
 
-                  <div class="vfo-screen__hint">Roda o knob, usa o wheel nos dígitos ou os botões rápidos para sintonizar.</div>
+                  <div class="vfo-screen__hint" data-i18n="vfo_screen_hint">Roda o knob, usa o wheel nos dígitos ou os botões rápidos para sintonizar.</div>
                 </div>
 
                 <div class="waterfall-frame">
                   <div class="waterfall-header">
-                    <span class="hardware-label">Waterfall</span>
+                    <span class="hardware-label" data-i18n="waterfall_label">Waterfall</span>
                     <strong id="waterfall-state">Em espera</strong>
                   </div>
 
                   <canvas id="spectrum-canvas" class="spectrum-canvas" width="640" height="80" aria-hidden="true"></canvas>
-                  <canvas id="waterfall-canvas" class="waterfall-canvas" aria-label="Waterfall do receptor"></canvas>
+                  <canvas id="waterfall-canvas" class="waterfall-canvas" data-i18n-aria="waterfall_canvas_aria"></canvas>
                 </div>
 
                 <div class="screen-controls">
                   <div class="mode-slot">
-                    <label for="mode-select">Selector de modo</label>
+                    <label for="mode-select" data-i18n="mode_selector_label">Selector de modo</label>
                     <select id="mode-select">
                       <option>USB</option>
                       <option>LSB</option>
@@ -136,15 +137,15 @@
               <div class="operation-grid">
                 <section class="hardware-block hardware-block--compact audio-block">
                   <div class="block-title">
-                    <span class="hardware-label">Operação Rádio</span>
+                    <span class="hardware-label" data-i18n="radio_operation_label">Operação Rádio</span>
                     <strong data-audio-readout>Em espera</strong>
                   </div>
 
-                  <p class="block-copy">RX link, TX hold e controlo rápido.</p>
+                  <p class="block-copy" data-i18n="block_copy_audio">RX link, TX hold e controlo rápido.</p>
 
                   <div class="button-stack">
-                    <button id="btn-connect" class="panel-button panel-button--primary">Ligar RX</button>
-                    <button id="btn-disconnect" class="panel-button" disabled>Desligar</button>
+                    <button id="btn-connect" class="panel-button panel-button--primary" data-i18n="btn_connect">Ligar RX</button>
+                    <button id="btn-disconnect" class="panel-button" disabled data-i18n="btn_disconnect">Desligar</button>
                     <button id="btn-tx" class="panel-button panel-button--tx" type="button">EMISSÃO</button>
                   </div>
 
@@ -158,11 +159,11 @@
 
               <section class="hardware-block knob-block">
                 <div class="block-title">
-                  <span class="hardware-label">VFO Principal</span>
+                  <span class="hardware-label" data-i18n="vfo_knob_label">VFO Principal</span>
                   <strong data-step-readout>100 Hz</strong>
                 </div>
 
-                <button id="vfo-knob" class="vfo-knob" type="button" aria-label="Knob de sintonização principal">
+                <button id="vfo-knob" class="vfo-knob" type="button" data-i18n-aria="vfo_knob_aria" aria-label="Knob de sintonização principal">
                   <span class="vfo-knob__ring vfo-knob__ring--outer"></span>
                   <span class="vfo-knob__ring vfo-knob__ring--mid"></span>
                   <span class="vfo-knob__face"></span>
@@ -170,16 +171,16 @@
                   <span class="vfo-knob__cap"></span>
                 </button>
 
-                <p class="knob-caption">Arrasta em arco, clique lateral ou wheel.</p>
+                <p class="knob-caption" data-i18n="knob_caption">Arrasta em arco, clique lateral ou wheel.</p>
               </section>
 
               <section class="hardware-block step-block">
                 <div class="block-title">
-                  <span class="hardware-label">Ferramentas de Sintonia</span>
+                  <span class="hardware-label" data-i18n="tuning_tools_label">Ferramentas de Sintonia</span>
                   <strong data-step-caption>Dígito 100 Hz seleccionado</strong>
                 </div>
 
-                <p class="block-copy">Escolhe o passo activo e combina-o com os botões rápidos do VFO.</p>
+                <p class="block-copy" data-i18n="step_copy">Escolhe o passo activo e combina-o com os botões rápidos do VFO.</p>
 
                 <div class="step-grid">
                   <button type="button" class="step-btn" data-step="10">10 Hz</button>
@@ -201,7 +202,7 @@
               <strong id="dx-band-label">20 m</strong>
             </div>
 
-            <div class="freq-ruler" id="freq-ruler" aria-label="Régua de frequências com spots DX">
+            <div class="freq-ruler" id="freq-ruler" data-i18n-aria="freq_ruler_aria">
               <div class="freq-ruler__scale" id="freq-ruler-scale"></div>
               <div class="freq-ruler__spots" id="freq-ruler-spots"></div>
               <div class="freq-ruler__cursor" id="freq-ruler-cursor">
@@ -215,48 +216,48 @@
         <aside class="log-column">
           <section class="hardware-block qso-block">
             <div class="block-title">
-              <span class="hardware-label">Diário QSO</span>
-              <strong>Pronto</strong>
+              <span class="hardware-label" data-i18n="qso_log_label">Diário QSO</span>
+              <strong data-i18n="qso_ready">Pronto</strong>
             </div>
 
             <div class="form-grid">
               <label class="form-field">
-                <span class="form-label">Indicativo</span>
+                <span class="form-label" data-i18n="form_callsign">Indicativo</span>
                 <input class="log-input" type="text" name="callsign" placeholder="CT1ABC" />
               </label>
 
               <label class="form-field">
-                <span class="form-label">UTC</span>
+                <span class="form-label" data-i18n="form_utc">UTC</span>
                 <input id="qso-time" class="log-input" type="text" name="utc" readonly />
               </label>
 
               <label class="form-field">
-                <span class="form-label">Freqüencia</span>
+                <span class="form-label" data-i18n="form_frequency">Frequência</span>
                 <input id="qso-frequency" class="log-input" type="text" name="frequency" readonly />
               </label>
 
               <label class="form-field">
-                <span class="form-label">Modo</span>
+                <span class="form-label" data-i18n="form_mode">Modo</span>
                 <input id="qso-mode" class="log-input" type="text" name="mode" readonly />
               </label>
 
               <label class="form-field">
-                <span class="form-label">Banda</span>
+                <span class="form-label" data-i18n="form_band">Banda</span>
                 <input id="qso-band" class="log-input" type="text" name="band" readonly />
               </label>
 
               <label class="form-field">
-                <span class="form-label">RST Enviado</span>
+                <span class="form-label" data-i18n="form_rst_sent">RST Enviado</span>
                 <input class="log-input" type="text" name="rst-sent" placeholder="59" />
               </label>
 
               <label class="form-field">
-                <span class="form-label">RST RX</span>
+                <span class="form-label" data-i18n="form_rst_rx">RST RX</span>
                 <input class="log-input" type="text" name="rst-rx" placeholder="59" />
               </label>
 
               <label class="form-field form-field--full">
-                <span class="form-label">Notas</span>
+                <span class="form-label" data-i18n="form_notes">Notas</span>
                 <textarea class="log-textarea" name="notes" rows="4" placeholder="Locator, nome, potência, observações..."></textarea>
               </label>
             </div>
@@ -264,7 +265,7 @@
 
           <section class="hardware-block band-plan-block">
             <div class="block-title">
-              <span class="hardware-label">Plano de Bandas</span>
+              <span class="hardware-label" data-i18n="band_plan_label">Plano de Bandas</span>
               <strong>HF</strong>
             </div>
 
@@ -272,27 +273,27 @@
               <article class="band-row" data-band="80m">
                 <strong>80 m</strong>
                 <span>3.500 - 3.800 MHz</span>
-                <small>CW, digital e SSB regional</small>
+                <small data-i18n="band_80m_desc">CW, digital e SSB regional</small>
               </article>
               <article class="band-row" data-band="40m">
                 <strong>40 m</strong>
                 <span>7.000 - 7.200 MHz</span>
-                <small>DX, nets e operação geral</small>
+                <small data-i18n="band_40m_desc">DX, nets e operação geral</small>
               </article>
               <article class="band-row" data-band="20m">
                 <strong>20 m</strong>
                 <span>14.000 - 14.350 MHz</span>
-                <small>DX de longo curso e digital</small>
+                <small data-i18n="band_20m_desc">DX de longo curso e digital</small>
               </article>
               <article class="band-row" data-band="15m">
                 <strong>15 m</strong>
                 <span>21.000 - 21.450 MHz</span>
-                <small>Boa abertura diurna</small>
+                <small data-i18n="band_15m_desc">Boa abertura diurna</small>
               </article>
               <article class="band-row" data-band="10m">
                 <strong>10 m</strong>
                 <span>28.000 - 29.700 MHz</span>
-                <small>Propagação variável e FM alta</small>
+                <small data-i18n="band_10m_desc">Propagação variável e FM alta</small>
               </article>
             </div>
           </section>
@@ -303,6 +304,7 @@
     </section>
   </main>
 
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

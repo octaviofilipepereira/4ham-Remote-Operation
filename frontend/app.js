@@ -16,6 +16,9 @@ let freqCommitTimer = null;
 let knobAngle = 0;
 let knobDrag = null;
 let txHoldActive = false;
+let _audioKey    = "audio_standby";
+let _waterfallKey = "wf_offline";
+let _lastStrengthDb = -127;
 let waterfallSocket = null;
 let waterfallReconnectTimer = null;
 let waterfallCtx = null;
@@ -151,10 +154,10 @@ function syncUtcField() {
 
 function setConnBadge(state) {
   const labels = {
-    disconnected: "Offline",
-    connecting: "A ligar",
-    connected: "Activo",
-    error: "Falha",
+    disconnected: t("conn_offline"),
+    connecting:   t("conn_connecting"),
+    connected:    t("conn_connected"),
+    error:        t("conn_error"),
   };
 
   root.dataset.connectionState = state;
@@ -162,9 +165,10 @@ function setConnBadge(state) {
   elConn.textContent = labels[state] ?? state;
 }
 
-function setAudioState(text) {
+function setAudioState(key) {
+  _audioKey = key;
   audioReadouts.forEach((node) => {
-    node.textContent = text;
+    node.textContent = t(key);
   });
 }
 
@@ -187,7 +191,7 @@ function setTuneStep(step) {
   });
 
   stepCaptions.forEach((node) => {
-    node.textContent = `Dígito ${label} seleccionado`;
+    node.textContent = t("step_caption").replace("{step}", label);
   });
 
   stepButtons.forEach((button) => {
@@ -200,7 +204,7 @@ function setTuneStep(step) {
 function setTxButtonState(isActive) {
   if (!btnTx) return;
   btnTx.classList.toggle("is-active", isActive);
-  btnTx.textContent = isActive ? "EM EMISSÃO" : "EMISSÃO";
+  btnTx.textContent = isActive ? t("btn_tx_live") : t("btn_tx_hold");
 }
 
 function setPttBadge(isTx) {
@@ -244,19 +248,21 @@ function strengthToPercent(db) {
 }
 
 function updateSignalState(db) {
+  _lastStrengthDb = db;
   const bounded = Number.isFinite(db)
     ? Math.max(_STR_MIN, Math.min(_STR_MAX, db))
     : _STR_MIN;
   elSmeter.value = bounded;
   const absDbm = Number.isFinite(db) ? Math.round(db + _S9_DBM) : null;
   elSmVal.textContent = absDbm !== null ? `${absDbm} dBm` : "-- dBm";
-  elSignalQuality.textContent = Number.isFinite(db) ? strengthToSUnit(db) : "Em espera";
+  elSignalQuality.textContent = Number.isFinite(db) ? strengthToSUnit(db) : t("smeter_standby");
   elSmeterFill.style.width = `${strengthToPercent(db)}%`;
 }
 
-function setWaterfallState(text) {
+function setWaterfallState(key) {
+  _waterfallKey = key;
   if (elWaterfallState) {
-    elWaterfallState.textContent = text;
+    elWaterfallState.textContent = t(key);
   }
 }
 
@@ -445,7 +451,7 @@ function connectWaterfall() {
   resizeWaterfallCanvas();
 
   if (location.protocol === "file:") {
-    setWaterfallState("Preview");
+    setWaterfallState("wf_preview");
     return;
   }
 
@@ -455,10 +461,10 @@ function connectWaterfall() {
 
   const scheme = location.protocol === "https:" ? "wss" : "ws";
   waterfallSocket = new WebSocket(`${scheme}://${location.host}/ws/spectrum`);
-  setWaterfallState("Linking");
+  setWaterfallState("wf_linking");
 
   waterfallSocket.addEventListener("open", () => {
-    setWaterfallState("Live");
+    setWaterfallState("wf_live");
   });
 
   waterfallSocket.addEventListener("message", (event) => {
@@ -475,12 +481,12 @@ function connectWaterfall() {
   });
 
   waterfallSocket.addEventListener("error", () => {
-    setWaterfallState("Fault");
+    setWaterfallState("wf_fault");
   });
 
   waterfallSocket.addEventListener("close", () => {
     waterfallSocket = null;
-    setWaterfallState("Offline");
+    setWaterfallState("wf_offline");
     clearSpectrum();
     scheduleWaterfallReconnect();
   });
@@ -514,7 +520,7 @@ function renderFrequency(frequencyHz) {
       const selectedClass = step === selectedTuneStep ? " is-selected" : "";
       const content = digit === "-" ? "&mdash;" : digit;
 
-      return `<button type="button" class="freq-digit${selectedClass}" data-step="${step}" aria-label="Tune ${formatStepLabel(step)} digit">${content}</button>`;
+      return `<button type="button" class="freq-digit${selectedClass}" data-step="${step}" aria-label="${t('tune_digit_aria').replace('{step}', formatStepLabel(step))}">${content}</button>`;
     }).join("");
 
     const separator = groupIndex < 2 ? '<span class="freq-separator">.</span>' : "";
@@ -759,6 +765,18 @@ window.addEventListener("blur", endTxHold);
 btnConn.addEventListener("click", connectRx);
 btnDisc.addEventListener("click", disconnectRx);
 
+document.getElementById("lang-toggle")?.addEventListener("click", () => {
+  const next = getLang() === "pt" ? "en" : "pt";
+  applyLocale(next);
+  /* re-render dynamic state with new locale */
+  setConnBadge(root.dataset.connectionState || "disconnected");
+  setAudioState(_audioKey);
+  setWaterfallState(_waterfallKey);
+  setTuneStep(selectedTuneStep);
+  setTxButtonState(txHoldActive);
+  updateSignalState(_lastStrengthDb);
+});
+
 elVolume.addEventListener("input", () => {
   const pct = parseInt(elVolume.value, 10);
   elVolumeVal.textContent = `${pct}%`;
@@ -786,7 +804,7 @@ async function connectRx() {
   btnConn.disabled = true;
   btnDisc.disabled = true;
   setConnBadge("connecting");
-  setAudioState("A negociar ligação RX");
+  setAudioState("audio_negotiating");
 
   pc = new RTCPeerConnection({
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -806,7 +824,7 @@ async function connectRx() {
       // fallback para audio element directo se WebAudio não disponível
       elAudio.srcObject = stream;
     }
-    setAudioState("Stream RX recebido");
+    setAudioState("audio_stream_received");
   };
 
   pc.addTransceiver("audio", { direction: "recvonly" });
@@ -846,7 +864,7 @@ async function connectRx() {
       pc = null;
     }
     setConnBadge("error");
-    setAudioState("Falha na ligação RX");
+    setAudioState("audio_link_fault");
     btnConn.disabled = false;
     return;
   }
@@ -856,13 +874,13 @@ async function connectRx() {
 
     if (state === "connecting") {
       setConnBadge("connecting");
-      setAudioState("A finalizar ligação RX");
+      setAudioState("audio_finalising");
       return;
     }
 
     if (state === "connected") {
       setConnBadge("connected");
-      setAudioState("Stream RX activo");
+      setAudioState("audio_stream_live");
       btnConn.disabled = true;
       btnDisc.disabled = false;
       return;
@@ -870,7 +888,7 @@ async function connectRx() {
 
     if (["failed", "closed", "disconnected"].includes(state)) {
       setConnBadge(state === "failed" ? "error" : "disconnected");
-      setAudioState(state === "failed" ? "Sessão RX interrompida" : "Ligação RX offline");
+      setAudioState(state === "failed" ? "audio_session_dropped" : "audio_link_offline");
       btnConn.disabled = false;
       btnDisc.disabled = true;
 
@@ -905,14 +923,14 @@ async function disconnectRx() {
 
   elAudio.srcObject = null;
   setConnBadge("disconnected");
-  setAudioState("Ligação RX offline");
+  setAudioState("audio_link_offline");
   btnConn.disabled = false;
   btnDisc.disabled = true;
 }
 
 setConnBadge("disconnected");
 setPttBadge(false);
-setAudioState("Em espera");
+setAudioState("audio_standby");
 syncModeUI(elMode.value);
 setTuneStep(selectedTuneStep);
 updateSignalState(-127);
