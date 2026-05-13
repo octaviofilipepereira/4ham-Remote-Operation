@@ -758,6 +758,42 @@ body::before {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 24px rgba(255, 132, 117, 0.28);
 }
 
+/* ── VOX ──────────────────────────────────────────────────────────────────── */
+.vox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.panel-button--vox {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.45);
+  background: linear-gradient(180deg, #252b30 0%, #161b1f 100%);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.panel-button--vox.is-active {
+  color: #0d1a15;
+  background: linear-gradient(180deg, #92ffe4 0%, #50d4b0 100%);
+  border-color: rgba(146, 255, 228, 0.5);
+  box-shadow: 0 0 14px rgba(146, 255, 228, 0.25);
+}
+
+/* barra de nível mic VOX */
+.vox-level-bar {
+  display: block;
+  width: 36px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #50d4b0 var(--vox-pct, 0%), rgba(255,255,255,0.08) var(--vox-pct, 0%));
+  flex-shrink: 0;
+  transition: --vox-pct 0.05s;
+}
+
 .display-bezel {
   min-height: 0;
   display: grid;

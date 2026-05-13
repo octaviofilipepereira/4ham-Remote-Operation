@@ -17,6 +17,14 @@ let knobAngle = 0;
 let knobDrag = null;
 let txHoldActive = false;
 let micTrack = null;   // MediaStreamTrack do microfone; null se não autorizado
+
+// ── VOX ──────────────────────────────────────────────────────────────────────
+let voxEnabled = false;
+let voxRafId   = null;    // requestAnimationFrame loop
+let voxHangTimer = null;  // timeout para PTT OFF após silêncio
+let voxAnalyser = null;   // AnalyserNode alimentado pelo mic
+let voxDataBuf  = null;   // Uint8Array reutilizável
+const VOX_HANG_MS = 600;  // ms de silêncio antes de PTT OFF
 let _audioKey    = "audio_standby";
 let _waterfallKey = "wf_offline";
 let _lastStrengthDb = -127;
@@ -62,7 +70,10 @@ const elQsoBand = document.getElementById("qso-band");
 const elQsoTime = document.getElementById("qso-time");
 const btnConn = document.getElementById("btn-connect");
 const btnDisc = document.getElementById("btn-disconnect");
-const btnTx = document.getElementById("btn-tx");
+const btnTx  = document.getElementById("btn-tx");
+const btnVox = document.getElementById("btn-vox");
+const elVoxThreshold = document.getElementById("vox-threshold");
+const elVoxLevel     = document.getElementById("vox-level");
 const modeReadouts = Array.from(document.querySelectorAll("[data-mode-readout]"));
 const audioReadouts = Array.from(document.querySelectorAll("[data-audio-readout]"));
 const stepReadouts = Array.from(document.querySelectorAll("[data-step-readout]"));
@@ -826,6 +837,90 @@ btnTx.addEventListener("keyup", (event) => {
   if (event.key === "Enter") { event.preventDefault(); endTxHold(); }
 });
 
+// ── VOX ──────────────────────────────────────────────────────────────────────
+
+function voxStartAnalyser() {
+  if (voxAnalyser || !micTrack || !audioCtx) return;
+  try {
+    const micStream = new MediaStream([micTrack]);
+    const src = audioCtx.createMediaStreamSource(micStream);
+    voxAnalyser = audioCtx.createAnalyser();
+    voxAnalyser.fftSize = 256;
+    voxDataBuf = new Uint8Array(voxAnalyser.frequencyBinCount);
+    src.connect(voxAnalyser);
+  } catch (_) {
+    voxAnalyser = null;
+  }
+}
+
+function voxStopAnalyser() {
+  voxAnalyser = null;
+  voxDataBuf  = null;
+  if (voxRafId !== null) { cancelAnimationFrame(voxRafId); voxRafId = null; }
+  if (voxHangTimer !== null) { clearTimeout(voxHangTimer); voxHangTimer = null; }
+}
+
+function voxLoop() {
+  if (!voxEnabled || !voxAnalyser) { voxRafId = null; return; }
+  voxAnalyser.getByteTimeDomainData(voxDataBuf);
+
+  // RMS da janela temporal
+  let sum = 0;
+  for (let i = 0; i < voxDataBuf.length; i++) {
+    const s = (voxDataBuf[i] - 128) / 128;
+    sum += s * s;
+  }
+  const rms = Math.sqrt(sum / voxDataBuf.length);  // 0..1
+  const pct = Math.min(100, Math.round(rms * 400)); // escalar para visual
+
+  // atualizar barra de nível (CSS custom property)
+  if (elVoxLevel) elVoxLevel.style.setProperty("--vox-pct", `${pct}%`);
+
+  const threshold = parseInt(elVoxThreshold?.value ?? "15", 10) / 100; // 0.01..0.50
+
+  if (rms > threshold) {
+    // sinal detectado — cancelar hang, activar PTT se não activo
+    if (voxHangTimer !== null) { clearTimeout(voxHangTimer); voxHangTimer = null; }
+    if (!txHoldActive) {
+      txHoldActive = true;
+      setTxButtonState(true);
+      if (micTrack) micTrack.enabled = true;
+      sendPtt(true);
+    }
+  } else if (txHoldActive && voxHangTimer === null) {
+    // silêncio — iniciar hang time
+    voxHangTimer = setTimeout(() => {
+      voxHangTimer = null;
+      if (txHoldActive) {
+        txHoldActive = false;
+        setTxButtonState(false);
+        if (micTrack) micTrack.enabled = false;
+        sendPtt(false);
+      }
+    }, VOX_HANG_MS);
+  }
+
+  voxRafId = requestAnimationFrame(voxLoop);
+}
+
+function setVoxEnabled(active) {
+  voxEnabled = active;
+  btnVox?.classList.toggle("is-active", active);
+  if (active) {
+    voxStartAnalyser();
+    if (voxAnalyser) voxRafId = requestAnimationFrame(voxLoop);
+  } else {
+    voxStopAnalyser();
+    // PTT OFF imediato se estava em VOX TX
+    if (txHoldActive) endTxHold();
+    if (elVoxLevel) elVoxLevel.style.setProperty("--vox-pct", "0%");
+  }
+}
+
+btnVox?.addEventListener("click", () => setVoxEnabled(!voxEnabled));
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // F8 global — PTT independente do foco, mas não quando o cursor está num input de texto
 window.addEventListener("keydown", (event) => {
   if (event.key !== "F8" || event.repeat) return;
@@ -869,6 +964,8 @@ async function connectRx() {
       elAudio.srcObject = stream;
     }
     setAudioState("audio_stream_received");
+    // Se VOX já estava activo, ligar o analyser agora que audioCtx existe
+    if (voxEnabled) { voxStartAnalyser(); voxRafId = requestAnimationFrame(voxLoop); }
   };
 
   // Tentar obter microfone para TX; se negado, operar em modo RX apenas
@@ -960,6 +1057,7 @@ async function connectRx() {
 
 async function disconnectRx() {
   endTxHold();   // PTT OFF imediato antes de fechar
+  voxStopAnalyser();
 
   if (micTrack) {
     micTrack.stop();

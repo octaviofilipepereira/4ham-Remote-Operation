@@ -37,6 +37,8 @@ const LOCALES = {
     btn_disconnect:        "Desligar",
     btn_tx_hold:           "EMISSÃO",
     btn_tx_live:           "EM EMISSÃO",
+    btn_vox:               "VOX",
+    vox_sens_label:        "Sens",
     /* Knob VFO */
     vfo_knob_label:        "VFO Principal",
     vfo_knob_aria:         "Knob de sintonização principal",
@@ -116,6 +118,8 @@ const LOCALES = {
     radio_operation_label: "Radio Operation",
     block_copy_audio:      "RX link, TX hold and quick controls.",
     btn_connect:           "Connect RX",
+    btn_vox:               "VOX",
+    vox_sens_label:        "Sens",
     btn_disconnect:        "Disconnect",
     btn_tx_hold:           "TX HOLD",
     btn_tx_live:           "TX LIVE",
