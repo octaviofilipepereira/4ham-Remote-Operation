@@ -1,11 +1,27 @@
 import asyncio
 import logging
+import socket
 
 logger = logging.getLogger(__name__)
 
 _RECONNECT_BASE: float = 1.0   # segundos
 _RECONNECT_MAX: float  = 30.0  # segundos
 _CMD_TIMEOUT: float    = 5.0   # segundos
+
+
+def _set_linger_zero(writer: asyncio.StreamWriter) -> None:
+    """Activa SO_LINGER com l_linger=0: ao fechar envia RST em vez de FIN.
+
+    Isto garante que o rigctld limpa imediatamente o socket do seu lado,
+    evitando a acumulação de ligações CLOSE-WAIT.
+    """
+    try:
+        sock = writer.get_extra_info("socket")
+        if sock is not None:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER,
+                            socket.pack("ii", 1, 0))
+    except Exception:
+        pass  # ignorar — sem impacto funcional
 
 
 class RigStatus:
@@ -63,12 +79,14 @@ class CATDriver:
     async def connect(self) -> None:
         """Abre a ligação de escrita."""
         self._reader, self._writer = await asyncio.open_connection(self.host, self.port)
+        _set_linger_zero(self._writer)
         self._reconnect_delay = _RECONNECT_BASE
         logger.info("rigctld (escrita) ligado em %s:%s", self.host, self.port)
 
     async def _connect_poll(self) -> None:
         """Abre a ligação de leitura (polling)."""
         self._poll_r, self._poll_w = await asyncio.open_connection(self.host, self.port)
+        _set_linger_zero(self._poll_w)
         self._poll_reconnect_delay = _RECONNECT_BASE
         logger.info("rigctld (leitura) ligado em %s:%s", self.host, self.port)
 
