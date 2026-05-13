@@ -820,15 +820,24 @@ elVolume.addEventListener("input", () => {
 btnTx.addEventListener("pointerdown", beginTxHold);
 btnTx.addEventListener("keydown", (event) => {
   if (event.repeat) return;
-  if (event.key === " " || event.key === "Enter") {
-    beginTxHold(event);
-  }
+  if (event.key === "Enter") beginTxHold(event);
 });
 btnTx.addEventListener("keyup", (event) => {
-  if (event.key === " " || event.key === "Enter") {
-    event.preventDefault();
-    endTxHold();
-  }
+  if (event.key === "Enter") { event.preventDefault(); endTxHold(); }
+});
+
+// F8 global — PTT independente do foco, mas não quando o cursor está num input de texto
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "F8" || event.repeat) return;
+  const tag = document.activeElement?.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+  event.preventDefault();
+  beginTxHold(event);
+});
+window.addEventListener("keyup", (event) => {
+  if (event.key !== "F8") return;
+  event.preventDefault();
+  endTxHold();
 });
 window.addEventListener("pointerup", endTxHold);
 window.addEventListener("pointercancel", endTxHold);
