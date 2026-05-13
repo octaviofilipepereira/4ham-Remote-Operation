@@ -5,13 +5,21 @@ from dataclasses import dataclass
 class FT991AProfile:
     """Perfil do Yaesu FT-991A.
 
-    Ligação CAT via USB Serial → rigctld :4532.
+    Ligação CAT via USB Serial (CP2105 Dual UART) → rigctld :4532.
+    A porta série é detectada automaticamente pelo RigctldManager via
+    /dev/serial/by-id/ (padrão ``*CP2105*if00*``), ou pode ser configurada
+    explicitamente em ``rig.serial_port`` no remote_config.yaml.
+
     Áudio via USB Audio CODEC (48 kHz, estéreo): canal L = RX, canal R = TX.
+
+    USB: VID=10c4 (Silicon Labs), PID=ea70, interface 0 = CAT, interface 1 = UART2.
     """
 
     name: str = "Yaesu FT-991A"
     hamlib_model: int = 1035
-    default_serial_port: str = "/dev/ttyUSB0"
+    # Usar "auto" para detecção automática via /dev/serial/by-id/
+    # O RigctldManager resolve o path real antes de arrancar o rigctld.
+    default_serial_port: str = "auto"
     default_baud: int = 38400
     rigctld_host: str = "localhost"
     rigctld_port: int = 4532

@@ -21,6 +21,20 @@ auth:
 rig:
   # Perfil activo: ft991a | x6100 | custom
   profile: "ft991a"
+
+  # Porta série do rádio.
+  # "auto" (padrão): detecta automaticamente via /dev/serial/by-id/
+  #   procura pelo adaptador CP2105 (FT-991A), interface 0 (porta CAT).
+  # Path explícito: usar o symlink estável by-id (recomendado) ou /dev/ttyUSBx.
+  #   Exemplo (FT-991A):
+  #     serial_port: "/dev/serial/by-id/usb-Silicon_Labs_CP2105_Dual_USB_to_UART_Bridge_Controller_00C307D3-if00-port0"
+  serial_port: "auto"
+
+  # Modelo Hamlib do rádio (1035 = FT-991A). Só relevante quando o backend
+  # arranca o rigctld (serial_port configurado ou detectado).
+  hamlib_model: 1035
+  baud: 38400
+
   rigctld:
     host: "127.0.0.1"
     port: 4532

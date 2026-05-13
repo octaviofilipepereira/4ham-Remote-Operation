@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import socket
+import struct
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ def _set_linger_zero(writer: asyncio.StreamWriter) -> None:
         sock = writer.get_extra_info("socket")
         if sock is not None:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER,
-                            socket.pack("ii", 1, 0))
+                            struct.pack("ii", 1, 0))
     except Exception:
         pass  # ignorar — sem impacto funcional
 

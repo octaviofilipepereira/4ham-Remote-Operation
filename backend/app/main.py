@@ -13,6 +13,7 @@ from .api.webrtc import router as webrtc_router
 from .core.auth_middleware import BasicAuthMiddleware
 from .remote.audio_capture import AudioCaptureService
 from .remote.cat_driver import CATDriver
+from .remote.rigctld_manager import RigctldManager, detect_serial_port
 from .remote.webrtc_peer import WebRTCPeer
 from .websocket.spectrum import router as spectrum_router
 
@@ -34,9 +35,38 @@ def _load_config() -> dict:
 async def lifespan(app: FastAPI):
     cfg = _load_config()
 
+    rig_cfg = cfg.get("rig", {})
+    rigctld_cfg = rig_cfg.get("rigctld", {})
+    rigctld_host = os.getenv("RIGCTLD_HOST", rigctld_cfg.get("host", "127.0.0.1"))
+    rigctld_port = int(os.getenv("RIGCTLD_PORT", rigctld_cfg.get("port", 4532)))
+
+    # ── Arranque automático do rigctld ────────────────────────────────────────
+    # Detecta a porta série do FT-991A via /dev/serial/by-id/ (ou config)
+    # e arranca o rigctld caso ainda não esteja a correr.
+    serial_port_cfg = os.getenv(
+        "RIG_SERIAL_PORT",
+        rig_cfg.get("serial_port", "auto"),
+    )
+    serial_port = detect_serial_port(serial_port_cfg)
+
+    rigctld_manager: RigctldManager | None = None
+    if serial_port:
+        rigctld_manager = RigctldManager(
+            serial_port=serial_port,
+            hamlib_model=int(rig_cfg.get("hamlib_model", 1035)),
+            baud=int(rig_cfg.get("baud", 38400)),
+            listen_host=rigctld_host,
+            listen_port=rigctld_port,
+        )
+        await rigctld_manager.start()
+    else:
+        logger.warning(
+            "Porta série não detectada — o rigctld terá de estar a correr manualmente"
+        )
+
     driver = CATDriver(
-        host=os.getenv("RIGCTLD_HOST", cfg.get("rig", {}).get("rigctld", {}).get("host", "localhost")),
-        port=int(os.getenv("RIGCTLD_PORT", cfg.get("rig", {}).get("rigctld", {}).get("port", 4532))),
+        host=rigctld_host,
+        port=rigctld_port,
     )
     app.state.cat_driver = driver
     try:
@@ -92,6 +122,8 @@ async def lifespan(app: FastAPI):
     await audio_source.close()
     await driver.close()
     await spectrum_source.stop()
+    if rigctld_manager:
+        await rigctld_manager.stop()
 
 
 def create_app() -> FastAPI:
