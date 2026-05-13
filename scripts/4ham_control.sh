@@ -6,11 +6,11 @@
 # 4ham Remote Operation — server control
 #
 # Usage:
-#   ./scripts/server_control.sh start
-#   ./scripts/server_control.sh stop
-#   ./scripts/server_control.sh restart
-#   ./scripts/server_control.sh status
-#   ./scripts/server_control.sh logs
+#   ./scripts/4ham_control.sh start
+#   ./scripts/4ham_control.sh stop
+#   ./scripts/4ham_control.sh restart
+#   ./scripts/4ham_control.sh status
+#   ./scripts/4ham_control.sh logs
 
 set -euo pipefail
 
