@@ -2,10 +2,12 @@ import asyncio
 import logging
 from typing import Optional
 
+import numpy as np
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 
 from .audio_capture import AudioCaptureService
 from .audio_rx import AudioRxTrack
+from .audio_tx import AudioTxService
 
 logger = logging.getLogger(__name__)
 
@@ -17,15 +19,27 @@ _ICE_GATHER_TIMEOUT = 10.0   # segundos máximos a esperar pelos candidatos ICE
 
 
 class WebRTCPeer:
-    """Gere uma RTCPeerConnection aiortc com uma track de áudio RX."""
+    """Gere uma RTCPeerConnection aiortc com áudio RX e TX."""
 
     def __init__(
         self,
         audio_source: AudioCaptureService,
+        audio_tx: Optional[AudioTxService] = None,
+        cat_driver=None,   # CATDriver | None — para PTT safety
     ) -> None:
         self._audio_source = audio_source
+        self._audio_tx = audio_tx
+        self._cat_driver = cat_driver
         self._pc: Optional[RTCPeerConnection] = None
         self._audio_track: Optional[AudioRxTrack] = None
+        self._tx_task: Optional[asyncio.Task] = None
+
+    # ── propriedades públicas ─────────────────────────────────────────────────
+
+    @property
+    def is_connected(self) -> bool:
+        """Verdadeiro se a RTCPeerConnection estiver no estado 'connected'."""
+        return self._pc is not None and self._pc.connectionState == "connected"
 
     # ── offer/answer ─────────────────────────────────────────────────────────
 
@@ -37,10 +51,28 @@ class WebRTCPeer:
         self._audio_track = AudioRxTrack(source=self._audio_source)
         self._pc.addTrack(self._audio_track)
 
+        # ── Receber track TX do browser (microfone) ───────────────────────────
+        @self._pc.on("track")
+        def _on_track(track) -> None:
+            if track.kind == "audio":
+                logger.info("WebRTC: track TX recebida do browser")
+                loop = asyncio.get_event_loop()
+                self._tx_task = loop.create_task(self._consume_tx_track(track))
+
         @self._pc.on("connectionstatechange")
         async def on_state_change() -> None:
             state = self._pc.connectionState
             logger.info("WebRTC connectionState: %s", state)
+            if state in ("disconnected", "failed"):
+                # Segurança: PTT OFF imediato para evitar transmissão sem sessão
+                if self._cat_driver is not None:
+                    try:
+                        await self._cat_driver.set_ptt(False)
+                        logger.warning(
+                            "WebRTC: PTT forçado OFF por perda de ligação (%s)", state
+                        )
+                    except Exception:
+                        logger.debug("WebRTC: erro ao forçar PTT OFF", exc_info=True)
             if state in ("failed", "closed"):
                 await self.close()
 
@@ -88,9 +120,48 @@ class WebRTCPeer:
 
         await future
 
+    # ── TX track consumer ─────────────────────────────────────────────────────
+
+    async def _consume_tx_track(self, track) -> None:
+        """Lê frames de áudio do browser e encaminha para AudioTxService."""
+        if self._audio_tx is not None:
+            self._audio_tx.start()
+        try:
+            while True:
+                try:
+                    frame = await track.recv()
+                except Exception:
+                    break
+                if self._audio_tx is None:
+                    continue
+                arr = frame.to_ndarray()   # int16, shape (1, samples) para mono
+                if arr.dtype != np.int16:
+                    arr = (arr.astype(np.float32) * 32767.0).clip(-32768, 32767).astype(np.int16)
+                self._audio_tx.push(arr.flatten())
+        finally:
+            logger.info("WebRTC: track TX encerrada")
+            if self._audio_tx is not None:
+                self._audio_tx.stop()
+
     # ── cleanup ───────────────────────────────────────────────────────────────
 
     async def close(self) -> None:
+        # Segurança: garantir PTT OFF ao fechar a ligação
+        if self._cat_driver is not None:
+            try:
+                await self._cat_driver.set_ptt(False)
+            except Exception:
+                pass
+
+        # Cancelar task de consumo TX
+        if self._tx_task is not None and not self._tx_task.done():
+            self._tx_task.cancel()
+            try:
+                await self._tx_task
+            except asyncio.CancelledError:
+                pass
+            self._tx_task = None
+
         if self._audio_track is not None:
             self._audio_track.stop()
             self._audio_track = None

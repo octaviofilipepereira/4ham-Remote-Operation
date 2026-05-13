@@ -12,6 +12,7 @@ from .api.rig import router as rig_router
 from .api.webrtc import router as webrtc_router
 from .core.auth_middleware import BasicAuthMiddleware
 from .remote.audio_capture import AudioCaptureService
+from .remote.audio_tx import AudioTxService
 from .remote.cat_driver import CATDriver
 from .remote.profiles import load_profile
 from .remote.rigctld_manager import RigctldManager, detect_serial_port
@@ -103,8 +104,22 @@ async def lifespan(app: FastAPI):
         rx_gain=float(os.getenv("AUDIO_RX_GAIN", audio_cfg.get("rx_gain", 1.0))),
     )
     app.state.audio_capture = audio_source
+
+    audio_tx = AudioTxService(
+        device=os.getenv("AUDIO_DEVICE") or audio_cfg.get("device") or None,
+        tx_channel=int(os.getenv("AUDIO_TX_CHANNEL", audio_cfg.get("tx_channel", 1))),
+    )
+    app.state.audio_tx = audio_tx
+
+    ptt_cfg = cfg.get("ptt", {})
+    app.state.ptt_allowed_bands = ptt_cfg.get("allowed_bands", [])
+    app.state.ptt_max_tx_seconds = int(ptt_cfg.get("max_tx_seconds", 180))
+    app.state.tx_timer = None
+
     peer = WebRTCPeer(
         audio_source=audio_source,
+        audio_tx=audio_tx,
+        cat_driver=driver,
     )
     app.state.webrtc_peer = peer
 
@@ -142,6 +157,7 @@ async def lifespan(app: FastAPI):
 
     await peer.close()
     await audio_source.close()
+    audio_tx.stop()
     await driver.close()
     await spectrum_source.stop()
     if rigctld_manager:

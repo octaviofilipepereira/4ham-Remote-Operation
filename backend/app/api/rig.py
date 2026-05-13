@@ -1,9 +1,13 @@
+import asyncio
+import logging
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ..remote.cat_driver import CATDriver, RigStatus
 
 router = APIRouter(prefix="/api/rig", tags=["rig"])
+logger = logging.getLogger(__name__)
 
 
 def _driver(request: Request) -> CATDriver:
@@ -11,6 +15,14 @@ def _driver(request: Request) -> CATDriver:
     if driver is None:
         raise HTTPException(status_code=503, detail="CAT driver não inicializado")
     return driver
+
+
+def _cancel_tx_timer(request: Request) -> None:
+    """Cancela o timer de TX máximo, se estiver a correr."""
+    timer: asyncio.Task | None = getattr(request.app.state, "tx_timer", None)
+    if timer is not None and not timer.done():
+        timer.cancel()
+    request.app.state.tx_timer = None
 
 
 # ── GET /api/rig/status ──────────────────────────────────────────────────────
@@ -87,8 +99,55 @@ class SetPTTRequest(BaseModel):
 async def set_ptt(body: SetPTTRequest, request: Request) -> dict:
     """Activa ou desactiva o PTT do rádio."""
     driver = _driver(request)
+
+    if body.enabled:
+        # ── Verificação de sessão WebRTC ──────────────────────────────────────
+        from ..remote.webrtc_peer import WebRTCPeer  # noqa: PLC0415 — import local para evitar ciclo
+        peer: WebRTCPeer | None = getattr(request.app.state, "webrtc_peer", None)
+        if peer is None or not peer.is_connected:
+            raise HTTPException(
+                status_code=409,
+                detail="PTT negado: sessão WebRTC não activa ou não ligada",
+            )
+
+        # ── Verificação de banda ──────────────────────────────────────────────
+        allowed_bands: list = getattr(request.app.state, "ptt_allowed_bands", [])
+        if allowed_bands:
+            try:
+                status = await driver.get_status()
+                freq = status.frequency_hz
+            except Exception as exc:
+                raise HTTPException(status_code=502, detail=str(exc)) from exc
+            if not any(lo <= freq <= hi for lo, hi in allowed_bands):
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"PTT negado: {freq} Hz fora das bandas autorizadas",
+                )
+
+        # ── Timer de TX máximo ────────────────────────────────────────────────
+        _cancel_tx_timer(request)
+        max_secs: int = getattr(request.app.state, "ptt_max_tx_seconds", 180)
+
+        async def _tx_timeout() -> None:
+            await asyncio.sleep(max_secs)
+            logger.warning("TX: tempo máximo (%ds) excedido — PTT OFF forçado", max_secs)
+            try:
+                await driver.set_ptt(False)
+            except Exception:
+                pass
+            request.app.state.tx_timer = None
+
+        request.app.state.tx_timer = asyncio.create_task(_tx_timeout())
+
+    else:
+        # PTT OFF — cancelar timer sem verificações adicionais
+        _cancel_tx_timer(request)
+
     try:
         await driver.set_ptt(body.enabled)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        if body.enabled:
+            _cancel_tx_timer(request)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
     return {"ok": True, "ptt": body.enabled}

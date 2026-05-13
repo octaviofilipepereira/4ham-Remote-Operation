@@ -16,6 +16,7 @@ let freqCommitTimer = null;
 let knobAngle = 0;
 let knobDrag = null;
 let txHoldActive = false;
+let micTrack = null;   // MediaStreamTrack do microfone; null se não autorizado
 let _audioKey    = "audio_standby";
 let _waterfallKey = "wf_offline";
 let _lastStrengthDb = -127;
@@ -664,6 +665,7 @@ function beginTxHold(event) {
   event?.preventDefault();
   txHoldActive = true;
   setTxButtonState(true);
+  if (micTrack) micTrack.enabled = true;
   sendPtt(true);
 }
 
@@ -671,6 +673,7 @@ function endTxHold() {
   if (!txHoldActive) return;
   txHoldActive = false;
   setTxButtonState(false);
+  if (micTrack) micTrack.enabled = false;
   sendPtt(false);
 }
 
@@ -859,7 +862,17 @@ async function connectRx() {
     setAudioState("audio_stream_received");
   };
 
-  pc.addTransceiver("audio", { direction: "recvonly" });
+  // Tentar obter microfone para TX; se negado, operar em modo RX apenas
+  micTrack = null;
+  try {
+    const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    micTrack = micStream.getAudioTracks()[0];
+    micTrack.enabled = false;  // silencioso até PTT activo
+    pc.addTrack(micTrack, micStream);
+  } catch (_) {
+    console.warn("Microfone não disponível — TX desactivado (modo RX apenas)");
+    pc.addTransceiver("audio", { direction: "recvonly" });
+  }
 
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
@@ -929,6 +942,7 @@ async function connectRx() {
       }
 
       if (state === "closed" || state === "failed") {
+        if (micTrack) { micTrack.stop(); micTrack = null; }
         pc = null;
       }
     }
@@ -936,6 +950,13 @@ async function connectRx() {
 }
 
 async function disconnectRx() {
+  endTxHold();   // PTT OFF imediato antes de fechar
+
+  if (micTrack) {
+    micTrack.stop();
+    micTrack = null;
+  }
+
   if (pc) {
     pc.close();
     pc = null;
