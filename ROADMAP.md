@@ -38,16 +38,31 @@ R4 — Packaging Windows → Docker + rigctld.exe + audio_bridge.py
   - Ligar ao rigctld via TCP (host:port configurável)
   - Comandos: `get_freq`, `set_freq`, `get_mode`, `set_mode`, `get_level` (S-meter)
   - Reconexão automática com backoff
-- [ ] Criar perfil FT-991A: `backend/app/remote/profiles/ft991a.py`
-  - Modelo Hamlib 1035, porta USB típica `/dev/ttyUSB0`
+- [x] Criar perfil FT-991A: `backend/app/remote/profiles/ft991a.py`
+  - Modelo Hamlib 1035, detecção automática de porta USB (CP2105)
   - Audio device: USB Audio CODEC (48kHz, L=RX, R=TX)
-- [ ] Criar perfil X6100: `backend/app/remote/profiles/x6100.py`
+- [x] Criar perfil X6100: `backend/app/remote/profiles/x6100.py`
   - Modelo Hamlib 3087, endereço IP configurável
   - Audio via rede nativa (wfview protocol ou USB Audio se ligado por USB)
+- [x] Registo de perfis (`profiles/__init__.py`) com `load_profile(name)`
+  - Perfis definem: hamlib_model, baud, padrão de detecção USB (`serial_by_id_pattern`)
+  - Adicionar novo rádio = criar ficheiro de perfil + registar a chave
+- [x] Auto-detecção de porta série via `/dev/serial/by-id/` pelo padrão do perfil activo
+- [x] `RigctldManager`: arranca rigctld automaticamente se não estiver a correr;
+  modo passivo se já estiver (e.g. arrancado manualmente)
 - [ ] Endpoints REST `api/rig.py`:
   - `GET /api/rig/status` — freq, mode, s-meter, PTT state
   - `POST /api/rig/freq` — set frequência
   - `POST /api/rig/mode` — set modo (USB/LSB/CW/FM/AM)
+
+#### R1.2-B — Múltiplos rádios configurados pelo utilizador *(pendente)*
+- [ ] O config deve suportar uma **lista de rádios** (`rigs:`), cada um com nome,
+  perfil de hardware, porta série, baud e definições de rigctld próprias
+- [ ] Campo `active_rig` para seleccionar o rádio em uso no arranque
+- [ ] Endpoint `POST /api/rig/select` para trocar de rádio activo sem reiniciar
+- [ ] As configurações dos rádios são **definidas pelo utilizador** no `remote_config.yaml`
+  (a instalação deve guiar o utilizador a preencher a lista); os ficheiros de perfil
+  no código-fonte apenas fornecem os **defaults de hardware** para cada modelo
 
 #### R1.3 — Áudio RX via WebRTC
 - [ ] Implementar `backend/app/remote/audio_rx.py`
@@ -208,6 +223,7 @@ R4 — Packaging Windows → Docker + rigctld.exe + audio_bridge.py
 |---|---|---|
 | **M0** | Repositório criado, estrutura base, documentação | ✅ Maio 2026 |
 | **M1** | R1 completo — RX browser funcional com FT-991A | ⬜ |
+| **M1a** | Suporte a múltiplos rádios configurados pelo utilizador (lista `rigs:`) | ⬜ |
 | **M2** | R1 com X6100 (WiFi nativo) | ⬜ |
 | **M3** | R2 completo — TX voz SSB seguro | ⬜ |
 | **M4** | R3 completo — FT8/FT4 + CW decode | ⬜ |

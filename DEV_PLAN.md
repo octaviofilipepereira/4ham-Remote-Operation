@@ -83,6 +83,50 @@ rigctld -m 3087 -r /dev/ttyUSB0 -s 115200 -T 0.0.0.0 -t 4532
 
 ---
 
+### Sprint R1-B2: Múltiplos rádios configurados pelo utilizador (estimativa: 1-2 dias)
+
+**Contexto**: Actualmente o config tem um único bloco `rig:` com um rádio activo.
+O utilizador pode ter mais do que um rádio (e.g. FT-991A + X6100) e deve poder
+configurar cada um independentemente sem alterar o código.
+
+**Arquitectura desejada**:
+```yaml
+rigs:
+  - id: "ft991a"
+    name: "FT-991A HF/VHF"       # nome livre do utilizador
+    profile: "ft991a"             # defaults de hardware (modelo Hamlib, baud, padrão USB)
+    serial_port: "auto"           # auto = detectar por /dev/serial/by-id/ via padrão do perfil
+    rigctld:
+      host: "127.0.0.1"
+      port: 4532
+
+  - id: "x6100"
+    name: "X6100 Portátil"
+    profile: "x6100"
+    serial_port: null             # null = ligação por rede (não usa porta série)
+    rigctld:
+      host: "192.168.1.50"
+      port: 4532
+
+active_rig: "ft991a"             # rádio activo no arranque
+```
+
+**Distinção importante**:
+- **Perfil de hardware** (`profiles/ft991a.py`) — definido pelo desenvolvedor; contém
+  modelo Hamlib, baud rate, padrão de detecção USB. Não é editado pelo utilizador.
+- **Configuração do rádio** (`rigs[]:` no config) — definida pelo utilizador na
+  instalação; associa um nome livre a um perfil de hardware e à porta/IP real.
+
+| Tarefa | Ficheiro(s) | Notas |
+|---|---|---|
+| Alterar config de `rig:` para `rigs:` + `active_rig:` | `config/remote_config.yaml` | Retrocompatível: se só existir `rig:`, tratar como lista de 1 |
+| Actualizar `main.py` para carregar lista de rádios | `backend/app/main.py` | Instanciar `RigctldManager` + `CATDriver` para o rádio activo |
+| Endpoint `GET /api/rigs` | `backend/app/api/rig.py` | Lista de rádios configurados (id, name, profile, active) |
+| Endpoint `POST /api/rig/select` | `backend/app/api/rig.py` | Troca o rádio activo; reinicia rigctld se necessário |
+| Actualizar `remote_config.example.yaml` | `config/remote_config.example.yaml` | Exemplo com 2 rádios |
+
+---
+
 ### Sprint R1-C: WebRTC RX (estimativa: 2-3 dias)
 
 **Objectivo**: Browser a ouvir o FT-991A em tempo real via WebRTC.
