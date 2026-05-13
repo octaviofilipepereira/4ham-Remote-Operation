@@ -152,9 +152,9 @@ function syncUtcField() {
 function setConnBadge(state) {
   const labels = {
     disconnected: "Offline",
-    connecting: "Sync",
-    connected: "Live",
-    error: "Fault",
+    connecting: "A ligar",
+    connected: "Activo",
+    error: "Falha",
   };
 
   root.dataset.connectionState = state;
@@ -187,7 +187,7 @@ function setTuneStep(step) {
   });
 
   stepCaptions.forEach((node) => {
-    node.textContent = `${label} digit selected`;
+    node.textContent = `Dígito ${label} seleccionado`;
   });
 
   stepButtons.forEach((button) => {
@@ -200,7 +200,7 @@ function setTuneStep(step) {
 function setTxButtonState(isActive) {
   if (!btnTx) return;
   btnTx.classList.toggle("is-active", isActive);
-  btnTx.textContent = isActive ? "TX LIVE" : "TX HOLD";
+  btnTx.textContent = isActive ? "EM EMISSÃO" : "EMISSÃO";
 }
 
 function setPttBadge(isTx) {
@@ -250,7 +250,7 @@ function updateSignalState(db) {
   elSmeter.value = bounded;
   const absDbm = Number.isFinite(db) ? Math.round(db + _S9_DBM) : null;
   elSmVal.textContent = absDbm !== null ? `${absDbm} dBm` : "-- dBm";
-  elSignalQuality.textContent = Number.isFinite(db) ? strengthToSUnit(db) : "Standby";
+  elSignalQuality.textContent = Number.isFinite(db) ? strengthToSUnit(db) : "Em espera";
   elSmeterFill.style.width = `${strengthToPercent(db)}%`;
 }
 
@@ -786,7 +786,7 @@ async function connectRx() {
   btnConn.disabled = true;
   btnDisc.disabled = true;
   setConnBadge("connecting");
-  setAudioState("Negotiating RX link");
+  setAudioState("A negociar ligação RX");
 
   pc = new RTCPeerConnection({
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -806,7 +806,7 @@ async function connectRx() {
       // fallback para audio element directo se WebAudio não disponível
       elAudio.srcObject = stream;
     }
-    setAudioState("RX stream received");
+    setAudioState("Stream RX recebido");
   };
 
   pc.addTransceiver("audio", { direction: "recvonly" });
@@ -846,7 +846,7 @@ async function connectRx() {
       pc = null;
     }
     setConnBadge("error");
-    setAudioState("RX link fault");
+    setAudioState("Falha na ligação RX");
     btnConn.disabled = false;
     return;
   }
@@ -856,13 +856,13 @@ async function connectRx() {
 
     if (state === "connecting") {
       setConnBadge("connecting");
-      setAudioState("Finalising RX link");
+      setAudioState("A finalizar ligação RX");
       return;
     }
 
     if (state === "connected") {
       setConnBadge("connected");
-      setAudioState("RX stream live");
+      setAudioState("Stream RX activo");
       btnConn.disabled = true;
       btnDisc.disabled = false;
       return;
@@ -870,7 +870,7 @@ async function connectRx() {
 
     if (["failed", "closed", "disconnected"].includes(state)) {
       setConnBadge(state === "failed" ? "error" : "disconnected");
-      setAudioState(state === "failed" ? "RX session dropped" : "RX link offline");
+      setAudioState(state === "failed" ? "Sessão RX interrompida" : "Ligação RX offline");
       btnConn.disabled = false;
       btnDisc.disabled = true;
 
@@ -905,14 +905,14 @@ async function disconnectRx() {
 
   elAudio.srcObject = null;
   setConnBadge("disconnected");
-  setAudioState("RX link offline");
+  setAudioState("Ligação RX offline");
   btnConn.disabled = false;
   btnDisc.disabled = true;
 }
 
 setConnBadge("disconnected");
 setPttBadge(false);
-setAudioState("Standby");
+setAudioState("Em espera");
 syncModeUI(elMode.value);
 setTuneStep(selectedTuneStep);
 updateSignalState(-127);

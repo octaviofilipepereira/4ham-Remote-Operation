@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,13 +26,13 @@
           <div class="brand-copy">
             <p class="rack-label">CT7BFV REMOTE BASE</p>
             <h1>4ham Remote Operation</h1>
-            <p class="brand-subline">Transceiver-style remote front panel</p>
+            <p class="brand-subline">Painel remoto estilo transceptor</p>
           </div>
         </div>
 
         <div class="status-rack">
           <div class="status-module">
-            <span class="status-module__label">RX Link</span>
+            <span class="status-module__label">Ligação RX</span>
             <span id="conn-state" class="badge badge--disconnected">Offline</span>
           </div>
           <div class="status-module">
@@ -53,19 +53,19 @@
                     <strong>A</strong>
                   </div>
                   <div class="screen-meta">
-                    <span class="screen-meta__label">Mode</span>
+                    <span class="screen-meta__label">Modo</span>
                     <strong data-mode-readout>USB</strong>
                   </div>
                   <div class="screen-meta">
-                    <span class="screen-meta__label">Width</span>
+                    <span class="screen-meta__label">Largura</span>
                     <strong id="passband-readout">Auto</strong>
                   </div>
                 </div>
 
                 <div class="vfo-meter vfo-meter--console">
                   <div class="vfo-meter__header">
-                    <span class="hardware-label">S-Meter</span>
-                    <strong id="signal-quality">Standby</strong>
+                    <span class="hardware-label">S-Metro</span>
+                    <strong id="signal-quality">Em espera</strong>
                   </div>
 
                   <div class="meter-scale" aria-hidden="true">
@@ -91,11 +91,11 @@
 
                 <div class="vfo-screen">
                   <div class="vfo-screen__label-row">
-                    <span>Main VFO</span>
-                    <span>Remote Console</span>
+                    <span>VFO Principal</span>
+                    <span>Consola Remota</span>
                   </div>
 
-                  <div id="freq-mhz" class="vfo-frequency" aria-live="polite" aria-label="VFO frequency display"></div>
+                  <div id="freq-mhz" class="vfo-frequency" aria-live="polite" aria-label="Freqüencia do VFO"></div>
 
                   <div class="vfo-screen__hint">Roda o knob, usa o wheel nos dígitos ou os botões rápidos para sintonizar.</div>
                 </div>
@@ -103,16 +103,16 @@
                 <div class="waterfall-frame">
                   <div class="waterfall-header">
                     <span class="hardware-label">Waterfall</span>
-                    <strong id="waterfall-state">Standby</strong>
+                    <strong id="waterfall-state">Em espera</strong>
                   </div>
 
                   <canvas id="spectrum-canvas" class="spectrum-canvas" width="640" height="80" aria-hidden="true"></canvas>
-                  <canvas id="waterfall-canvas" class="waterfall-canvas" aria-label="Receiver waterfall display"></canvas>
+                  <canvas id="waterfall-canvas" class="waterfall-canvas" aria-label="Waterfall do receptor"></canvas>
                 </div>
 
                 <div class="screen-controls">
                   <div class="mode-slot">
-                    <label for="mode-select">Mode selector</label>
+                    <label for="mode-select">Selector de modo</label>
                     <select id="mode-select">
                       <option>USB</option>
                       <option>LSB</option>
@@ -136,16 +136,16 @@
               <div class="operation-grid">
                 <section class="hardware-block hardware-block--compact audio-block">
                   <div class="block-title">
-                    <span class="hardware-label">Radio Operation</span>
-                    <strong data-audio-readout>Standby</strong>
+                    <span class="hardware-label">Operação Rádio</span>
+                    <strong data-audio-readout>Em espera</strong>
                   </div>
 
                   <p class="block-copy">RX link, TX hold e controlo rápido.</p>
 
                   <div class="button-stack">
-                    <button id="btn-connect" class="panel-button panel-button--primary">Connect RX</button>
-                    <button id="btn-disconnect" class="panel-button" disabled>Disconnect</button>
-                    <button id="btn-tx" class="panel-button panel-button--tx" type="button">TX HOLD</button>
+                    <button id="btn-connect" class="panel-button panel-button--primary">Ligar RX</button>
+                    <button id="btn-disconnect" class="panel-button" disabled>Desligar</button>
+                    <button id="btn-tx" class="panel-button panel-button--tx" type="button">EMISSÃO</button>
                   </div>
 
                   <div class="volume-row">
@@ -158,11 +158,11 @@
 
               <section class="hardware-block knob-block">
                 <div class="block-title">
-                  <span class="hardware-label">Main VFO</span>
+                  <span class="hardware-label">VFO Principal</span>
                   <strong data-step-readout>100 Hz</strong>
                 </div>
 
-                <button id="vfo-knob" class="vfo-knob" type="button" aria-label="Main tuning knob">
+                <button id="vfo-knob" class="vfo-knob" type="button" aria-label="Knob de sintonização principal">
                   <span class="vfo-knob__ring vfo-knob__ring--outer"></span>
                   <span class="vfo-knob__ring vfo-knob__ring--mid"></span>
                   <span class="vfo-knob__face"></span>
@@ -175,8 +175,8 @@
 
               <section class="hardware-block step-block">
                 <div class="block-title">
-                  <span class="hardware-label">Tuning Tools</span>
-                  <strong data-step-caption>100 Hz digit selected</strong>
+                  <span class="hardware-label">Ferramentas de Sintonia</span>
+                  <strong data-step-caption>Dígito 100 Hz seleccionado</strong>
                 </div>
 
                 <p class="block-copy">Escolhe o passo activo e combina-o com os botões rápidos do VFO.</p>
@@ -215,13 +215,13 @@
         <aside class="log-column">
           <section class="hardware-block qso-block">
             <div class="block-title">
-              <span class="hardware-label">QSO Log</span>
-              <strong>Ready</strong>
+              <span class="hardware-label">Diário QSO</span>
+              <strong>Pronto</strong>
             </div>
 
             <div class="form-grid">
               <label class="form-field">
-                <span class="form-label">Callsign</span>
+                <span class="form-label">Indicativo</span>
                 <input class="log-input" type="text" name="callsign" placeholder="CT1ABC" />
               </label>
 
@@ -231,22 +231,22 @@
               </label>
 
               <label class="form-field">
-                <span class="form-label">Frequency</span>
+                <span class="form-label">Freqüencia</span>
                 <input id="qso-frequency" class="log-input" type="text" name="frequency" readonly />
               </label>
 
               <label class="form-field">
-                <span class="form-label">Mode</span>
+                <span class="form-label">Modo</span>
                 <input id="qso-mode" class="log-input" type="text" name="mode" readonly />
               </label>
 
               <label class="form-field">
-                <span class="form-label">Band</span>
+                <span class="form-label">Banda</span>
                 <input id="qso-band" class="log-input" type="text" name="band" readonly />
               </label>
 
               <label class="form-field">
-                <span class="form-label">RST Sent</span>
+                <span class="form-label">RST Enviado</span>
                 <input class="log-input" type="text" name="rst-sent" placeholder="59" />
               </label>
 
@@ -256,7 +256,7 @@
               </label>
 
               <label class="form-field form-field--full">
-                <span class="form-label">Notes</span>
+                <span class="form-label">Notas</span>
                 <textarea class="log-textarea" name="notes" rows="4" placeholder="Locator, nome, potência, observações..."></textarea>
               </label>
             </div>
@@ -264,7 +264,7 @@
 
           <section class="hardware-block band-plan-block">
             <div class="block-title">
-              <span class="hardware-label">Band Plan</span>
+              <span class="hardware-label">Plano de Bandas</span>
               <strong>HF</strong>
             </div>
 
