@@ -256,8 +256,7 @@ function updateSignalState(db) {
     ? Math.max(_STR_MIN, Math.min(_STR_MAX, db))
     : _STR_MIN;
   elSmeter.value = bounded;
-  const absDbm = Number.isFinite(db) ? Math.round(db + _S9_DBM) : null;
-  elSmVal.textContent = absDbm !== null ? `${absDbm} dBm` : "-- dBm";
+  elSmVal.textContent = Number.isFinite(db) ? `${Math.round(db)} dB` : "-- dB";
   elSignalQuality.textContent = Number.isFinite(db) ? strengthToSUnit(db) : t("smeter_standby");
   elSmeterFill.style.width = `${strengthToPercent(db)}%`;
 }

@@ -13,7 +13,7 @@ const LOCALES = {
     vfo_screen_hint:       "Roda o knob, usa o wheel nos dígitos ou os botões rápidos para sintonizar.",
     /* S-Metro */
     smeter_label:          "S-Metro",
-    signal_hint:           "S-metro via CAT (HF: S9 = −73 dBm)",
+    signal_hint:           "S-metro via CAT (0 dB = S9, −6 dB por unidade S)",
     smeter_standby:        "Em espera",
     /* ROE (SWR) */
     swr_label:             "ROE",
@@ -95,7 +95,7 @@ const LOCALES = {
     vfo_screen_hint:       "Turn the knob, scroll on a digit, or use the quick-step buttons to tune.",
     /* S-Meter */
     smeter_label:          "S-Meter",
-    signal_hint:           "S-meter via CAT (HF: S9 = −73 dBm)",
+    signal_hint:           "S-meter via CAT (0 dB = S9, −6 dB per S-unit)",
     smeter_standby:        "Standby",
     /* SWR */
     swr_label:             "SWR",
