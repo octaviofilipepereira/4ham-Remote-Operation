@@ -90,6 +90,30 @@
                   </div>
                 </div>
 
+                <div class="vfo-meter vfo-meter--console vfo-meter--swr">
+                  <div class="vfo-meter__header">
+                    <span class="hardware-label" data-i18n="swr_label">ROE</span>
+                    <strong id="swr-quality">—</strong>
+                  </div>
+
+                  <div class="meter-scale meter-scale--swr" aria-hidden="true">
+                    <span>1:1</span>
+                    <span>1.5</span>
+                    <span>2:1</span>
+                    <span>3:1</span>
+                    <span>5:1</span>
+                  </div>
+
+                  <div class="signal-track" aria-hidden="true">
+                    <span id="swr-fill" class="swr-fill"></span>
+                  </div>
+
+                  <div class="signal-readout vfo-meter__readout">
+                    <span id="swr-val">—</span>
+                    <span class="signal-hint" data-i18n="swr_hint">ROE via CAT (apenas em TX)</span>
+                  </div>
+                </div>
+
                 <div class="vfo-screen">
                   <div class="vfo-screen__label-row">
                     <span data-i18n="vfo_main">VFO Principal</span>

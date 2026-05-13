@@ -26,7 +26,7 @@ def _set_linger_zero(writer: asyncio.StreamWriter) -> None:
 
 
 class RigStatus:
-    __slots__ = ("frequency_hz", "mode", "passband_hz", "strength_db", "ptt")
+    __slots__ = ("frequency_hz", "mode", "passband_hz", "strength_db", "ptt", "swr")
 
     def __init__(
         self,
@@ -35,12 +35,14 @@ class RigStatus:
         passband_hz: int,
         strength_db: float,
         ptt: bool,
+        swr: float = 0.0,
     ) -> None:
         self.frequency_hz = frequency_hz
         self.mode = mode
         self.passband_hz = passband_hz
         self.strength_db = strength_db
         self.ptt = ptt
+        self.swr = swr
 
 
 class CATDriver:
@@ -197,10 +199,10 @@ class CATDriver:
             await self._ensure_poll_connected()
             try:
                 assert self._poll_w is not None and self._poll_r is not None
-                self._poll_w.write(b"+f\n+m\n+l STRENGTH\n+t\n")
+                self._poll_w.write(b"+f\n+m\n+l STRENGTH\n+t\n+l SWR\n")
                 await self._poll_w.drain()
-                freq_l, mode_l, strength_l, ptt_l = [
-                    await self._read_response(self._poll_r) for _ in range(4)
+                freq_l, mode_l, strength_l, ptt_l, swr_l = [
+                    await self._read_response(self._poll_r) for _ in range(5)
                 ]
             except (OSError, ConnectionResetError, asyncio.TimeoutError) as exc:
                 logger.warning("falha no get_status: %s — a reconectar", exc)
@@ -215,4 +217,5 @@ class CATDriver:
             passband_hz=int(mode_l[1]) if len(mode_l) > 1 else 0,
             strength_db=float(strength_l[0]),
             ptt=ptt_l[0].strip() == "1",
+            swr=float(swr_l[0]) if swr_l else 0.0,
         )

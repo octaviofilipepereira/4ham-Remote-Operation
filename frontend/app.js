@@ -43,6 +43,9 @@ const elSmeter = document.getElementById("smeter");
 const elSmeterFill = document.getElementById("smeter-fill");
 const elSmVal = document.getElementById("smeter-val");
 const elSignalQuality = document.getElementById("signal-quality");
+const elSwrFill = document.getElementById("swr-fill");
+const elSwrVal = document.getElementById("swr-val");
+const elSwrQuality = document.getElementById("swr-quality");
 const elConn = document.getElementById("conn-state");
 const elAudio = document.getElementById("rx-audio");
 const elVolume = document.getElementById("rx-volume");
@@ -257,6 +260,35 @@ function updateSignalState(db) {
   elSmVal.textContent = absDbm !== null ? `${absDbm} dBm` : "-- dBm";
   elSignalQuality.textContent = Number.isFinite(db) ? strengthToSUnit(db) : t("smeter_standby");
   elSmeterFill.style.width = `${strengthToPercent(db)}%`;
+}
+
+// rigctld `l SWR` devolve a relação de ondas estacionárias: 1.0 = correspondência perfeita.
+// Apenas significativo durante TX (PTT activo); em RX o valor é 0 ou indefinido.
+const _SWR_MIN = 1.0;
+const _SWR_MAX = 5.0;  // Acima de 5:1 considera-se crítico
+
+function swrToPercent(swr) {
+  if (!Number.isFinite(swr) || swr <= 0) return 0;
+  const bounded = Math.max(_SWR_MIN, Math.min(_SWR_MAX, swr));
+  return ((bounded - _SWR_MIN) / (_SWR_MAX - _SWR_MIN)) * 100;
+}
+
+function updateSwr(swr, ptt) {
+  const active = ptt && Number.isFinite(swr) && swr >= 1.0;
+  const pct    = active ? swrToPercent(swr) : 0;
+  const txt    = active ? `${swr.toFixed(1)}:1` : "—";
+  let cls = "swr-fill";
+  if (active) {
+    if (swr <= 1.5)      cls += " swr-fill--ok";
+    else if (swr <= 2.5) cls += " swr-fill--warn";
+    else                 cls += " swr-fill--bad";
+  }
+  elSwrFill.className = cls;
+  elSwrFill.style.width = `${pct}%`;
+  elSwrVal.textContent = txt;
+  elSwrQuality.textContent = active
+    ? (swr <= 1.5 ? t("swr_ok") : t("swr_warn"))
+    : t("swr_standby");
 }
 
 function setWaterfallState(key) {
@@ -601,6 +633,7 @@ async function pollStatus() {
     }
 
     updateSignalState(data.strength_db);
+    updateSwr(data.swr ?? 0, Boolean(data.ptt));
     setPttBadge(Boolean(data.ptt));
     syncModeUI(data.mode);
     elPassband.textContent = formatPassband(data.passband_hz);

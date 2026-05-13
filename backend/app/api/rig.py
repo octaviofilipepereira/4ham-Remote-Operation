@@ -21,6 +21,7 @@ class RigStatusResponse(BaseModel):
     passband_hz: int
     strength_db: float
     ptt: bool
+    swr: float = 0.0
 
 
 @router.get("/status", response_model=RigStatusResponse)
@@ -37,6 +38,7 @@ async def get_status(request: Request) -> RigStatusResponse:
         passband_hz=status.passband_hz,
         strength_db=status.strength_db,
         ptt=status.ptt,
+        swr=status.swr,
     )
 
 

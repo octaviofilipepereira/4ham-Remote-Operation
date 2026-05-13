@@ -15,6 +15,12 @@ const LOCALES = {
     smeter_label:          "S-Metro",
     signal_hint:           "S-metro via CAT (HF: S9 = −73 dBm)",
     smeter_standby:        "Em espera",
+    /* ROE (SWR) */
+    swr_label:             "ROE",
+    swr_hint:              "ROE via CAT (apenas em TX)",
+    swr_standby:           "—",
+    swr_ok:                "Boa",
+    swr_warn:              "Alta",
     /* Waterfall */
     waterfall_label:       "Waterfall",
     waterfall_canvas_aria: "Waterfall do receptor",
@@ -91,6 +97,12 @@ const LOCALES = {
     smeter_label:          "S-Meter",
     signal_hint:           "S-meter via CAT (HF: S9 = −73 dBm)",
     smeter_standby:        "Standby",
+    /* SWR */
+    swr_label:             "SWR",
+    swr_hint:              "SWR via CAT (TX only)",
+    swr_standby:           "—",
+    swr_ok:                "Good",
+    swr_warn:              "High",
     /* Waterfall */
     waterfall_label:       "Waterfall",
     waterfall_canvas_aria: "Receiver waterfall display",

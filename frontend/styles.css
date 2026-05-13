@@ -582,6 +582,42 @@ body::before {
   color: var(--amber);
 }
 
+/* ── Medidor SWR / ROE ──────────────────────────────────────────────────── */
+.meter-scale--swr {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.swr-fill {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--teal);
+  box-shadow: 0 0 14px rgba(146, 255, 228, 0.24);
+  transition: width 0.18s ease-out, background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.swr-fill--ok {
+  background: #4cff8a;
+  box-shadow: 0 0 14px rgba(76, 255, 138, 0.35);
+}
+
+.swr-fill--warn {
+  background: var(--amber);
+  box-shadow: 0 0 14px rgba(247, 196, 109, 0.35);
+}
+
+.swr-fill--bad {
+  background: var(--red);
+  box-shadow: 0 0 18px rgba(255, 80, 65, 0.55);
+}
+
+#swr-val {
+  color: var(--teal);
+}
+
 .block-copy,
 .knob-caption,
 .vfo-screen__hint,
