@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Optional
 
@@ -11,6 +12,8 @@ logger = logging.getLogger(__name__)
 _ICE_CONFIG = RTCConfiguration(
     iceServers=[RTCIceServer(urls=["stun:stun.l.google.com:19302"])]
 )
+
+_ICE_GATHER_TIMEOUT = 10.0   # segundos máximos a esperar pelos candidatos ICE
 
 
 class WebRTCPeer:
@@ -46,11 +49,44 @@ class WebRTCPeer:
         answer = await self._pc.createAnswer()
         await self._pc.setLocalDescription(answer)
 
-        logger.info("WebRTC answer criado")
+        # Aguardar ICE gathering antes de devolver o SDP; sem isto os candidatos
+        # ICE podem estar em falta e a ligação falha silenciosamente no browser.
+        try:
+            await asyncio.wait_for(
+                self._wait_ice_complete(),
+                timeout=_ICE_GATHER_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "ICE gathering não completou em %.0fs — a devolver SDP parcial",
+                _ICE_GATHER_TIMEOUT,
+            )
+
+        logger.info("WebRTC answer criado (iceGatheringState=%s)", self._pc.iceGatheringState)
         return {
             "sdp": self._pc.localDescription.sdp,
             "type": self._pc.localDescription.type,
         }
+
+    async def _wait_ice_complete(self) -> None:
+        if self._pc is None:
+            return
+        if self._pc.iceGatheringState == "complete":
+            return
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future = loop.create_future()
+
+        @self._pc.on("icegatheringstatechange")
+        def _on_ice_state() -> None:
+            if self._pc and self._pc.iceGatheringState == "complete":
+                if not future.done():
+                    loop.call_soon_threadsafe(future.set_result, None)
+
+        # verificar novamente após registar o handler (evita race condition)
+        if self._pc.iceGatheringState == "complete":
+            future.set_result(None)
+
+        await future
 
     # ── cleanup ───────────────────────────────────────────────────────────────
 
