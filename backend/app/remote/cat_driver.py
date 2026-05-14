@@ -5,9 +5,7 @@ import struct
 
 logger = logging.getLogger(__name__)
 
-_RECONNECT_BASE: float = 1.0   # segundos
-_RECONNECT_MAX: float  = 30.0  # segundos
-_CMD_TIMEOUT: float    = 5.0   # segundos
+_CMD_TIMEOUT: float     = 5.0   # segundos — timeout por comando rigctld
 _CONNECT_TIMEOUT: float = 3.0  # timeout da ligação TCP ao rigctld
 
 
@@ -70,13 +68,11 @@ class CATDriver:
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
         self._lock = asyncio.Lock()
-        self._reconnect_delay = _RECONNECT_BASE
 
         # Ligação de leitura (get_status)
         self._poll_r: asyncio.StreamReader | None = None
         self._poll_w: asyncio.StreamWriter | None = None
         self._poll_lock = asyncio.Lock()
-        self._poll_reconnect_delay = _RECONNECT_BASE
 
     # ── ligações ─────────────────────────────────────────────────────────────
 
@@ -90,7 +86,6 @@ class CATDriver:
         except asyncio.TimeoutError as exc:
             raise OSError(f"ligação ao rigctld expirou após {_CONNECT_TIMEOUT}s") from exc
         _set_linger_zero(self._writer)
-        self._reconnect_delay = _RECONNECT_BASE
         logger.info("rigctld (escrita) ligado em %s:%s", self.host, self.port)
 
     async def _connect_poll(self) -> None:
@@ -103,26 +98,21 @@ class CATDriver:
         except asyncio.TimeoutError as exc:
             raise OSError(f"ligação ao rigctld expirou após {_CONNECT_TIMEOUT}s") from exc
         _set_linger_zero(self._poll_w)
-        self._poll_reconnect_delay = _RECONNECT_BASE
         logger.info("rigctld (leitura) ligado em %s:%s", self.host, self.port)
 
     async def _ensure_connected(self) -> None:
-        while self._writer is None or self._writer.is_closing():
-            try:
-                await self.connect()
-            except OSError as exc:
-                logger.warning("rigctld (escrita) indisponível (%s) — %.1fs", exc, self._reconnect_delay)
-                await asyncio.sleep(self._reconnect_delay)
-                self._reconnect_delay = min(self._reconnect_delay * 2, _RECONNECT_MAX)
+        """Garante ligação de escrita — falha imediatamente se não disponível.
+
+        Não faz retry: é responsabilidade do chamador (API endpoint / frontend)
+        tentar de novo. Loops de retry aqui bloqueiam o shutdown do uvicorn.
+        """
+        if self._writer is None or self._writer.is_closing():
+            await self.connect()   # lança OSError se rigctld não responde
 
     async def _ensure_poll_connected(self) -> None:
-        while self._poll_w is None or self._poll_w.is_closing():
-            try:
-                await self._connect_poll()
-            except OSError as exc:
-                logger.warning("rigctld (leitura) indisponível (%s) — %.1fs", exc, self._poll_reconnect_delay)
-                await asyncio.sleep(self._poll_reconnect_delay)
-                self._poll_reconnect_delay = min(self._poll_reconnect_delay * 2, _RECONNECT_MAX)
+        """Garante ligação de leitura — falha imediatamente se não disponível."""
+        if self._poll_w is None or self._poll_w.is_closing():
+            await self._connect_poll()   # lança OSError se rigctld não responde
 
     async def close(self) -> None:
         for w in (self._writer, self._poll_w):
@@ -168,7 +158,7 @@ class CATDriver:
                 await self._writer.drain()
                 return await self._read_response(self._reader)
             except (OSError, ConnectionResetError, asyncio.TimeoutError) as exc:
-                logger.warning("falha no comando '%s': %s — a reconectar", cmd, exc)
+                logger.debug("falha no comando '%s': %s", cmd, exc)
                 if self._writer and not self._writer.is_closing():
                     self._writer.close()
                 self._reader = self._writer = None
@@ -218,7 +208,7 @@ class CATDriver:
                     await self._read_response(self._poll_r) for _ in range(5)
                 ]
             except (OSError, ConnectionResetError, asyncio.TimeoutError) as exc:
-                logger.warning("falha no get_status: %s — a reconectar", exc)
+                logger.debug("falha no get_status: %s", exc)
                 if self._poll_w and not self._poll_w.is_closing():
                     self._poll_w.close()
                 self._poll_r = self._poll_w = None
