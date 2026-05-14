@@ -711,6 +711,89 @@ body::before {
   border-color: rgba(146, 255, 228, 0.5);
 }
 
+/* ── Modal rádio offline ──────────────────────────────────────────────────── */
+.rig-offline-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(420px, 92vw);
+  padding: 0;
+  border: 1px solid rgba(247, 196, 109, 0.35);
+  border-radius: 16px;
+  background: #161b20;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(255,255,255,0.04);
+  color: #e0e8ee;
+}
+.rig-offline-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+}
+.rig-offline-dialog__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 36px 32px 28px;
+  text-align: center;
+}
+.rig-offline-dialog__icon {
+  color: var(--amber, #f7c46d);
+  opacity: 0.9;
+}
+.rig-offline-dialog__title {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--amber, #f7c46d);
+}
+.rig-offline-dialog__text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: rgba(200, 215, 224, 0.82);
+}
+.rig-offline-dialog__text strong {
+  color: #e0e8ee;
+}
+.rig-offline-dialog__btn {
+  margin-top: 6px;
+  width: 100%;
+  padding: 0.75em 1.2em;
+  border-radius: 8px;
+  border: 1px solid rgba(247, 196, 109, 0.5);
+  background: rgba(247, 196, 109, 0.14);
+  color: var(--amber, #f7c46d);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+}
+.rig-offline-dialog__btn:hover {
+  background: rgba(247, 196, 109, 0.26);
+  border-color: rgba(247, 196, 109, 0.8);
+}
+.rig-offline-dialog__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.rig-offline-dialog__dismiss {
+  background: none;
+  border: none;
+  color: rgba(180, 195, 205, 0.45);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0.2em 0.5em;
+  transition: color 0.15s;
+}
+.rig-offline-dialog__dismiss:hover {
+  color: rgba(180, 195, 205, 0.85);
+}
+
 .volume-row {
   display: flex;
   align-items: center;

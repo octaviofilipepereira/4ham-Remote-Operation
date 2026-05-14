@@ -20,12 +20,13 @@ let micTrack = null;   // MediaStreamTrack do microfone; null se não autorizado
 
 // ── VOX ──────────────────────────────────────────────────────────────────────
 let voxEnabled = false;
-let voxRafId   = null;    // requestAnimationFrame loop
-let voxHangTimer = null;  // timeout para PTT OFF após silêncio
-let voxAnalyser = null;   // AnalyserNode alimentado pelo mic
-let voxDataBuf  = null;   // Uint8Array reutilizável
-const VOX_HANG_MS = 600;  // ms de silêncio antes de PTT OFF
-let rigConnected = false; // true quando /api/rig/status responde com 200
+let voxRafId   = null;
+let voxHangTimer = null;
+let voxAnalyser = null;
+let voxDataBuf  = null;
+const VOX_HANG_MS = 600;
+let rigConnected = false;
+let _rigOfflineShown = false;   // só mostrar o modal uma vez por sessão
 let _audioKey    = "audio_standby";
 let _waterfallKey = "wf_offline";
 let _lastStrengthDb = -127;
@@ -74,6 +75,9 @@ const btnDisc = document.getElementById("btn-disconnect");
 const btnTx  = document.getElementById("btn-tx");
 const btnVox = document.getElementById("btn-vox");
 const btnRigConnect = document.getElementById("btn-rig-connect");
+const dlgRigOffline  = document.getElementById("dlg-rig-offline");
+const dlgBtnConnect  = document.getElementById("dlg-btn-connect");
+const dlgBtnDismiss  = document.getElementById("dlg-btn-dismiss");
 const elVoxThreshold = document.getElementById("vox-threshold");
 const elVoxLevel     = document.getElementById("vox-level");
 const modeReadouts = Array.from(document.querySelectorAll("[data-mode-readout]"));
@@ -634,9 +638,25 @@ function normalizeAngleDelta(delta) {
 
 // ── Ligação ao rádio ─────────────────────────────────────────────────────────
 
+function showRigOfflineDialog() {
+  if (!dlgRigOffline || _rigOfflineShown) return;
+  _rigOfflineShown = true;
+  // Actualizar textos i18n no modal
+  dlgRigOffline.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (t(key) !== key) el.textContent = t(key);
+  });
+  dlgRigOffline.showModal();
+}
+
+function closeRigOfflineDialog() {
+  if (dlgRigOffline && dlgRigOffline.open) dlgRigOffline.close();
+}
+
 function setRigConnected(connected) {
   if (rigConnected === connected) return;
   rigConnected = connected;
+  if (connected) closeRigOfflineDialog();
   if (btnRigConnect) {
     btnRigConnect.classList.toggle("is-connected", connected);
     const key = connected ? "btn_rig_connect_on" : "btn_rig_connect_off";
@@ -671,12 +691,25 @@ async function connectRig() {
 if (btnRigConnect) {
   btnRigConnect.addEventListener("click", connectRig);
 }
+if (dlgBtnConnect) {
+  dlgBtnConnect.addEventListener("click", async () => {
+    dlgBtnConnect.disabled = true;
+    dlgBtnConnect.textContent = t("btn_rig_connecting");
+    await connectRig();
+    dlgBtnConnect.disabled = false;
+    dlgBtnConnect.textContent = t("btn_rig_connect_off");
+  });
+}
+if (dlgBtnDismiss) {
+  dlgBtnDismiss.addEventListener("click", closeRigOfflineDialog);
+}
 
 async function pollStatus() {
   try {
     const response = await fetch(`${API}/api/rig/status`);
     if (!response.ok) {
       setRigConnected(false);
+      showRigOfflineDialog();
       return;
     }
 
@@ -695,7 +728,8 @@ async function pollStatus() {
     syncModeUI(data.mode);
     elPassband.textContent = formatPassband(data.passband_hz);
   } catch (_) {
-    // Keep the UI stable if the backend is briefly unavailable.
+    setRigConnected(false);
+    showRigOfflineDialog();
   }
 }
 

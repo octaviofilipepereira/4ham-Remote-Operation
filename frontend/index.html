@@ -330,6 +330,32 @@
     </section>
   </main>
 
+  <!-- ── Modal: rádio desligado ─────────────────────────────────────────── -->
+  <dialog id="dlg-rig-offline" class="rig-offline-dialog">
+    <div class="rig-offline-dialog__body">
+      <div class="rig-offline-dialog__icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+             width="48" height="48">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h2 class="rig-offline-dialog__title" data-i18n="rig_offline_title">Rádio desligado</h2>
+      <p class="rig-offline-dialog__text" data-i18n="rig_offline_body">
+        Não foi possível ligar ao transceptor.<br>
+        Ligue o rádio e clique em <strong data-i18n="btn_rig_connect_off">Ligar ao Rádio</strong>.
+      </p>
+      <button id="dlg-btn-connect" class="rig-offline-dialog__btn" type="button" data-i18n="btn_rig_connect_off">
+        Ligar ao Rádio
+      </button>
+      <button id="dlg-btn-dismiss" class="rig-offline-dialog__dismiss" type="button" data-i18n="rig_offline_dismiss">
+        Fechar
+      </button>
+    </div>
+  </dialog>
+
   <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
