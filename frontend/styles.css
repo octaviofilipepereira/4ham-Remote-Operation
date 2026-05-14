@@ -255,6 +255,12 @@ body::before {
   isolation: isolate;
 }
 
+.control-column,
+.dx-column,
+.log-column {
+  overflow: hidden;
+}
+
 .control-column {
   min-width: 0;
 }
