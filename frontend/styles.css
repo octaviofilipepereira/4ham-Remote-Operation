@@ -141,9 +141,9 @@ body::before {
 .mode-slot label,
 .vfo-screen__label-row,
 .meter-scale {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -178,8 +178,9 @@ body::before {
 
 .status-rack {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
 }
 
@@ -191,51 +192,49 @@ body::before {
 }
 
 .status-module {
-  min-width: 126px;
-  padding: 12px 14px;
-  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0.36em 0.85em;
+  border-radius: 6px;
+  min-width: unset;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 88px;
-  margin-top: 8px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-size: 0.76rem;
+  min-width: unset;
+  margin-top: 0;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: none;
+  background: none;
 }
 
 .badge--disconnected {
-  background: rgba(96, 103, 108, 0.18);
-  color: #d6dde0;
+  color: rgba(180, 190, 196, 0.65);
 }
 
 .badge--connecting {
-  background: rgba(146, 255, 228, 0.12);
   color: var(--teal);
 }
 
 .badge--connected {
-  background: rgba(146, 255, 228, 0.16);
   color: var(--teal);
-  box-shadow: 0 0 18px rgba(146, 255, 228, 0.12);
 }
 
 .badge--error,
 .badge--tx {
-  background: rgba(255, 132, 117, 0.18);
-  color: #ffd5cf;
+  color: #ff9f96;
 }
 
 .badge--rx {
-  background: rgba(247, 196, 109, 0.16);
-  color: #fff0d3;
+  color: var(--amber, #f7c46d);
 }
 
 .radio-main {
@@ -1537,7 +1536,7 @@ body[data-knob-active="true"] .vfo-knob {
   }
 
   .status-module {
-    flex: 1 1 0;
+    flex: unset;
   }
 
   .display-bezel,
@@ -1642,7 +1641,7 @@ body[data-knob-active="true"] .vfo-knob {
   }
 
   .status-module {
-    padding: 10px 12px;
+    padding: 0.36em 0.85em;
   }
 
   .brand-badge {
