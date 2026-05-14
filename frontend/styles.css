@@ -252,6 +252,7 @@ body::before {
   min-height: 0;
   display: grid;
   gap: clamp(10px, 1.5vh, 16px);
+  isolation: isolate;
 }
 
 .control-column {
