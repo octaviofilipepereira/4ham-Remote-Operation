@@ -255,7 +255,6 @@ body::before {
   isolation: isolate;
 }
 
-.control-column,
 .dx-column,
 .log-column {
   overflow: hidden;
@@ -273,7 +272,7 @@ body::before {
 .control-workbench {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.72fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.72fr);
   gap: clamp(10px, 1.5vw, 16px);
 }
 
