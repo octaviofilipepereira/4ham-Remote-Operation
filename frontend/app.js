@@ -684,7 +684,10 @@ async function connectRig() {
     console.warn("Falha ao ligar ao rádio:", err);
     setRigConnected(false);
   } finally {
-    if (btnRigConnect) btnRigConnect.disabled = false;
+    if (btnRigConnect) {
+      btnRigConnect.disabled = false;
+      btnRigConnect.textContent = t(rigConnected ? "btn_rig_connect_on" : "btn_rig_connect_off");
+    }
   }
 }
 
