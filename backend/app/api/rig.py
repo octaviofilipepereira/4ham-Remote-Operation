@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ..remote.cat_driver import CATDriver, RigStatus
+from ..remote.rigctld_manager import RigctldManager, detect_serial_port
 
 router = APIRouter(prefix="/api/rig", tags=["rig"])
 logger = logging.getLogger(__name__)
@@ -23,6 +24,70 @@ def _cancel_tx_timer(request: Request) -> None:
     if timer is not None and not timer.done():
         timer.cancel()
     request.app.state.tx_timer = None
+
+
+# ── POST /api/rig/connect ────────────────────────────────────────────────────
+
+@router.post("/connect")
+async def connect_rig(request: Request) -> dict:
+    """Liga ao rádio: (re)inicia o rigctld se necessário e conecta o CATDriver.
+
+    Pode ser chamado pelo utilizador quando liga o rádio sem reiniciar a aplicação.
+    """
+    driver = _driver(request)
+
+    # 1. Se não há rigctld_manager ativo, tenta arrancar um
+    manager: RigctldManager | None = getattr(request.app.state, "rigctld_manager", None)
+    if manager is None or not manager.is_running():
+        profile_name = getattr(request.app.state, "rig_profile_name", "ft991a")
+        serial_port = getattr(request.app.state, "rig_serial_port", None)
+        rigctld_host = getattr(request.app.state, "rigctld_host", "127.0.0.1")
+        rigctld_port = getattr(request.app.state, "rigctld_port", 4532)
+        hamlib_model = getattr(request.app.state, "rig_profile_hamlib_model", 1035)
+        baud = getattr(request.app.state, "rig_profile_baud", 38400)
+
+        # Re-tentar detecção automática da porta série
+        if serial_port is None:
+            from ..remote.profiles import load_profile
+            profile = load_profile(profile_name)
+            pattern = getattr(profile, "serial_by_id_pattern", None)
+            serial_port = detect_serial_port(
+                explicit_port="auto",
+                by_id_pattern=pattern,
+                radio_name=getattr(profile, "name", profile_name),
+            )
+            if serial_port:
+                request.app.state.rig_serial_port = serial_port
+
+        if serial_port:
+            new_manager = RigctldManager(
+                serial_port=serial_port,
+                hamlib_model=hamlib_model,
+                baud=baud,
+                listen_host=rigctld_host,
+                listen_port=rigctld_port,
+            )
+            try:
+                await new_manager.start()
+                request.app.state.rigctld_manager = new_manager
+                manager = new_manager
+                # aguardar um momento para o rigctld ficar pronto
+                await asyncio.sleep(1.5)
+            except Exception as exc:
+                logger.warning("Não foi possível arrancar rigctld: %s", exc)
+
+    # 2. Conecta o CATDriver (fecha ligações antigas primeiro)
+    await driver.close()
+    try:
+        await driver.connect()
+        await driver._connect_poll()
+    except OSError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Não foi possível ligar ao rádio: {exc}",
+        )
+
+    return {"ok": True, "message": "Ligado ao rádio"}
 
 
 # ── GET /api/rig/status ──────────────────────────────────────────────────────

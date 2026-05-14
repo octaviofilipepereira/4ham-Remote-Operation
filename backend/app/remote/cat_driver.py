@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 _RECONNECT_BASE: float = 1.0   # segundos
 _RECONNECT_MAX: float  = 30.0  # segundos
 _CMD_TIMEOUT: float    = 5.0   # segundos
+_CONNECT_TIMEOUT: float = 3.0  # timeout da ligação TCP ao rigctld
 
 
 def _set_linger_zero(writer: asyncio.StreamWriter) -> None:
@@ -81,14 +82,26 @@ class CATDriver:
 
     async def connect(self) -> None:
         """Abre a ligação de escrita."""
-        self._reader, self._writer = await asyncio.open_connection(self.host, self.port)
+        try:
+            self._reader, self._writer = await asyncio.wait_for(
+                asyncio.open_connection(self.host, self.port),
+                timeout=_CONNECT_TIMEOUT,
+            )
+        except asyncio.TimeoutError as exc:
+            raise OSError(f"ligação ao rigctld expirou após {_CONNECT_TIMEOUT}s") from exc
         _set_linger_zero(self._writer)
         self._reconnect_delay = _RECONNECT_BASE
         logger.info("rigctld (escrita) ligado em %s:%s", self.host, self.port)
 
     async def _connect_poll(self) -> None:
         """Abre a ligação de leitura (polling)."""
-        self._poll_r, self._poll_w = await asyncio.open_connection(self.host, self.port)
+        try:
+            self._poll_r, self._poll_w = await asyncio.wait_for(
+                asyncio.open_connection(self.host, self.port),
+                timeout=_CONNECT_TIMEOUT,
+            )
+        except asyncio.TimeoutError as exc:
+            raise OSError(f"ligação ao rigctld expirou após {_CONNECT_TIMEOUT}s") from exc
         _set_linger_zero(self._poll_w)
         self._poll_reconnect_delay = _RECONNECT_BASE
         logger.info("rigctld (leitura) ligado em %s:%s", self.host, self.port)

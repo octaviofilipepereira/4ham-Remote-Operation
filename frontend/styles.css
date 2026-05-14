@@ -669,6 +669,49 @@ body::before {
   border-color: rgba(255, 255, 255, 0.45);
 }
 
+/* ── Botão Connect to Radio ─────────────────────────────────────────────── */
+.btn-rig-connect {
+  align-self: center;
+  padding: 0.38em 0.9em;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  /* estado padrão: rádio desligado — destaque âmbar */
+  background: rgba(247, 196, 109, 0.12);
+  color: var(--amber, #f7c46d);
+  border: 1px solid rgba(247, 196, 109, 0.45);
+  box-shadow: 0 0 8px rgba(247, 196, 109, 0.18);
+}
+.btn-rig-connect:hover {
+  background: rgba(247, 196, 109, 0.22);
+  border-color: rgba(247, 196, 109, 0.75);
+  box-shadow: 0 0 14px rgba(247, 196, 109, 0.35);
+}
+.btn-rig-connect:active {
+  background: rgba(247, 196, 109, 0.30);
+}
+.btn-rig-connect:disabled {
+  cursor: default;
+  opacity: 0.55;
+  box-shadow: none;
+}
+/* estado: rádio ligado — subtil verde */
+.btn-rig-connect.is-connected {
+  background: rgba(146, 255, 228, 0.08);
+  color: var(--teal, #92ffe4);
+  border-color: rgba(146, 255, 228, 0.28);
+  box-shadow: none;
+}
+.btn-rig-connect.is-connected:hover {
+  background: rgba(146, 255, 228, 0.15);
+  border-color: rgba(146, 255, 228, 0.5);
+}
+
 .volume-row {
   display: flex;
   align-items: center;

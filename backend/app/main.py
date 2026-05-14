@@ -87,15 +87,22 @@ async def lifespan(app: FastAPI):
             profile_name,
         )
 
+    app.state.rigctld_manager = rigctld_manager
+    app.state.rigctld_host    = rigctld_host
+    app.state.rigctld_port    = rigctld_port
+    app.state.rig_serial_port = serial_port
+    app.state.rig_profile_name        = profile_name
+    app.state.rig_profile_hamlib_model = int(rig_cfg.get("hamlib_model", profile_hamlib_model))
+    app.state.rig_profile_baud         = int(rig_cfg.get("baud", profile_baud))
+
     driver = CATDriver(
         host=rigctld_host,
         port=rigctld_port,
     )
     app.state.cat_driver = driver
-    try:
-        await driver.connect()
-    except OSError:
-        logger.warning("rigctld não disponível no arranque — será tentado no primeiro comando")
+    # Não tentamos conectar no arranque: o rádio pode estar desligado.
+    # A ligação é feita de forma lazy no primeiro comando CAT,
+    # ou explicitamente via POST /api/rig/connect.
 
     audio_cfg = cfg.get("audio", {})
     audio_source = AudioCaptureService(

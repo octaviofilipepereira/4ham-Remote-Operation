@@ -25,6 +25,7 @@ let voxHangTimer = null;  // timeout para PTT OFF após silêncio
 let voxAnalyser = null;   // AnalyserNode alimentado pelo mic
 let voxDataBuf  = null;   // Uint8Array reutilizável
 const VOX_HANG_MS = 600;  // ms de silêncio antes de PTT OFF
+let rigConnected = false; // true quando /api/rig/status responde com 200
 let _audioKey    = "audio_standby";
 let _waterfallKey = "wf_offline";
 let _lastStrengthDb = -127;
@@ -72,6 +73,7 @@ const btnConn = document.getElementById("btn-connect");
 const btnDisc = document.getElementById("btn-disconnect");
 const btnTx  = document.getElementById("btn-tx");
 const btnVox = document.getElementById("btn-vox");
+const btnRigConnect = document.getElementById("btn-rig-connect");
 const elVoxThreshold = document.getElementById("vox-threshold");
 const elVoxLevel     = document.getElementById("vox-level");
 const modeReadouts = Array.from(document.querySelectorAll("[data-mode-readout]"));
@@ -630,11 +632,55 @@ function normalizeAngleDelta(delta) {
   return adjusted;
 }
 
+// ── Ligação ao rádio ─────────────────────────────────────────────────────────
+
+function setRigConnected(connected) {
+  if (rigConnected === connected) return;
+  rigConnected = connected;
+  if (btnRigConnect) {
+    btnRigConnect.classList.toggle("is-connected", connected);
+    const key = connected ? "btn_rig_connect_on" : "btn_rig_connect_off";
+    btnRigConnect.textContent = t(key);
+    btnRigConnect.title = connected ? t("btn_rig_connect_on_title") : t("btn_rig_connect_off_title");
+  }
+}
+
+async function connectRig() {
+  if (btnRigConnect) {
+    btnRigConnect.disabled = true;
+    btnRigConnect.textContent = t("btn_rig_connecting");
+  }
+  try {
+    const res = await fetch(`${API}/api/rig/connect`, { method: "POST" });
+    if (res.ok) {
+      setRigConnected(true);
+      pollStatus();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      console.warn("Falha ao ligar ao rádio:", body.detail ?? res.status);
+      setRigConnected(false);
+    }
+  } catch (err) {
+    console.warn("Falha ao ligar ao rádio:", err);
+    setRigConnected(false);
+  } finally {
+    if (btnRigConnect) btnRigConnect.disabled = false;
+  }
+}
+
+if (btnRigConnect) {
+  btnRigConnect.addEventListener("click", connectRig);
+}
+
 async function pollStatus() {
   try {
     const response = await fetch(`${API}/api/rig/status`);
-    if (!response.ok) return;
+    if (!response.ok) {
+      setRigConnected(false);
+      return;
+    }
 
+    setRigConnected(true);
     const data = await response.json();
 
     if (currentFrequencyHz === null || Date.now() >= tuneLockUntil) {
