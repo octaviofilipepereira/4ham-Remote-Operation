@@ -90,7 +90,7 @@ do_status_systemd() {
   systemctl status "$SERVICE_NAME" --no-pager || true
   echo
   echo "=== API health ==="
-  curl -sk -m 3 https://127.0.0.1:8001/health 2>/dev/null || echo "API não responde."
+  curl -s -m 3 http://127.0.0.1:8001/health 2>/dev/null || echo "API não responde."
 }
 
 do_logs_systemd() {
@@ -117,14 +117,12 @@ do_start_manual() {
   nohup "$PYTHON_BIN" -m uvicorn backend.app.main:app \
     --host 0.0.0.0 \
     --port 8001 \
-    --ssl-certfile "$ROOT_DIR/certs/cert.pem" \
-    --ssl-keyfile  "$ROOT_DIR/certs/key.pem" \
     >> "$LOG_FILE" 2>&1 &
   local pid="$!"
   echo "$pid" > "$PID_FILE"
   echo "Servidor iniciado (PID: $pid)"
   echo "Log : $LOG_FILE"
-  echo "URL : https://127.0.0.1:8001/"
+  echo "URL : http://127.0.0.1:8001/"
 }
 
 do_stop_manual() {
@@ -169,7 +167,7 @@ do_status_manual() {
 
   echo
   echo "=== API health ==="
-  curl -sk -m 3 https://127.0.0.1:8001/health 2>/dev/null || echo "API não responde."
+  curl -s -m 3 http://127.0.0.1:8001/health 2>/dev/null || echo "API não responde."
 
   echo
   echo "=== Últimas 20 linhas do log ==="

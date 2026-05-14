@@ -97,7 +97,7 @@ while true; do
       ;;
     browser)
       _ip="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '127.0.0.1')"
-      xdg-open "https://${_ip}:8001/" 2>/dev/null || true
+      xdg-open "http://${_ip}:8001/" 2>/dev/null || true
       ;;
     exit|"")
       break
