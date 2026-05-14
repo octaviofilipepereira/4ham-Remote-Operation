@@ -277,6 +277,7 @@ body::before {
 }
 
 .tuning-panel {
+  min-width: 0;
   grid-template-rows: auto auto auto;
   align-content: start;
 }
@@ -439,6 +440,7 @@ body::before {
 .hardware-block {
   padding: 14px;
   border-radius: var(--radius-lg);
+  min-width: 0;
 }
 
 .hardware-block--compact {
