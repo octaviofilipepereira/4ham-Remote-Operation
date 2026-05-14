@@ -462,10 +462,7 @@ if [[ -n "${_audio_device:-}" ]]; then
 fi
 
 gauge_step 70 "$I18N_GAUGE_CERTS"
-if [[ ! -f "$ROOT_DIR/certs/cert.pem" ]]; then
-  bash "$ROOT_DIR/scripts/gen_certs.sh" >> "$LOG_FILE" 2>&1 \
-    || abort "TLS cert generation"
-fi
+# SSL removido — servidor corre em HTTP simples
 
 gauge_step 80 "$I18N_GAUGE_CREDS"
 _tmp_py="$(mktemp /tmp/4ham-setup-XXXXXX.py)"
@@ -523,8 +520,8 @@ chmod +x "$ROOT_DIR/scripts/4ham-remote-launcher.sh"
 if [[ "$_install_mode" == "systemd" ]]; then
   gauge_step 95 "$I18N_GAUGE_SYSTEMD"
   _svc_file="/etc/systemd/system/${SERVICE_NAME}.service"
-  printf '[Unit]\nDescription=4ham Remote Operation\nAfter=network.target\n\n[Service]\nType=simple\nUser=%s\nWorkingDirectory=%s\nEnvironment=REMOTE_CONFIG=%s/config/remote_config.yaml\nExecStart=%s/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8001 --ssl-certfile %s/certs/cert.pem --ssl-keyfile %s/certs/key.pem\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n' \
-    "$SERVICE_USER" "$ROOT_DIR" "$ROOT_DIR" "$VENV_DIR" "$ROOT_DIR" "$ROOT_DIR" \
+  printf '[Unit]\nDescription=4ham Remote Operation\nAfter=network.target\n\n[Service]\nType=simple\nUser=%s\nWorkingDirectory=%s\nEnvironment=REMOTE_CONFIG=%s/config/remote_config.yaml\nExecStart=%s/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8001\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n' \
+    "$SERVICE_USER" "$ROOT_DIR" "$ROOT_DIR" "$VENV_DIR" \
     | run_sudo tee "$_svc_file" > /dev/null
   run_sudo systemctl daemon-reload  >> "$LOG_FILE" 2>&1
   run_sudo systemctl enable "${SERVICE_NAME}" >> "$LOG_FILE" 2>&1

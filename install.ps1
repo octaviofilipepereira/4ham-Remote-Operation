@@ -115,26 +115,8 @@ function Setup-Config {
 
 # ── certificados TLS ───────────────────────────────────────────────────────────
 function Setup-Certs {
-    if ($SkipCerts) { Write-Warn "Certs ignorados (--SkipCerts)."; return }
-    $cert = Join-Path $RootDir "certs\cert.pem"
-    $key  = Join-Path $RootDir "certs\key.pem"
-    if ((Test-Path $cert) -and (Test-Path $key)) {
-        Write-Warn "Certificados já existem — não substituídos."
-        return
-    }
-    if (-not (Get-Command openssl -ErrorAction SilentlyContinue)) {
-        Write-Warn "openssl não encontrado — certificados não gerados."
-        Write-Warn "Instalar OpenSSL em: https://slproweb.com/products/Win32OpenSSL.html"
-        return
-    }
-    Write-Info "A gerar certificados TLS auto-assinados..."
-    $certsDir = Join-Path $RootDir "certs"
-    New-Item -ItemType Directory -Force -Path $certsDir | Out-Null
-    & openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes `
-        -keyout $key -out $cert `
-        -subj "/CN=4ham-remote/O=CT7BFV/C=PT" `
-        -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>&1 | Out-File -Append $LogFile
-    Write-Ok "Certificados gerados em $certsDir"
+    # SSL removido — servidor corre em HTTP simples
+    Write-Warn "SSL desactivado — a correr em HTTP."
 }
 
 # ── script de arranque ─────────────────────────────────────────────────────────
@@ -147,8 +129,6 @@ REM 4ham Remote Operation — arranque rapido (desenvolvimento)
 set REMOTE_CONFIG=%~dp0config\remote_config.yaml
 "$uvicorn" backend.app.main:app ^
     --host 0.0.0.0 --port 8001 ^
-    --ssl-certfile "%~dp0certs\cert.pem" ^
-    --ssl-keyfile  "%~dp0certs\key.pem" ^
     --reload
 "@
     $content | Out-File -Encoding ASCII -FilePath $runBat
