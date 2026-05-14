@@ -88,7 +88,7 @@ You control the physical transceiver (frequency, mode, PTT) and send/receive aud
 The address is provided by the station administrator. Typical format:
 
 ```
-https://<address>:8000/
+https://<address>:8001/
 ```
 
 On first visit, the browser may warn about a self-signed certificate. Click **Advanced** (or equivalent) to proceed.

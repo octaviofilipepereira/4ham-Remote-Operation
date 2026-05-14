@@ -88,7 +88,7 @@ O utilizador controla o transceptor físico (frequência, modo, PTT) e ouve/tran
 O endereço é fornecido pelo administrador da estação. Formato típico:
 
 ```
-https://<endereço>:8000/
+https://<endereço>:8001/
 ```
 
 Na primeira visita o browser pode alertar para um certificado auto-assinado. Clicar em **Avançar** (ou equivalente no browser) para aceitar.

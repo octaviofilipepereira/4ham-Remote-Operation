@@ -7,7 +7,7 @@ Last update: 2026-05-13 UTC
 
 # 4HAM Remote Operation — REST API Reference
 
-Technical reference for developers. All endpoints are served over HTTPS on port 8000.
+Technical reference for developers. All endpoints are served over HTTPS on port 8001.
 
 ---
 

@@ -32,7 +32,7 @@ The minimum hardware required to run 4HAM Remote Operation:
 | USB CAT interface | Frequency/mode/PTT control | FT-991A USB port → `/dev/ttyUSB0` |
 | USB Audio interface | RX/TX audio stream | FT-991A PCM2903B (USB Audio CODEC) |
 | Server / PC | Runs backend + rigctld | Linux x86-64, connected to radio via USB |
-| Network | Connects server to operator's browser | LAN or Internet with port 8000 open |
+| Network | Connects server to operator's browser | LAN or Internet with port 8001 open |
 
 Optional but recommended:
 
@@ -169,22 +169,22 @@ The server is the Linux machine physically connected to the transceiver, running
 
 | Port | Protocol | Purpose |
 |---|---|---|
-| 8000 | HTTPS (TCP) | Main web interface + REST API + WebSocket + WebRTC signalling |
+| 8001 | HTTPS (TCP) | Main web interface + REST API + WebSocket + WebRTC signalling |
 | 4532 | TCP | rigctld (localhost only — do NOT expose externally) |
 
 > `rigctld` must **not** be exposed to the internet. It should only listen on `127.0.0.1`.
 
 ### Firewall
 
-Open port 8000 only:
+Open port 8001 only:
 ```bash
-sudo ufw allow 8000/tcp
+sudo ufw allow 8001/tcp
 sudo ufw enable
 ```
 
 ### DDNS (optional)
 
-For remote access without a static IP, use a DDNS service (e.g. DuckDNS, No-IP) and set your router to forward port 8000 to the server's LAN IP.
+For remote access without a static IP, use a DDNS service (e.g. DuckDNS, No-IP) and set your router to forward port 8001 to the server's LAN IP.
 
 ---
 

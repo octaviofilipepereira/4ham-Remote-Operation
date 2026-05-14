@@ -146,7 +146,7 @@ function New-RunScript {
 REM 4ham Remote Operation — arranque rapido (desenvolvimento)
 set REMOTE_CONFIG=%~dp0config\remote_config.yaml
 "$uvicorn" backend.app.main:app ^
-    --host 0.0.0.0 --port 8000 ^
+    --host 0.0.0.0 --port 8001 ^
     --ssl-certfile "%~dp0certs\cert.pem" ^
     --ssl-keyfile  "%~dp0certs\key.pem" ^
     --reload

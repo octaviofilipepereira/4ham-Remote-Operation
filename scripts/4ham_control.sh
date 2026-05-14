@@ -90,7 +90,7 @@ do_status_systemd() {
   systemctl status "$SERVICE_NAME" --no-pager || true
   echo
   echo "=== API health ==="
-  curl -sk -m 3 https://127.0.0.1:8000/health 2>/dev/null || echo "API não responde."
+  curl -sk -m 3 https://127.0.0.1:8001/health 2>/dev/null || echo "API não responde."
 }
 
 do_logs_systemd() {
@@ -116,7 +116,7 @@ do_start_manual() {
   export REMOTE_CONFIG="$ROOT_DIR/config/remote_config.yaml"
   nohup "$PYTHON_BIN" -m uvicorn backend.app.main:app \
     --host 0.0.0.0 \
-    --port 8000 \
+    --port 8001 \
     --ssl-certfile "$ROOT_DIR/certs/cert.pem" \
     --ssl-keyfile  "$ROOT_DIR/certs/key.pem" \
     >> "$LOG_FILE" 2>&1 &
@@ -124,7 +124,7 @@ do_start_manual() {
   echo "$pid" > "$PID_FILE"
   echo "Servidor iniciado (PID: $pid)"
   echo "Log : $LOG_FILE"
-  echo "URL : https://127.0.0.1:8000/"
+  echo "URL : https://127.0.0.1:8001/"
 }
 
 do_stop_manual() {
@@ -164,12 +164,12 @@ do_status_manual() {
   fi
 
   echo
-  echo "=== Porta 8000 ==="
-  ss -ltnp 2>/dev/null | grep ':8000' || echo "Porta 8000 não está a escutar."
+  echo "=== Porta 8001 ==="
+  ss -ltnp 2>/dev/null | grep ':8001' || echo "Porta 8001 não está a escutar."
 
   echo
   echo "=== API health ==="
-  curl -sk -m 3 https://127.0.0.1:8000/health 2>/dev/null || echo "API não responde."
+  curl -sk -m 3 https://127.0.0.1:8001/health 2>/dev/null || echo "API não responde."
 
   echo
   echo "=== Últimas 20 linhas do log ==="
