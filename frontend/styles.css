@@ -939,7 +939,7 @@ body::before {
   letter-spacing: 0.03em;
 }
 
-
+.volume-row {
   display: flex;
   align-items: center;
   gap: 8px;
