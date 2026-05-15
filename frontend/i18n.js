@@ -50,6 +50,18 @@ const LOCALES = {
     audio_settings_apply:   "Aplicar",
     audio_settings_close:   "Fechar",
     audio_settings_default: "Predefinido do sistema",
+    /* Definições RF */
+    rig_settings_title:       "Definições de Rádio",
+    rsd_nb_level:             "Nível NB",
+    rsd_proc_level:           "Nível PROC",
+    rsd_mic_gain:             "Ganho MIC",
+    rsd_mic_eq:               "EQ MIC",
+    rsd_width:                "Largura de Banda",
+    rsd_cancel:               "Cancelar",
+    btn_audio_settings_aria:  "Configuração de áudio",
+    btn_audio_settings_title: "Configuração de áudio",
+    btn_rig_settings_aria:    "Definições de rádio",
+    btn_rig_settings_title:   "Definições de rádio (NB, PROC, MIC…)",
     btn_tx_hold:           "EMISSÃO",
     btn_tx_live:           "EM EMISSÃO",
     btn_vox:               "VOX",
@@ -76,6 +88,9 @@ const LOCALES = {
     form_rst_sent:         "RST Enviado",
     form_rst_rx:           "RST Recebido",
     form_notes:            "Notas",
+    btn_log_qso:           "Registar QSO",
+    recent_qso_label:      "Últimos QSOs",
+    recent_qso_empty:      "Nenhum QSO registado",
     /* Plano de bandas */
     band_plan_label:       "Plano de Bandas",
     band_80m_desc:         "CW, digital e SSB regional",
@@ -149,6 +164,18 @@ const LOCALES = {
     audio_settings_apply:   "Apply",
     audio_settings_close:   "Close",
     audio_settings_default: "System default",
+    /* RF Settings */
+    rig_settings_title:       "Radio Settings",
+    rsd_nb_level:             "NB Level",
+    rsd_proc_level:           "PROC Level",
+    rsd_mic_gain:             "MIC Gain",
+    rsd_mic_eq:               "MIC EQ",
+    rsd_width:                "Passband Width",
+    rsd_cancel:               "Cancel",
+    btn_audio_settings_aria:  "Audio settings",
+    btn_audio_settings_title: "Audio settings",
+    btn_rig_settings_aria:    "Radio settings",
+    btn_rig_settings_title:   "Radio Settings (NB, PROC, MIC…)",
     vox_sens_label:        "Sens",
     btn_disconnect:        "Disconnect",
     btn_tx_hold:           "TX HOLD",
@@ -175,6 +202,9 @@ const LOCALES = {
     form_rst_sent:         "RST Sent",
     form_rst_rx:           "RST RX",
     form_notes:            "Notes",
+    btn_log_qso:           "Log QSO",
+    recent_qso_label:      "Recent QSOs",
+    recent_qso_empty:      "No QSOs logged",
     /* Band plan */
     band_plan_label:       "Band Plan",
     band_80m_desc:         "CW, digital and regional SSB",
@@ -222,6 +252,9 @@ function applyLocale(lang) {
   });
   document.querySelectorAll("[data-i18n-aria]").forEach(function (el) {
     el.setAttribute("aria-label", t(el.dataset.i18nAria));
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach(function (el) {
+    el.setAttribute("title", t(el.dataset.i18nTitle));
   });
 
   var btn = document.getElementById("lang-toggle");

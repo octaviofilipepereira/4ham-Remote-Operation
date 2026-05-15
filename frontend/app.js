@@ -983,7 +983,7 @@ async function loadRecentQsos() {
     if (!r.ok || !elRecentQsoBody) return;
     const qsos = await r.json();
     if (qsos.length === 0) {
-      elRecentQsoBody.innerHTML = `<tr><td colspan="5" class="recent-qso-empty" data-i18n="recent_qso_empty">Nenhum QSO registado</td></tr>`;
+      elRecentQsoBody.innerHTML = `<tr><td colspan="5" class="recent-qso-empty">${t("recent_qso_empty")}</td></tr>`;
       if (elRecentQsoCount) elRecentQsoCount.textContent = "0";
       return;
     }
