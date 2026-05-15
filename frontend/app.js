@@ -116,7 +116,6 @@ const elRigProcLevel    = document.getElementById("rig-proc-level");
 const elRigProcLevelVal = document.getElementById("rig-proc-level-val");
 const elRigMicGain      = document.getElementById("rig-mic-gain");
 const elRigMicGainVal   = document.getElementById("rig-mic-gain-val");
-const elRigMicEq        = document.getElementById("rig-mic-eq");
 const elRigWidth        = document.getElementById("rig-width");
 const btnRsdApply       = document.getElementById("rsd-apply");
 const btnRsdCancel      = document.getElementById("rsd-cancel");
@@ -961,7 +960,6 @@ async function applyRigSettings() {
         comp:       elRigProc?.value === "1",
         comp_level: parseInt(elRigProcLevel?.value  || "50", 10) / 100,
         mic:        parseInt(elRigMicGain?.value    || "50", 10) / 100,
-        mic_eq:     elRigMicEq?.value  || "FLAT",
         width:      elRigWidth?.value  || "AUTO",
       }),
     });

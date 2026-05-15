@@ -378,8 +378,6 @@ class SetRigSettingsRequest(BaseModel):
     comp:       bool  | None = None
     comp_level: float | None = Field(None, ge=0.0, le=1.0)
     mic:        float | None = Field(None, ge=0.0, le=1.0)
-    # mic_eq e width: guardados em app.state (sem comando CAT padronizado)
-    mic_eq:  str | None = None
     width:   str | None = None
 
 
@@ -430,9 +428,7 @@ async def set_rig_settings(body: SetRigSettingsRequest, request: Request) -> dic
         except Exception:
             pass  # não interromper por erro de width
 
-    # Guardar mic_eq/width em app.state (preferências de IU)
-    if body.mic_eq is not None:
-        request.app.state.rig_mic_eq = body.mic_eq
+    # Guardar width em app.state
     if body.width is not None:
         request.app.state.rig_width = body.width
 
