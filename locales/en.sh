@@ -95,7 +95,7 @@ I18N_GAUGE_WSJTX="Installing WSJT-X (jt9 + wsprd)..."
 I18N_GAUGE_VENV="Creating Python virtual environment..."
 I18N_GAUGE_PIP="Installing Python dependencies (FastAPI, aiortc, sounddevice, ...)..."
 I18N_GAUGE_RADIO_CFG="Configuring radio profile..."
-I18N_GAUGE_CERTS="Generating self-signed TLS certificates..."
+I18N_GAUGE_CERTS="Generating TLS certificates (local CA + server cert)..."
 I18N_GAUGE_CREDS="Saving operator credentials..."
 I18N_GAUGE_RUNSH="Preparing server control scripts..."
 I18N_GAUGE_DIALOUT="Adding user to dialout group (serial port access)..."
@@ -128,6 +128,6 @@ I18N_OPT_L_EXIT="Exit"
 
 # ── Completion ─────────────────────────────────────────────────────────────────
 I18N_TITLE_DONE="Installation Complete!"
-I18N_MSG_DONE_SYSTEMD=$'4ham Remote Operation is installed and running!\n\nOpen in browser:\n  https://%IP%:8000/\n  https://127.0.0.1:8000/\n\nLogin:\n  Username : %USER%\n  Password : (the one you set)\n\nService management:\n  Status   sudo systemctl status %SVC%\n  Logs     journalctl -u %SVC% -f\n  Restart  sudo systemctl restart %SVC%\n  Stop     sudo systemctl stop %SVC%\n\nInstall log: %LOG%%WSJTX_NOTE%'
-I18N_MSG_DONE_MANUAL=$'4ham Remote Operation is installed (manual mode).\n\nServer control:\n  scripts/4ham_control.sh start|stop|restart|status|logs\n\nOpen in browser:\n  https://%IP%:8000/\n  https://127.0.0.1:8000/\n\nLogin:\n  Username : %USER%\n  Password : (the one you set)\n\nInstall log: %LOG%%WSJTX_NOTE%'
+I18N_MSG_DONE_SYSTEMD=$'4ham Remote Operation is installed and running!\n\n[!] FIRST-TIME SETUP -- do this once per device/browser:\n\n  1. Download the CA certificate (plain HTTP, no warning):\n       http://%IP%:8002/4ham-local-ca.pem\n\n  2. Install the CA cert:\n       Windows : double-click -> Trusted Root CAs\n       Linux   : sudo cp 4ham-local-ca.pem /usr/local/share/ca-certificates/4ham-ca.crt\n                 sudo update-ca-certificates\n       macOS   : Keychain -> double-click -> Trust always\n       Firefox : Settings -> Privacy -> View Certs -> Import\n\n  3. Open in browser (no warning after CA install):\n       https://%IP%:8001/\n\nLogin:\n  Username : %USER%\n  Password : (the one you set)\n\nService: sudo systemctl status|stop|restart %SVC%\nInstall log: %LOG%%WSJTX_NOTE%'
+I18N_MSG_DONE_MANUAL=$'4ham Remote Operation is installed (manual mode).\n\n  Start server: scripts/4ham_control.sh start\n\n[!] FIRST-TIME SETUP -- do this once per device/browser:\n\n  1. Download the CA certificate (plain HTTP, no warning):\n       http://%IP%:8002/4ham-local-ca.pem\n\n  2. Install the CA cert:\n       Windows : double-click -> Trusted Root CAs\n       Linux   : sudo cp 4ham-local-ca.pem /usr/local/share/ca-certificates/4ham-ca.crt\n                 sudo update-ca-certificates\n       macOS   : Keychain -> double-click -> Trust always\n       Firefox : Settings -> Privacy -> View Certs -> Import\n\n  3. Open in browser (no warning after CA install):\n       https://%IP%:8001/\n\nLogin:\n  Username : %USER%\n  Password : (the one you set)\n\nInstall log: %LOG%%WSJTX_NOTE%'
 I18N_MSG_WSJTX_NOTE=$'\n\n  Note: WSJT-X not installed. To enable FT8/WSPR later: sudo apt install wsjtx'

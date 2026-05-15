@@ -462,7 +462,13 @@ if [[ -n "${_audio_device:-}" ]]; then
 fi
 
 gauge_step 70 "$I18N_GAUGE_CERTS"
-# SSL removido — servidor corre em HTTP simples
+mkdir -p "$ROOT_DIR/logs"
+bash "$ROOT_DIR/scripts/gen-certs.sh" >> "$LOG_FILE" 2>&1 \
+  || abort "gen-certs.sh"
+# Arrancar servidor HTTP na porta 8002 para download imediato da CA
+nohup "$PYTHON_BIN" -m http.server 8002 \
+  --directory "$ROOT_DIR/certs/public" --bind 0.0.0.0 \
+  >> "$ROOT_DIR/logs/setup-http.log" 2>&1 &
 
 gauge_step 80 "$I18N_GAUGE_CREDS"
 _tmp_py="$(mktemp /tmp/4ham-setup-XXXXXX.py)"
@@ -520,8 +526,8 @@ chmod +x "$ROOT_DIR/scripts/4ham-remote-launcher.sh"
 if [[ "$_install_mode" == "systemd" ]]; then
   gauge_step 95 "$I18N_GAUGE_SYSTEMD"
   _svc_file="/etc/systemd/system/${SERVICE_NAME}.service"
-  printf '[Unit]\nDescription=4ham Remote Operation\nAfter=network.target\n\n[Service]\nType=simple\nUser=%s\nWorkingDirectory=%s\nEnvironment=REMOTE_CONFIG=%s/config/remote_config.yaml\nExecStart=%s/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8001\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n' \
-    "$SERVICE_USER" "$ROOT_DIR" "$ROOT_DIR" "$VENV_DIR" \
+  printf '[Unit]\nDescription=4ham Remote Operation\nAfter=network.target\n\n[Service]\nType=simple\nUser=%s\nWorkingDirectory=%s\nEnvironment=REMOTE_CONFIG=%s/config/remote_config.yaml\nExecStart=%s/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8001 --ssl-keyfile %s/certs/key.pem --ssl-certfile %s/certs/cert.pem\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n' \
+    "$SERVICE_USER" "$ROOT_DIR" "$ROOT_DIR" "$VENV_DIR" "$ROOT_DIR" "$ROOT_DIR" \
     | run_sudo tee "$_svc_file" > /dev/null
   run_sudo systemctl daemon-reload  >> "$LOG_FILE" 2>&1
   run_sudo systemctl enable "${SERVICE_NAME}" >> "$LOG_FILE" 2>&1
@@ -584,14 +590,14 @@ if [[ "$_install_mode" == "systemd" ]]; then
     --msgbox "$(i18n_fmt "$I18N_MSG_DONE_SYSTEMD" \
       IP "$_local_ip" USER "$_op_user" SVC "$SERVICE_NAME" \
       LOG "$LOG_FILE" WSJTX_NOTE "$_wsjtx_note")" \
-    24 70
+    28 76
 else
   whiptail --backtitle "$BT" --title "$I18N_TITLE_DONE" \
     --ok-button "$I18N_BTN_EXIT_INSTALLER" \
     --msgbox "$(i18n_fmt "$I18N_MSG_DONE_MANUAL" \
       IP "$_local_ip" USER "$_op_user" \
       LOG "$LOG_FILE" WSJTX_NOTE "$_wsjtx_note")" \
-    22 70
+    28 76
 fi
 
 # Repor estado do terminal após ncurses (whiptail), para que o fecho da
