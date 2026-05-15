@@ -224,27 +224,18 @@ async def set_ptt(body: SetPTTRequest, request: Request) -> dict:
     return {"ok": True, "ptt": body.enabled}
 
 
-# ── Helpers: mapeamentos IPO/AGC ─────────────────────────────────────────────
+# ── Helpers: mapeamento AGC ─────────────────────────────────────────────────
+#
+# RIG_LEVEL_AGC usa inteiros enum (hamlib.h), NÃO escala 0.0-1.0:
+#   RIG_AGC_OFF=0  RIG_AGC_SUPERFAST=1  RIG_AGC_FAST=2
+#   RIG_AGC_SLOW=3  RIG_AGC_USER=4  RIG_AGC_MEDIUM=5  RIG_AGC_AUTO=6
 
-_IPO_TO_PREAMP: dict[str, float] = {"IPO": 0.0, "AMP1": 10.0, "AMP2": 20.0}
-_PREAMP_TO_IPO: dict[int, str]   = {0: "IPO", 10: "AMP1", 20: "AMP2"}
-
-_AGC_TO_FLOAT: dict[str, float] = {"FAST": 0.0, "MID": 0.333, "SLOW": 0.667, "AUTO": 1.0}
-_FLOAT_TO_AGC: list[tuple[float, str]] = [
-    (0.15, "FAST"), (0.5, "MID"), (0.83, "SLOW"), (2.0, "AUTO"),
-]
-
-
-def _agc_from_float(val: float) -> str:
-    for threshold, name in _FLOAT_TO_AGC:
-        if val <= threshold:
-            return name
-    return "AUTO"
+_AGC_TO_INT: dict[str, int] = {"FAST": 2, "MID": 5, "SLOW": 3, "AUTO": 6}
+_INT_TO_AGC: dict[int, str] = {2: "FAST", 5: "MID", 3: "SLOW", 6: "AUTO"}
 
 
-def _preamp_from_float(val: float) -> str:
-    rounded = round(val / 10) * 10
-    return _PREAMP_TO_IPO.get(rounded, "IPO")
+def _agc_from_int(val: float) -> str:
+    return _INT_TO_AGC.get(int(round(val)), "MID")
 
 
 # ── GET /api/rig/caps ────────────────────────────────────────────────────────
@@ -287,7 +278,7 @@ async def get_rf(request: Request) -> dict:
 
     preamp_raw = await _safe_level("PREAMP", 0.0)
     att_raw    = await _safe_level("ATT",    0.0)
-    agc_raw    = await _safe_level("AGC",    0.333)
+    agc_raw    = await _safe_level("AGC",    5.0)   # default: MID (enum 5)
     rfpower_raw = await _safe_level("RFPOWER", 1.0)
 
     rfpower_w = max(5, min(100, round(rfpower_raw * 100)))
@@ -295,7 +286,7 @@ async def get_rf(request: Request) -> dict:
     return {
         "preamp":  int(round(preamp_raw)),
         "att":     int(round(att_raw)),
-        "agc":     _agc_from_float(agc_raw),
+        "agc":     _agc_from_int(agc_raw),
         "rfpower": rfpower_w,
     }
 
@@ -329,7 +320,7 @@ async def set_rf(body: SetRFRequest, request: Request) -> dict:
 
     if body.agc is not None:
         try:
-            await driver.set_level("AGC", _AGC_TO_FLOAT.get(body.agc.upper(), 0.333))
+            await driver.set_level("AGC", float(_AGC_TO_INT.get(body.agc.upper(), 5)))
         except Exception as exc:
             errors.append(f"AGC: {exc}")
 
