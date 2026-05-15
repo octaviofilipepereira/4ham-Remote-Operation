@@ -1157,6 +1157,8 @@ function beginTxHold(event) {
   event?.preventDefault();
   txHoldActive = true;
   setTxButtonState(true);
+  // Silenciar colunas imediatamente — evita eco acústico (coluna → micro)
+  if (gainNode) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.005);
   if (micTrack) micTrack.enabled = true;
   sendPtt(true);
 }
@@ -1167,6 +1169,10 @@ function endTxHold() {
   setTxButtonState(false);
   if (micTrack) micTrack.enabled = false;
   sendPtt(false);
+  // Restaurar volume das colunas após pequeno atraso (deixar eco dissipar)
+  if (gainNode) setTimeout(() => {
+    if (gainNode) gainNode.gain.setTargetAtTime(parseFloat(elVolume.value) / 100, audioCtx.currentTime, 0.02);
+  }, 150);
 }
 
 elMode.addEventListener("change", async () => {
@@ -1365,6 +1371,7 @@ function voxLoop() {
     if (!txHoldActive) {
       txHoldActive = true;
       setTxButtonState(true);
+      if (gainNode) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.005);
       if (micTrack) micTrack.enabled = true;
       sendPtt(true);
     }
@@ -1377,6 +1384,9 @@ function voxLoop() {
         setTxButtonState(false);
         if (micTrack) micTrack.enabled = false;
         sendPtt(false);
+        if (gainNode) setTimeout(() => {
+          if (gainNode) gainNode.gain.setTargetAtTime(parseFloat(elVolume.value) / 100, audioCtx.currentTime, 0.02);
+        }, 150);
       }
     }, VOX_HANG_MS);
   }
@@ -1460,8 +1470,8 @@ async function connectRx() {
   try {
     const savedMicId = localStorage.getItem(MIC_DEVICE_STORAGE_KEY);
     const audioConstraints = savedMicId
-      ? { deviceId: { exact: savedMicId } }
-      : true;
+      ? { deviceId: { exact: savedMicId }, echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+      : { echoCancellation: true, noiseSuppression: false, autoGainControl: false };
     const micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
     micTrack = micStream.getAudioTracks()[0];
     micTrack.enabled = false;  // silencioso até PTT activo
