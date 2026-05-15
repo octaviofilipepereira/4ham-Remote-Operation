@@ -688,35 +688,51 @@ async function openAudioSettings() {
   const savedMic    = localStorage.getItem(MIC_DEVICE_STORAGE_KEY)    || "";
   const savedOutput = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY) || "";
 
-  // Preferências guardadas no servidor (por label — funciona entre browsers)
-  let serverMicLabel = "", serverOutputLabel = "";
+  // Preferências guardadas no servidor (label + deviceId — portável entre browsers)
+  let serverMicLabel = "", serverMicId = "", serverOutputLabel = "", serverOutputId = "";
   try {
     const r = await fetch(`${API}/api/prefs/audio`);
     if (r.ok) {
       const p = await r.json();
-      serverMicLabel    = p.mic_label    || "";
-      serverOutputLabel = p.output_label || "";
+      serverMicLabel    = p.mic_label        || "";
+      serverMicId       = p.mic_device_id    || "";
+      serverOutputLabel = p.output_label     || "";
+      serverOutputId    = p.output_device_id || "";
     }
   } catch (_) { /* sem servidor — ignorar */ }
 
-  // Obter lista de dispositivos
+  // Se não há permissão de mic (labels vazios), pedir brevemente para obter os nomes
   let devices = [];
-  try { devices = await navigator.mediaDevices.enumerateDevices(); }
-  catch (err) { console.warn("enumerateDevices:", err); }
+  try { devices = await navigator.mediaDevices.enumerateDevices(); } catch (_) {}
+  const hasLabels = devices.some(d => d.kind === "audioinput" && d.label);
+  if (!hasLabels && !micTrack) {
+    try {
+      const tmp = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      tmp.getTracks().forEach(t => t.stop());  // apenas para obter permissão
+      devices = await navigator.mediaDevices.enumerateDevices();
+    } catch (_) { /* utilizador recusou — continuar sem labels */ }
+  }
 
   // Determinar que deviceId pré-seleccionar:
   //   1. localStorage (preferência explícita neste browser)
-  //   2. label guardado no servidor → match por nome
-  //   3. track activa (browser escolheu por omissão)
+  //   2. deviceId do servidor (mesmo browser, sessão anterior)
+  //   3. label do servidor → match por nome (outro browser, mesma máquina)
+  //   4. track activa (browser escolheu por omissão)
   const _findByLabel = (label, kind) =>
     devices.find(d => d.kind === kind && d.label === label)?.deviceId || "";
+  const _deviceExists = (id, kind) =>
+    devices.some(d => d.kind === kind && d.deviceId === id);
 
-  const selectedMic = savedMic
-    || (serverMicLabel    ? _findByLabel(serverMicLabel,    "audioinput")  : "")
-    || (micTrack          ? (micTrack.getSettings().deviceId || "")        : "");
+  const selectedMic =
+    (savedMic    && _deviceExists(savedMic,    "audioinput")  ? savedMic    : "") ||
+    (serverMicId && _deviceExists(serverMicId, "audioinput")  ? serverMicId : "") ||
+    (serverMicLabel ? _findByLabel(serverMicLabel, "audioinput")  : "") ||
+    (micTrack       ? (micTrack.getSettings().deviceId || "")     : "");
 
-  const selectedOutput = savedOutput
-    || (serverOutputLabel ? _findByLabel(serverOutputLabel, "audiooutput") : "");
+  const selectedOutput =
+    (savedOutput     && _deviceExists(savedOutput,     "audiooutput") ? savedOutput     : "") ||
+    (serverOutputId  && _deviceExists(serverOutputId,  "audiooutput") ? serverOutputId  : "") ||
+    (serverOutputLabel ? _findByLabel(serverOutputLabel, "audiooutput") : "");
 
   // Opção "predefinido do sistema"
   if (selMic)    _addDeviceOption(selMic,    "", t("audio_settings_default"), selectedMic);
@@ -750,7 +766,7 @@ function applyAudioSettings() {
   if (outputId) localStorage.setItem(OUTPUT_DEVICE_STORAGE_KEY, outputId);
   else          localStorage.removeItem(OUTPUT_DEVICE_STORAGE_KEY);
 
-  // Guardar label no servidor (portável entre browsers)
+  // Guardar label + deviceId no servidor (portável entre browsers; deviceId acelera match)
   const micLabel    = selMic?.options[selMic.selectedIndex]?.textContent       || "";
   const outputLabel = selOutput?.options[selOutput.selectedIndex]?.textContent || "";
   const defaultText = t("audio_settings_default");
@@ -758,8 +774,10 @@ function applyAudioSettings() {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      mic_label:    micLabel    === defaultText ? "" : micLabel,
-      output_label: outputLabel === defaultText ? "" : outputLabel,
+      mic_label:        micLabel    === defaultText ? "" : micLabel,
+      mic_device_id:    micLabel    === defaultText ? "" : micId,
+      output_label:     outputLabel === defaultText ? "" : outputLabel,
+      output_device_id: outputLabel === defaultText ? "" : outputId,
     }),
   }).catch(err => console.warn("Falha ao guardar prefs de áudio:", err));
 

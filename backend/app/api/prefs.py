@@ -16,7 +16,9 @@ _PREFS_FILE = (
 
 class AudioPrefs(BaseModel):
     mic_label: str = ""
+    mic_device_id: str = ""
     output_label: str = ""
+    output_device_id: str = ""
 
 
 def _load() -> dict:
@@ -36,15 +38,23 @@ def get_audio_prefs() -> AudioPrefs:
     data = _load()
     return AudioPrefs(
         mic_label=data.get("mic_label", ""),
+        mic_device_id=data.get("mic_device_id", ""),
         output_label=data.get("output_label", ""),
+        output_device_id=data.get("output_device_id", ""),
     )
 
 
 @router.put("/audio")
 def put_audio_prefs(prefs: AudioPrefs) -> AudioPrefs:
     data = _load()
-    data["mic_label"] = prefs.mic_label
-    data["output_label"] = prefs.output_label
+    data["mic_label"]       = prefs.mic_label
+    data["mic_device_id"]   = prefs.mic_device_id
+    data["output_label"]    = prefs.output_label
+    data["output_device_id"] = prefs.output_device_id
     _save(data)
-    logger.info("Preferências de áudio guardadas: mic=%r output=%r", prefs.mic_label, prefs.output_label)
+    logger.info(
+        "Preferências de áudio guardadas: mic=%r (%s) output=%r (%s)",
+        prefs.mic_label, prefs.mic_device_id[:8] if prefs.mic_device_id else "-",
+        prefs.output_label, prefs.output_device_id[:8] if prefs.output_device_id else "-",
+    )
     return prefs
