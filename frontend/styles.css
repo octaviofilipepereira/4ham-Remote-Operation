@@ -395,7 +395,8 @@ body::before {
 
 .freq-ruler__spot-call {
   font-family: var(--display-font);
-  font-size: 0.78rem;
+  font-size: 0.92rem;
+  font-weight: 700;
   color: var(--teal);
   white-space: nowrap;
   overflow: hidden;
