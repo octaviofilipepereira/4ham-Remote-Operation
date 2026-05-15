@@ -247,6 +247,31 @@ def _preamp_from_float(val: float) -> str:
     return _PREAMP_TO_IPO.get(rounded, "IPO")
 
 
+# ── GET /api/rig/caps ────────────────────────────────────────────────────────
+
+@router.get("/caps")
+async def get_rig_caps(request: Request) -> dict:
+    """Retorna as capacidades RF do rádio activo (passos ATT/PREAMP, modos AGC).
+
+    Usado pelo frontend para construir dinamicamente os selects de ATT e PREAMP.
+    """
+    profile = getattr(request.app.state, "rig_profile", None)
+    if profile is None:
+        # Valores de retorno seguros se o perfil não estiver disponível
+        return {
+            "att_steps":     [0],
+            "preamp_steps":  [0],
+            "preamp_labels": {"0": "OFF"},
+            "agc_modes":     ["FAST", "MID", "SLOW", "AUTO"],
+        }
+    return {
+        "att_steps":     getattr(profile, "att_steps",     [0]),
+        "preamp_steps":  getattr(profile, "preamp_steps",  [0]),
+        "preamp_labels": getattr(profile, "preamp_labels", {"0": "OFF"}),
+        "agc_modes":     getattr(profile, "agc_modes",     ["FAST", "MID", "SLOW", "AUTO"]),
+    }
+
+
 # ── GET /api/rig/rf ──────────────────────────────────────────────────────────
 
 @router.get("/rf")
@@ -268,7 +293,7 @@ async def get_rf(request: Request) -> dict:
     rfpower_w = max(5, min(100, round(rfpower_raw * 100)))
 
     return {
-        "ipo":     _preamp_from_float(preamp_raw),
+        "preamp":  int(round(preamp_raw)),
         "att":     int(round(att_raw)),
         "agc":     _agc_from_float(agc_raw),
         "rfpower": rfpower_w,
@@ -278,8 +303,8 @@ async def get_rf(request: Request) -> dict:
 # ── POST /api/rig/rf ─────────────────────────────────────────────────────────
 
 class SetRFRequest(BaseModel):
-    ipo:     str | None = Field(None, description="IPO / AMP1 / AMP2")
-    att:     int | None = Field(None, ge=0, le=18, description="Atenuação em dB (0/6/12/18)")
+    preamp:  int | None = Field(None, ge=0, description="Nível de pré-amplificador em dB (0=OFF/IPO)")
+    att:     int | None = Field(None, ge=0, le=60, description="Atenuação em dB (0=OFF)")
     agc:     str | None = Field(None, description="FAST / MID / SLOW / AUTO")
     rfpower: int | None = Field(None, ge=5, le=100, description="Potência TX em Watts")
 
@@ -290,9 +315,9 @@ async def set_rf(body: SetRFRequest, request: Request) -> dict:
     driver = _driver(request)
     errors: list[str] = []
 
-    if body.ipo is not None:
+    if body.preamp is not None:
         try:
-            await driver.set_level("PREAMP", _IPO_TO_PREAMP.get(body.ipo.upper(), 0.0))
+            await driver.set_level("PREAMP", float(body.preamp))
         except Exception as exc:
             errors.append(f"PREAMP: {exc}")
 

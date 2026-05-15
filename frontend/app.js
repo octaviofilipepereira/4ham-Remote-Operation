@@ -833,14 +833,62 @@ if (dlgAudioClose)    dlgAudioClose.addEventListener("click", () => dlgAudioSett
 
 // ── RF Controls ───────────────────────────────────────────────────────────────
 
+// Popula os selects ATT, PREAMP e AGC com base nas capacidades do rádio activo.
+async function loadRigCaps() {
+  try {
+    const r = await fetch(`${API}/api/rig/caps`);
+    if (!r.ok) return;
+    const caps = await r.json();
+
+    // Label do painel PREAMP = rótulo do primeiro passo (ex: "IPO" ou "OFF")
+    const lblPreamp = document.getElementById("lbl-preamp");
+    if (lblPreamp && caps.preamp_labels) {
+      const firstKey = String(Math.min(...(caps.preamp_steps ?? [0])));
+      lblPreamp.textContent = caps.preamp_labels[firstKey] ?? "PREAMP";
+    }
+
+    if (elRigPreamp && caps.preamp_steps) {
+      elRigPreamp.innerHTML = "";
+      for (const step of caps.preamp_steps) {
+        const opt = document.createElement("option");
+        opt.value = String(step);
+        opt.textContent = caps.preamp_labels?.[String(step)] ?? (step === 0 ? "OFF" : `${step} dB`);
+        elRigPreamp.appendChild(opt);
+      }
+    }
+
+    if (elRigAtt && caps.att_steps) {
+      elRigAtt.innerHTML = "";
+      for (const step of caps.att_steps) {
+        const opt = document.createElement("option");
+        opt.value = String(step);
+        opt.textContent = step === 0 ? "OFF" : `${step} dB`;
+        elRigAtt.appendChild(opt);
+      }
+    }
+
+    if (elRigAgc && caps.agc_modes) {
+      const prevAgc = elRigAgc.value;
+      elRigAgc.innerHTML = "";
+      for (const mode of caps.agc_modes) {
+        const opt = document.createElement("option");
+        opt.value = mode;
+        opt.textContent = mode;
+        elRigAgc.appendChild(opt);
+      }
+      if ([...elRigAgc.options].some(o => o.value === prevAgc)) elRigAgc.value = prevAgc;
+    }
+  } catch (_) {}
+}
+
 async function loadRfControls() {
   try {
     const r = await fetch(`${API}/api/rig/rf`);
     if (!r.ok) return;
     const d = await r.json();
-    if (elRigIpo && d.ipo)               elRigIpo.value = d.ipo;
-    if (elRigAtt && d.att !== undefined)  elRigAtt.value = String(d.att);
-    if (elRigAgc && d.agc)               elRigAgc.value = d.agc;
+    if (elRigPreamp && d.preamp !== undefined) elRigPreamp.value = String(d.preamp);
+    if (elRigAtt && d.att !== undefined)       elRigAtt.value    = String(d.att);
+    if (elRigAgc && d.agc)                     elRigAgc.value    = d.agc;
     if (elRfPower && d.rfpower !== undefined) {
       elRfPower.value = d.rfpower;
       if (elRfPowerVal) elRfPowerVal.textContent = `${d.rfpower} W`;
@@ -854,10 +902,10 @@ async function sendRfControls() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ipo:     elRigIpo?.value  || "IPO",
-        att:     parseInt(elRigAtt?.value  || "0",   10),
-        agc:     elRigAgc?.value  || "MID",
-        rfpower: parseInt(elRfPower?.value || "100", 10),
+        preamp:  parseInt(elRigPreamp?.value || "0",   10),
+        att:     parseInt(elRigAtt?.value    || "0",   10),
+        agc:     elRigAgc?.value             || "MID",
+        rfpower: parseInt(elRfPower?.value   || "100", 10),
       }),
     });
   } catch (_) {}
@@ -869,9 +917,9 @@ if (elRfPower) {
   });
   elRfPower.addEventListener("change", sendRfControls);
 }
-if (elRigIpo) elRigIpo.addEventListener("change", sendRfControls);
-if (elRigAtt) elRigAtt.addEventListener("change", sendRfControls);
-if (elRigAgc) elRigAgc.addEventListener("change", sendRfControls);
+if (elRigPreamp) elRigPreamp.addEventListener("change", sendRfControls);
+if (elRigAtt)    elRigAtt.addEventListener("change",    sendRfControls);
+if (elRigAgc)    elRigAgc.addEventListener("change",    sendRfControls);
 
 // ── Radio Settings Dialog ─────────────────────────────────────────────────────
 
@@ -996,7 +1044,7 @@ function setRigConnected(connected) {
   if (connected) {
     closeRigOfflineDialog();
     _rigOfflineShown = false;  // nova ligação — permitir mostrar modal de novo se cair
-    loadRfControls();          // carregar estado RF assim que o rádio fica acessível
+    loadRigCaps().then(loadRfControls); // carregar caps + estado RF assim que o rádio fica acessível
   }
   if (btnRigConnect) {
     btnRigConnect.classList.toggle("is-connected", connected);

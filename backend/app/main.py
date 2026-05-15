@@ -93,6 +93,7 @@ async def lifespan(app: FastAPI):
     app.state.rigctld_host    = rigctld_host
     app.state.rigctld_port    = rigctld_port
     app.state.rig_serial_port = serial_port
+    app.state.rig_profile             = profile
     app.state.rig_profile_name        = profile_name
     app.state.rig_profile_hamlib_model = int(rig_cfg.get("hamlib_model", profile_hamlib_model))
     app.state.rig_profile_baud         = int(rig_cfg.get("baud", profile_baud))
