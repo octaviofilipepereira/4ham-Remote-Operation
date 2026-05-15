@@ -206,6 +206,10 @@ async def set_ptt(body: SetPTTRequest, request: Request) -> dict:
                 await driver.set_ptt(False)
             except Exception:
                 pass
+            # Restaurar áudio RX ao browser após forçar PTT OFF
+            _peer = getattr(request.app.state, "webrtc_peer", None)
+            if _peer is not None:
+                _peer.set_rx_muted(False)
             request.app.state.tx_timer = None
 
         request.app.state.tx_timer = asyncio.create_task(_tx_timeout())
@@ -220,6 +224,12 @@ async def set_ptt(body: SetPTTRequest, request: Request) -> dict:
         if body.enabled:
             _cancel_tx_timer(request)
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    # TX break-in mute: silenciar RX ao browser durante TX para quebrar
+    # o ciclo de eco acústico (MON do rádio → colunas → microfone → TX).
+    _peer = getattr(request.app.state, "webrtc_peer", None)
+    if _peer is not None:
+        _peer.set_rx_muted(body.enabled)
 
     return {"ok": True, "ptt": body.enabled}
 

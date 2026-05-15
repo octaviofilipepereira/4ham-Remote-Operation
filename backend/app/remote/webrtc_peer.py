@@ -41,6 +41,15 @@ class WebRTCPeer:
         """Verdadeiro se a RTCPeerConnection estiver no estado 'connected'."""
         return self._pc is not None and self._pc.connectionState == "connected"
 
+    def set_rx_muted(self, muted: bool) -> None:
+        """Silencia (ou restaura) o áudio RX enviado ao browser.
+
+        Usar quando PTT está activo para quebrar o ciclo de eco acústico:
+        colunas → microfone → rádio TX.
+        """
+        if self._audio_track is not None:
+            self._audio_track.set_muted(muted)
+
     # ── offer/answer ─────────────────────────────────────────────────────────
 
     async def handle_offer(self, sdp: str, type_: str) -> dict:

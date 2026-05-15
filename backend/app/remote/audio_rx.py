@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 _TIME_BASE = fractions.Fraction(1, AUDIO_SAMPLE_RATE)
 
 
+_SILENCE = np.zeros(AUDIO_SAMPLES, dtype=np.int16)
+
+
 class AudioRxTrack(MediaStreamTrack):
     """Consumes shared RX audio blocks and delivers AudioFrames to WebRTC."""
 
@@ -28,6 +31,13 @@ class AudioRxTrack(MediaStreamTrack):
         self._queue: Optional[asyncio.Queue[np.ndarray]] = None
         self._timestamp: int = 0
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+        # Quando PTT está activo, enviar silêncio ao browser para quebrar
+        # o ciclo de eco acústico (colunas → microfone → TX).
+        self._muted: bool = False
+
+    def set_muted(self, muted: bool) -> None:
+        """Liga/desliga o mute do RX (usar durante PTT para evitar eco)."""
+        self._muted = muted
 
     def stop(self) -> None:
         if self._queue is not None and self._loop is not None and not self._loop.is_closed():
@@ -51,6 +61,10 @@ class AudioRxTrack(MediaStreamTrack):
 
         assert self._queue is not None
         data = await self._queue.get()
+
+        # Silêncio durante TX — quebra o ciclo de eco acústico.
+        if self._muted:
+            data = _SILENCE
 
         frame = AudioFrame(format="s16", layout="mono", samples=AUDIO_SAMPLES)
         frame.planes[0].update(data.tobytes())
