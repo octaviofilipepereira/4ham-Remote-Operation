@@ -705,11 +705,11 @@ async function openAudioSettings() {
   let devices = [];
   try { devices = await navigator.mediaDevices.enumerateDevices(); } catch (_) {}
   const hasLabels = devices.some(d => d.kind === "audioinput" && d.label);
-  if (!hasLabels && !micTrack) {
+  if (!hasLabels) {
     try {
       const tmp = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      tmp.getTracks().forEach(t => t.stop());  // apenas para obter permissão
-      devices = await navigator.mediaDevices.enumerateDevices();
+      devices = await navigator.mediaDevices.enumerateDevices(); // enumerar enquanto stream activo (Firefox)
+      tmp.getTracks().forEach(t => t.stop());
     } catch (_) { /* utilizador recusou — continuar sem labels */ }
   }
 
@@ -748,7 +748,8 @@ async function openAudioSettings() {
 
   // Esconder saída de áudio se setSinkId não suportado
   if (selOutput && typeof HTMLMediaElement.prototype.setSinkId !== "function") {
-    selOutput.closest("label") && (selOutput.previousElementSibling.style.display = "none");
+    const outLabel = selOutput.previousElementSibling;
+    if (outLabel) outLabel.style.display = "none";
     selOutput.style.display = "none";
   }
 
