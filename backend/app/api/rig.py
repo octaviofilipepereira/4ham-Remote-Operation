@@ -101,12 +101,18 @@ class RigStatusResponse(BaseModel):
     swr: float = 0.0
 
 
+_STATUS_TIMEOUT = 4.0  # segundos — timeout total para get_status()
+
 @router.get("/status", response_model=RigStatusResponse)
 async def get_status(request: Request) -> RigStatusResponse:
     """Retorna frequência, modo, S-meter e estado PTT do rádio."""
     driver = _driver(request)
     try:
-        status: RigStatus = await driver.get_status()
+        status: RigStatus = await asyncio.wait_for(
+            driver.get_status(), timeout=_STATUS_TIMEOUT
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=502, detail="Timeout ao obter estado do rádio")
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
     return RigStatusResponse(
