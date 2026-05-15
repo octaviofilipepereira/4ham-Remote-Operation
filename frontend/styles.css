@@ -1389,6 +1389,9 @@ body::before {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  align-content: start;
 }
 
 .band-row,
@@ -1420,6 +1423,26 @@ body::before {
   border-color: rgba(247, 196, 109, 0.28);
   background: linear-gradient(180deg, rgba(77, 62, 26, 0.9), rgba(32, 25, 12, 0.96));
   box-shadow: 0 0 0 1px rgba(247, 196, 109, 0.1);
+}
+
+/* Band plan compact 2-column cards */
+.band-plan-list .band-row {
+  padding: 6px 8px;
+  border-radius: 8px;
+  gap: 1px;
+}
+
+.band-plan-list .band-row strong {
+  font-size: 0.8rem;
+}
+
+.band-plan-list .band-row span {
+  font-size: 0.6rem;
+}
+
+.band-plan-list .band-row small {
+  font-size: 0.57rem;
+  line-height: 1.2;
 }
 
 .spot-list {
