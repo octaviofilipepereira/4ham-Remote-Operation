@@ -2,16 +2,17 @@ import json
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/prefs", tags=["prefs"])
+router = APIRouter(prefix="/api", tags=["prefs"])
 logger = logging.getLogger(__name__)
 
+_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+
 # Ficheiro de preferências — junto à configuração do servidor
-_PREFS_FILE = (
-    Path(__file__).resolve().parent.parent.parent.parent / "config" / "user_prefs.json"
-)
+_PREFS_FILE = _ROOT / "config" / "user_prefs.json"
 
 
 class AudioPrefs(BaseModel):
@@ -33,7 +34,7 @@ def _save(data: dict) -> None:
     _PREFS_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-@router.get("/audio")
+@router.get("/prefs/audio")
 def get_audio_prefs() -> AudioPrefs:
     data = _load()
     return AudioPrefs(
@@ -44,7 +45,7 @@ def get_audio_prefs() -> AudioPrefs:
     )
 
 
-@router.put("/audio")
+@router.put("/prefs/audio")
 def put_audio_prefs(prefs: AudioPrefs) -> AudioPrefs:
     data = _load()
     data["mic_label"]       = prefs.mic_label
@@ -58,3 +59,22 @@ def put_audio_prefs(prefs: AudioPrefs) -> AudioPrefs:
         prefs.output_label, prefs.output_device_id[:8] if prefs.output_device_id else "-",
     )
     return prefs
+
+
+@router.get("/setup/ca-cert")
+def download_ca_cert():
+    """Descarregar o certificado da CA local para instalar no browser/sistema.
+    Este endpoint não requer autenticação — é necessário para bootstrapping.
+    """
+    ca_path = _ROOT / "certs" / "ca.pem"
+    if not ca_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Certificado CA não encontrado. Execute scripts/gen-certs.sh primeiro.",
+        )
+    return FileResponse(
+        path=str(ca_path),
+        media_type="application/x-pem-file",
+        filename="4ham-local-ca.pem",
+        headers={"Content-Disposition": "attachment; filename=4ham-local-ca.pem"},
+    )
