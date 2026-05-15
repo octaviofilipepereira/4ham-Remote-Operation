@@ -288,19 +288,35 @@ class SetRFRequest(BaseModel):
 async def set_rf(body: SetRFRequest, request: Request) -> dict:
     """Define controlos RF do rádio."""
     driver = _driver(request)
-    try:
-        if body.ipo is not None:
-            preamp_val = _IPO_TO_PREAMP.get(body.ipo.upper(), 0.0)
-            await driver.set_level("PREAMP", preamp_val)
-        if body.att is not None:
+    errors: list[str] = []
+
+    if body.ipo is not None:
+        try:
+            await driver.set_level("PREAMP", _IPO_TO_PREAMP.get(body.ipo.upper(), 0.0))
+        except Exception as exc:
+            errors.append(f"PREAMP: {exc}")
+
+    if body.att is not None:
+        try:
             await driver.set_level("ATT", float(body.att))
-        if body.agc is not None:
-            agc_val = _AGC_TO_FLOAT.get(body.agc.upper(), 0.333)
-            await driver.set_level("AGC", agc_val)
-        if body.rfpower is not None:
+        except Exception as exc:
+            errors.append(f"ATT: {exc}")
+
+    if body.agc is not None:
+        try:
+            await driver.set_level("AGC", _AGC_TO_FLOAT.get(body.agc.upper(), 0.333))
+        except Exception as exc:
+            errors.append(f"AGC: {exc}")
+
+    if body.rfpower is not None:
+        try:
             await driver.set_level("RFPOWER", body.rfpower / 100.0)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"RFPOWER: {exc}") from exc
+
+    if errors:
+        logger.warning("set_rf: comandos parcialmente ignorados — %s", "; ".join(errors))
+
     return {"ok": True}
 
 
@@ -355,19 +371,36 @@ class SetRigSettingsRequest(BaseModel):
 async def set_rig_settings(body: SetRigSettingsRequest, request: Request) -> dict:
     """Define configurações de rádio: NB, PROC/COMP, MIC Gain."""
     driver = _driver(request)
-    try:
-        if body.nb is not None:
+    errors: list[str] = []
+
+    if body.nb is not None:
+        try:
             await driver.set_func("NB", body.nb)
-        if body.nb_level is not None:
+        except Exception as exc:
+            errors.append(f"NB func: {exc}")
+    if body.nb_level is not None:
+        try:
             await driver.set_level("NB", body.nb_level)
-        if body.comp is not None:
+        except Exception as exc:
+            errors.append(f"NB level: {exc}")
+    if body.comp is not None:
+        try:
             await driver.set_func("COMP", body.comp)
-        if body.comp_level is not None:
+        except Exception as exc:
+            errors.append(f"COMP func: {exc}")
+    if body.comp_level is not None:
+        try:
             await driver.set_level("COMP", body.comp_level)
-        if body.mic is not None:
+        except Exception as exc:
+            errors.append(f"COMP level: {exc}")
+    if body.mic is not None:
+        try:
             await driver.set_level("MIC", body.mic)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        except Exception as exc:
+            errors.append(f"MIC: {exc}")
+
+    if errors:
+        logger.warning("set_rig_settings: comandos parcialmente ignorados — %s", "; ".join(errors))
 
     # WIDTH: aplicar via set_mode com a passband adequada
     if body.width is not None:
