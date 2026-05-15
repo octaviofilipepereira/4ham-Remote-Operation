@@ -2,6 +2,8 @@ const API = "";
 const MAX_FREQUENCY_HZ = 999999999;
 const DEFAULT_FREQUENCY_HZ = 7100000;
 const LAST_FREQUENCY_STORAGE_KEY = "4ham.lastFrequencyHz";
+const MIC_DEVICE_STORAGE_KEY     = "4ham.micDeviceId";
+const OUTPUT_DEVICE_STORAGE_KEY  = "4ham.outputDeviceId";
 const STEP_PRESETS = [10, 100, 1000, 10000, 100000, 1000000];
 const DIGIT_STEPS = [100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1];
 
@@ -80,6 +82,12 @@ const dlgRigOffline       = document.getElementById("dlg-rig-offline");
 const elConnectingOverlay = document.getElementById("connecting-overlay");
 const dlgBtnConnect  = document.getElementById("dlg-btn-connect");
 const dlgBtnDismiss  = document.getElementById("dlg-btn-dismiss");
+const btnAudioSettings  = document.getElementById("btn-audio-settings");
+const dlgAudioSettings  = document.getElementById("dlg-audio-settings");
+const selMic            = document.getElementById("sel-mic");
+const selOutput         = document.getElementById("sel-output");
+const dlgAudioApply     = document.getElementById("dlg-audio-apply");
+const dlgAudioClose     = document.getElementById("dlg-audio-close");
 const elVoxThreshold = document.getElementById("vox-threshold");
 const elVoxLevel     = document.getElementById("vox-level");
 const modeReadouts = Array.from(document.querySelectorAll("[data-mode-readout]"));
@@ -655,7 +663,88 @@ function closeRigOfflineDialog() {
   if (dlgRigOffline && dlgRigOffline.open) dlgRigOffline.close();
 }
 
-function setRigConnected(connected) {
+// ── Configuração de áudio ────────────────────────────────────────────────────
+
+function _addDeviceOption(selectEl, deviceId, label, savedId) {
+  const opt = document.createElement("option");
+  opt.value = deviceId;
+  opt.textContent = label || t("audio_settings_default");
+  if (deviceId === savedId) opt.selected = true;
+  selectEl.appendChild(opt);
+}
+
+async function openAudioSettings() {
+  if (!dlgAudioSettings) return;
+
+  // Actualizar textos i18n
+  dlgAudioSettings.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (t(key) !== key) el.textContent = t(key);
+  });
+
+  if (selMic)    selMic.innerHTML    = "";
+  if (selOutput) selOutput.innerHTML = "";
+
+  const savedMic    = localStorage.getItem(MIC_DEVICE_STORAGE_KEY)    || "";
+  const savedOutput = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY) || "";
+
+  // Opção "predefinido do sistema"
+  if (selMic)    _addDeviceOption(selMic,    "", t("audio_settings_default"), savedMic);
+  if (selOutput) _addDeviceOption(selOutput, "", t("audio_settings_default"), savedOutput);
+
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    devices.forEach(d => {
+      const label = d.label || `${d.kind} (${d.deviceId.slice(0, 8)}…)`;
+      if (d.kind === "audioinput"  && selMic)
+        _addDeviceOption(selMic,    d.deviceId, label, savedMic);
+      if (d.kind === "audiooutput" && selOutput)
+        _addDeviceOption(selOutput, d.deviceId, label, savedOutput);
+    });
+  } catch (err) {
+    console.warn("enumerateDevices:", err);
+  }
+
+  // Esconder saída de áudio se setSinkId não suportado
+  if (selOutput && typeof HTMLMediaElement.prototype.setSinkId !== "function") {
+    selOutput.closest("label") && (selOutput.previousElementSibling.style.display = "none");
+    selOutput.style.display = "none";
+  }
+
+  dlgAudioSettings.showModal();
+}
+
+function applyAudioSettings() {
+  if (!dlgAudioSettings) return;
+  const micId    = selMic    ? selMic.value    : "";
+  const outputId = selOutput ? selOutput.value : "";
+
+  if (micId)    localStorage.setItem(MIC_DEVICE_STORAGE_KEY,    micId);
+  else          localStorage.removeItem(MIC_DEVICE_STORAGE_KEY);
+
+  if (outputId) localStorage.setItem(OUTPUT_DEVICE_STORAGE_KEY, outputId);
+  else          localStorage.removeItem(OUTPUT_DEVICE_STORAGE_KEY);
+
+  // Aplicar saída de áudio imediatamente se o stream RX já estiver activo
+  if (outputId) {
+    // AudioContext.setSinkId (Chrome 110+)
+    if (audioCtx && typeof audioCtx.setSinkId === "function") {
+      audioCtx.setSinkId(outputId).catch(err => console.warn("audioCtx.setSinkId:", err));
+    }
+    // Fallback: elAudio directo
+    if (elAudio && typeof elAudio.setSinkId === "function") {
+      elAudio.setSinkId(outputId).catch(err => console.warn("elAudio.setSinkId:", err));
+    }
+  }
+
+  dlgAudioSettings.close();
+}
+
+if (btnAudioSettings) btnAudioSettings.addEventListener("click", openAudioSettings);
+if (dlgAudioApply)    dlgAudioApply.addEventListener("click", applyAudioSettings);
+if (dlgAudioClose)    dlgAudioClose.addEventListener("click", () => dlgAudioSettings?.close());
+
+(connected) {
   if (rigConnected === connected) return;
   rigConnected = connected;
   if (connected) {
@@ -1049,7 +1138,9 @@ async function connectRx() {
     const stream = event.streams[0] ?? new MediaStream([event.track]);
     // WebAudio GainNode — permite amplificar além de 100%
     try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const savedOutputId = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY);
+      const ctxOptions = savedOutputId ? { sinkId: savedOutputId } : {};
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)(ctxOptions);
       gainNode = audioCtx.createGain();
       gainNode.gain.value = parseFloat(elVolume.value) / 100;
       const src = audioCtx.createMediaStreamSource(stream);
@@ -1058,6 +1149,10 @@ async function connectRx() {
     } catch (_) {
       // fallback para audio element directo se WebAudio não disponível
       elAudio.srcObject = stream;
+      const savedOutputId = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY);
+      if (savedOutputId && typeof elAudio.setSinkId === "function") {
+        elAudio.setSinkId(savedOutputId).catch(() => {});
+      }
     }
     setAudioState("audio_stream_received");
     // Se VOX já estava activo, ligar o analyser agora que audioCtx existe
@@ -1067,7 +1162,11 @@ async function connectRx() {
   // Tentar obter microfone para TX; se negado, operar em modo RX apenas
   micTrack = null;
   try {
-    const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const savedMicId = localStorage.getItem(MIC_DEVICE_STORAGE_KEY);
+    const audioConstraints = savedMicId
+      ? { deviceId: { exact: savedMicId } }
+      : true;
+    const micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
     micTrack = micStream.getAudioTracks()[0];
     micTrack.enabled = false;  // silencioso até PTT activo
     pc.addTrack(micTrack, micStream);

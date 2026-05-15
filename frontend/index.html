@@ -40,6 +40,16 @@
             <span id="ptt-badge" class="badge badge--rx">RX</span>
           </div>
           <button id="btn-rig-connect" class="btn-rig-connect" type="button" data-i18n="btn_rig_connect_off">Connect to Radio</button>
+          <button id="btn-audio-settings" class="btn-audio-settings" type="button" aria-label="Audio settings" title="Audio settings">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                 width="14" height="14" aria-hidden="true">
+              <rect x="9" y="2" width="6" height="11" rx="3"/>
+              <path d="M5 10a7 7 0 0 0 14 0"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="8" y1="22" x2="16" y2="22"/>
+            </svg>
+          </button>
           <button id="lang-toggle" class="lang-toggle" type="button">EN</button>
         </div>
       </header>
@@ -329,6 +339,24 @@
       <audio id="rx-audio" autoplay></audio>
     </section>
   </main>
+
+  <!-- ── Modal: configuração de áudio ──────────────────────────────────── -->
+  <dialog id="dlg-audio-settings" class="audio-settings-dialog">
+    <div class="audio-settings-dialog__body">
+      <h2 class="audio-settings-dialog__title" data-i18n="audio_settings_title">Áudio</h2>
+
+      <label class="audio-settings-dialog__label" for="sel-mic" data-i18n="audio_settings_mic">Microfone (TX)</label>
+      <select id="sel-mic" class="audio-settings-dialog__select"></select>
+
+      <label class="audio-settings-dialog__label" for="sel-output" data-i18n="audio_settings_output">Saída de áudio (RX)</label>
+      <select id="sel-output" class="audio-settings-dialog__select"></select>
+
+      <div class="audio-settings-dialog__actions">
+        <button id="dlg-audio-apply" class="audio-settings-dialog__btn" type="button" data-i18n="audio_settings_apply">Aplicar</button>
+        <button id="dlg-audio-close" class="audio-settings-dialog__dismiss" type="button" data-i18n="audio_settings_close">Fechar</button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- ── Overlay: a ligar ao rádio (visível até ao primeiro poll) ───────── -->
   <div id="connecting-overlay" class="connecting-overlay" role="status" aria-live="polite">
