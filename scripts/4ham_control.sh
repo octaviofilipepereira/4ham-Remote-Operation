@@ -18,6 +18,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT_DIR/logs"
 LOG_FILE="$LOG_DIR/backend.log"
 PID_FILE="$LOG_DIR/backend.pid"
+SETUP_PID_FILE="$LOG_DIR/setup-http.pid"
 PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
 SERVICE_NAME="4ham-remote"
 
@@ -122,9 +123,24 @@ do_start_manual() {
     >> "$LOG_FILE" 2>&1 &
   local pid="$!"
   echo "$pid" > "$PID_FILE"
+
+  # Servidor HTTP simples na porta 8002 — serve apenas a CA cert (sem TLS)
+  # Permite descarregar o certificado antes de o instalar no browser
+  local pub_dir="$ROOT_DIR/certs/public"
+  if [[ -f "$ROOT_DIR/certs/ca.pem" ]]; then
+    mkdir -p "$pub_dir"
+    cp "$ROOT_DIR/certs/ca.pem" "$pub_dir/4ham-local-ca.pem"
+    nohup "$PYTHON_BIN" -m http.server 8002 \
+      --directory "$pub_dir" --bind 0.0.0.0 \
+      >> "$LOG_DIR/setup-http.log" 2>&1 &
+    echo "$!" > "$SETUP_PID_FILE"
+    echo "Setup HTTP iniciado na porta 8002"
+  fi
+
   echo "Servidor iniciado (PID: $pid)"
   echo "Log : $LOG_FILE"
   echo "URL : https://127.0.0.1:8001/"
+  echo "CA  : http://<IP>:8002/4ham-local-ca.pem"
 }
 
 do_stop_manual() {
@@ -144,6 +160,18 @@ do_stop_manual() {
   done
   wait_for_shutdown
   rm -f "$PID_FILE"
+
+  # Parar servidor HTTP de setup se estiver em execução
+  if [[ -f "$SETUP_PID_FILE" ]]; then
+    local spid
+    spid="$(cat "$SETUP_PID_FILE" 2>/dev/null || true)"
+    if [[ -n "$spid" ]]; then
+      kill "$spid" 2>/dev/null || true
+    fi
+    rm -f "$SETUP_PID_FILE"
+  fi
+  pkill -f 'http.server 8002' 2>/dev/null || true
+
   echo "Servidor parado."
 }
 
