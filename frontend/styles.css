@@ -1427,22 +1427,22 @@ body::before {
 
 /* Band plan compact 2-column cards */
 .band-plan-list .band-row {
-  padding: 6px 8px;
+  padding: 7px 9px;
   border-radius: 8px;
-  gap: 1px;
+  gap: 2px;
 }
 
 .band-plan-list .band-row strong {
-  font-size: 0.8rem;
+  font-size: 0.92rem;
 }
 
 .band-plan-list .band-row span {
-  font-size: 0.6rem;
+  font-size: 0.68rem;
 }
 
 .band-plan-list .band-row small {
-  font-size: 0.57rem;
-  line-height: 1.2;
+  font-size: 0.62rem;
+  line-height: 1.25;
 }
 
 .spot-list {

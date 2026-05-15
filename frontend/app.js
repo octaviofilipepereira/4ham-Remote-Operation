@@ -180,6 +180,7 @@ function formatLogFrequency(frequencyHz) {
 
 function getBandLabel(frequencyHz) {
   if (!Number.isFinite(frequencyHz)) return "";
+  if (frequencyHz >= 1810000 && frequencyHz < 2000000) return "160m";
   if (frequencyHz >= 3500000 && frequencyHz < 4000000) return "80m";
   if (frequencyHz >= 7000000 && frequencyHz < 7300000) return "40m";
   if (frequencyHz >= 10100000 && frequencyHz < 10150000) return "30m";

@@ -93,10 +93,13 @@ const LOCALES = {
     recent_qso_empty:      "Nenhum QSO registado",
     /* Plano de bandas */
     band_plan_label:       "Plano de Bandas",
+    band_160m_desc:        "Banda de inverno, propagação nocturna",
     band_80m_desc:         "CW, digital e SSB regional",
     band_40m_desc:         "DX, nets e operação geral",
     band_20m_desc:         "DX de longo curso e digital",
+    band_17m_desc:         "WARC, sem contestos, DX consistente",
     band_15m_desc:         "Boa abertura diurna",
+    band_12m_desc:         "WARC, abertura solar, pouco tráfego",
     band_10m_desc:         "Propagação variável e FM alta",
     /* Estados de ligação */
     conn_offline:          "Offline",
@@ -207,10 +210,13 @@ const LOCALES = {
     recent_qso_empty:      "No QSOs logged",
     /* Band plan */
     band_plan_label:       "Band Plan",
+    band_160m_desc:        "Winter band, night propagation",
     band_80m_desc:         "CW, digital and regional SSB",
     band_40m_desc:         "DX, nets and general operation",
     band_20m_desc:         "Long-haul DX and digital",
+    band_17m_desc:         "WARC, no contests, consistent DX",
     band_15m_desc:         "Good daytime opening",
+    band_12m_desc:         "WARC, solar opening, low traffic",
     band_10m_desc:         "Variable propagation and upper FM",
     /* Connection states */
     conn_offline:          "Offline",
