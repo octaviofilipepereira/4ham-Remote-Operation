@@ -688,8 +688,12 @@ async function openAudioSettings() {
   const savedMic    = localStorage.getItem(MIC_DEVICE_STORAGE_KEY)    || "";
   const savedOutput = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY) || "";
 
+  // Se já existe uma track activa, mostrar o dispositivo real em vez de "default"
+  const activeMicId = micTrack ? (micTrack.getSettings().deviceId || savedMic) : savedMic;
+  const selectedMic = savedMic || activeMicId;
+
   // Opção "predefinido do sistema"
-  if (selMic)    _addDeviceOption(selMic,    "", t("audio_settings_default"), savedMic);
+  if (selMic)    _addDeviceOption(selMic,    "", t("audio_settings_default"), selectedMic);
   if (selOutput) _addDeviceOption(selOutput, "", t("audio_settings_default"), savedOutput);
 
   try {
@@ -697,7 +701,7 @@ async function openAudioSettings() {
     devices.forEach(d => {
       const label = d.label || `${d.kind} (${d.deviceId.slice(0, 8)}…)`;
       if (d.kind === "audioinput"  && selMic)
-        _addDeviceOption(selMic,    d.deviceId, label, savedMic);
+        _addDeviceOption(selMic,    d.deviceId, label, selectedMic);
       if (d.kind === "audiooutput" && selOutput)
         _addDeviceOption(selOutput, d.deviceId, label, savedOutput);
     });
