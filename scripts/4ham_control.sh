@@ -117,12 +117,14 @@ do_start_manual() {
   nohup "$PYTHON_BIN" -m uvicorn backend.app.main:app \
     --host 0.0.0.0 \
     --port 8001 \
+    --ssl-keyfile "$ROOT_DIR/certs/key.pem" \
+    --ssl-certfile "$ROOT_DIR/certs/cert.pem" \
     >> "$LOG_FILE" 2>&1 &
   local pid="$!"
   echo "$pid" > "$PID_FILE"
   echo "Servidor iniciado (PID: $pid)"
   echo "Log : $LOG_FILE"
-  echo "URL : http://127.0.0.1:8001/"
+  echo "URL : https://127.0.0.1:8001/"
 }
 
 do_stop_manual() {
