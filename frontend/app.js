@@ -858,11 +858,13 @@ async function loadRigCaps() {
     }
 
     if (elRigAtt && caps.att_steps) {
+      // Se só há um passo não-zero, mostrar ON/OFF em vez de "12 dB"
+      const attOnOff = caps.att_steps.filter(s => s !== 0).length === 1;
       elRigAtt.innerHTML = "";
       for (const step of caps.att_steps) {
         const opt = document.createElement("option");
         opt.value = String(step);
-        opt.textContent = step === 0 ? "OFF" : `${step} dB`;
+        opt.textContent = step === 0 ? "OFF" : (attOnOff ? "ON" : `${step} dB`);
         elRigAtt.appendChild(opt);
       }
     }
