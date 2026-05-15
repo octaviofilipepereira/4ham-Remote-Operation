@@ -222,3 +222,16 @@ class CATDriver:
             ptt=ptt_l[0].strip() == "1",
             swr=float(swr_l[0]) if swr_l else 0.0,
         )
+
+    async def set_level(self, level_name: str, value: float) -> None:
+        """Define um nível do rádio via rigctld (RFPOWER, ATT, PREAMP, AGC, NB, COMP, MIC, …)."""
+        await self._cmd(f"L {level_name} {value}")
+
+    async def set_func(self, func_name: str, enabled: bool) -> None:
+        """Activa ou desactiva uma função do rádio (NB, COMP, …)."""
+        await self._cmd(f"U {func_name} {1 if enabled else 0}")
+
+    async def get_func(self, func_name: str) -> bool:
+        """Retorna o estado de uma função do rádio."""
+        lines = await self._cmd(f"u {func_name}")
+        return lines[0].strip() == "1"

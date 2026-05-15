@@ -323,7 +323,7 @@
             <div class="form-grid">
               <label class="form-field">
                 <span class="form-label" data-i18n="form_callsign">Indicativo</span>
-                <input class="log-input" type="text" name="callsign" placeholder="CT1ABC" />
+                <input id="qso-callsign" class="log-input" type="text" name="callsign" placeholder="CT1ABC" />
               </label>
 
               <label class="form-field">
@@ -348,18 +348,21 @@
 
               <label class="form-field">
                 <span class="form-label" data-i18n="form_rst_sent">RST Enviado</span>
-                <input class="log-input" type="text" name="rst-sent" placeholder="59" />
+                <input id="qso-rst-sent" class="log-input" type="text" name="rst-sent" placeholder="59" />
               </label>
 
               <label class="form-field">
                 <span class="form-label" data-i18n="form_rst_rx">RST RX</span>
-                <input class="log-input" type="text" name="rst-rx" placeholder="59" />
+                <input id="qso-rst-rx" class="log-input" type="text" name="rst-rx" placeholder="59" />
               </label>
 
               <label class="form-field form-field--full">
                 <span class="form-label" data-i18n="form_notes">Notas</span>
-                <textarea class="log-textarea" name="notes" rows="4" placeholder="Locator, nome, potência, observações..."></textarea>
+                <textarea id="qso-notes" class="log-textarea" name="notes" rows="4" placeholder="Locator, nome, potência, observações..."></textarea>
               </label>
+            </div>
+            <div class="qso-log-actions">
+              <button id="btn-log-qso" class="panel-button" type="button" data-i18n="btn_log_qso">Registar QSO</button>
             </div>
           </section>
 

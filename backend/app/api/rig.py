@@ -222,3 +222,169 @@ async def set_ptt(body: SetPTTRequest, request: Request) -> dict:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {"ok": True, "ptt": body.enabled}
+
+
+# ── Helpers: mapeamentos IPO/AGC ─────────────────────────────────────────────
+
+_IPO_TO_PREAMP: dict[str, float] = {"IPO": 0.0, "AMP1": 10.0, "AMP2": 20.0}
+_PREAMP_TO_IPO: dict[int, str]   = {0: "IPO", 10: "AMP1", 20: "AMP2"}
+
+_AGC_TO_FLOAT: dict[str, float] = {"FAST": 0.0, "MID": 0.333, "SLOW": 0.667, "AUTO": 1.0}
+_FLOAT_TO_AGC: list[tuple[float, str]] = [
+    (0.15, "FAST"), (0.5, "MID"), (0.83, "SLOW"), (2.0, "AUTO"),
+]
+
+
+def _agc_from_float(val: float) -> str:
+    for threshold, name in _FLOAT_TO_AGC:
+        if val <= threshold:
+            return name
+    return "AUTO"
+
+
+def _preamp_from_float(val: float) -> str:
+    rounded = round(val / 10) * 10
+    return _PREAMP_TO_IPO.get(rounded, "IPO")
+
+
+# ── GET /api/rig/rf ──────────────────────────────────────────────────────────
+
+@router.get("/rf")
+async def get_rf(request: Request) -> dict:
+    """Retorna estado dos controlos RF: IPO/AMP, ATT, AGC e potência TX."""
+    driver = _driver(request)
+
+    async def _safe_level(name: str, default: float) -> float:
+        try:
+            return await driver.get_level(name)
+        except Exception:
+            return default
+
+    preamp_raw = await _safe_level("PREAMP", 0.0)
+    att_raw    = await _safe_level("ATT",    0.0)
+    agc_raw    = await _safe_level("AGC",    0.333)
+    rfpower_raw = await _safe_level("RFPOWER", 1.0)
+
+    rfpower_w = max(5, min(100, round(rfpower_raw * 100)))
+
+    return {
+        "ipo":     _preamp_from_float(preamp_raw),
+        "att":     int(round(att_raw)),
+        "agc":     _agc_from_float(agc_raw),
+        "rfpower": rfpower_w,
+    }
+
+
+# ── POST /api/rig/rf ─────────────────────────────────────────────────────────
+
+class SetRFRequest(BaseModel):
+    ipo:     str | None = Field(None, description="IPO / AMP1 / AMP2")
+    att:     int | None = Field(None, ge=0, le=18, description="Atenuação em dB (0/6/12/18)")
+    agc:     str | None = Field(None, description="FAST / MID / SLOW / AUTO")
+    rfpower: int | None = Field(None, ge=5, le=100, description="Potência TX em Watts")
+
+
+@router.post("/rf")
+async def set_rf(body: SetRFRequest, request: Request) -> dict:
+    """Define controlos RF do rádio."""
+    driver = _driver(request)
+    try:
+        if body.ipo is not None:
+            preamp_val = _IPO_TO_PREAMP.get(body.ipo.upper(), 0.0)
+            await driver.set_level("PREAMP", preamp_val)
+        if body.att is not None:
+            await driver.set_level("ATT", float(body.att))
+        if body.agc is not None:
+            agc_val = _AGC_TO_FLOAT.get(body.agc.upper(), 0.333)
+            await driver.set_level("AGC", agc_val)
+        if body.rfpower is not None:
+            await driver.set_level("RFPOWER", body.rfpower / 100.0)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"ok": True}
+
+
+# ── GET /api/rig/settings ────────────────────────────────────────────────────
+
+@router.get("/settings")
+async def get_rig_settings(request: Request) -> dict:
+    """Retorna estado de NB, PROC (COMP), MIC Gain."""
+    driver = _driver(request)
+
+    async def _safe_level(name: str, default: float) -> float:
+        try:
+            return await driver.get_level(name)
+        except Exception:
+            return default
+
+    async def _safe_func(name: str) -> bool:
+        try:
+            return await driver.get_func(name)
+        except Exception:
+            return False
+
+    nb       = await _safe_func("NB")
+    nb_level = await _safe_level("NB", 0.5)
+    comp     = await _safe_func("COMP")
+    comp_level = await _safe_level("COMP", 0.5)
+    mic      = await _safe_level("MIC", 0.5)
+
+    return {
+        "nb":         nb,
+        "nb_level":   nb_level,
+        "comp":       comp,
+        "comp_level": comp_level,
+        "mic":        mic,
+    }
+
+
+# ── POST /api/rig/settings ───────────────────────────────────────────────────
+
+class SetRigSettingsRequest(BaseModel):
+    nb:         bool  | None = None
+    nb_level:   float | None = Field(None, ge=0.0, le=1.0)
+    comp:       bool  | None = None
+    comp_level: float | None = Field(None, ge=0.0, le=1.0)
+    mic:        float | None = Field(None, ge=0.0, le=1.0)
+    # mic_eq e width: guardados em app.state (sem comando CAT padronizado)
+    mic_eq:  str | None = None
+    width:   str | None = None
+
+
+@router.post("/settings")
+async def set_rig_settings(body: SetRigSettingsRequest, request: Request) -> dict:
+    """Define configurações de rádio: NB, PROC/COMP, MIC Gain."""
+    driver = _driver(request)
+    try:
+        if body.nb is not None:
+            await driver.set_func("NB", body.nb)
+        if body.nb_level is not None:
+            await driver.set_level("NB", body.nb_level)
+        if body.comp is not None:
+            await driver.set_func("COMP", body.comp)
+        if body.comp_level is not None:
+            await driver.set_level("COMP", body.comp_level)
+        if body.mic is not None:
+            await driver.set_level("MIC", body.mic)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    # WIDTH: aplicar via set_mode com a passband adequada
+    if body.width is not None:
+        _WIDTH_PASSBAND: dict[str, int] = {
+            "NARROW": 1800, "MID": 2400, "WIDE": 3000, "AUTO": 0,
+        }
+        pb_hz = _WIDTH_PASSBAND.get(body.width.upper(), 0)
+        try:
+            status = await driver.get_status()
+            await driver.set_mode(status.mode, pb_hz)
+        except Exception:
+            pass  # não interromper por erro de width
+
+    # Guardar mic_eq/width em app.state (preferências de IU)
+    if body.mic_eq is not None:
+        request.app.state.rig_mic_eq = body.mic_eq
+    if body.width is not None:
+        request.app.state.rig_width = body.width
+
+    return {"ok": True}

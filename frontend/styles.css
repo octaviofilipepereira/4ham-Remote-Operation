@@ -2192,6 +2192,12 @@ body[data-knob-active="true"] .vfo-knob {
   text-align: center;
 }
 
+.qso-log-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 0 2px;
+}
+
 @media (max-height: 720px) {
   .radio-header {
     flex-direction: column;

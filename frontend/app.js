@@ -98,6 +98,38 @@ const stepButtons = Array.from(document.querySelectorAll(".step-btn"));
 const softkeys = Array.from(document.querySelectorAll(".softkey[data-multiplier]"));
 const bandPlanRows = Array.from(document.querySelectorAll("[data-band]"));
 
+// ── RF Controls ───────────────────────────────────────────────────────────────
+const elRigIpo      = document.getElementById("rig-ipo");
+const elRigAtt      = document.getElementById("rig-att");
+const elRigAgc      = document.getElementById("rig-agc");
+const elRfPower     = document.getElementById("rf-power");
+const elRfPowerVal  = document.getElementById("rf-power-val");
+
+// ── Radio Settings Dialog ─────────────────────────────────────────────────────
+const btnRigSettings    = document.getElementById("btn-rig-settings");
+const dlgRigSettings    = document.getElementById("dlg-rig-settings");
+const elRigNb           = document.getElementById("rig-nb");
+const elRigNbLevel      = document.getElementById("rig-nb-level");
+const elRigNbLevelVal   = document.getElementById("rig-nb-level-val");
+const elRigProc         = document.getElementById("rig-proc");
+const elRigProcLevel    = document.getElementById("rig-proc-level");
+const elRigProcLevelVal = document.getElementById("rig-proc-level-val");
+const elRigMicGain      = document.getElementById("rig-mic-gain");
+const elRigMicGainVal   = document.getElementById("rig-mic-gain-val");
+const elRigMicEq        = document.getElementById("rig-mic-eq");
+const elRigWidth        = document.getElementById("rig-width");
+const btnRsdApply       = document.getElementById("rsd-apply");
+const btnRsdCancel      = document.getElementById("rsd-cancel");
+
+// ── QSO Log ───────────────────────────────────────────────────────────────────
+const elQsoCallsign    = document.getElementById("qso-callsign");
+const elQsoRstSent     = document.getElementById("qso-rst-sent");
+const elQsoRstRx       = document.getElementById("qso-rst-rx");
+const elQsoNotes       = document.getElementById("qso-notes");
+const btnLogQso        = document.getElementById("btn-log-qso");
+const elRecentQsoBody  = document.getElementById("recent-qso-body");
+const elRecentQsoCount = document.getElementById("recent-qso-count");
+
 function clampFrequency(hz) {
   return Math.max(1, Math.min(MAX_FREQUENCY_HZ, Math.round(hz)));
 }
@@ -799,12 +831,172 @@ if (btnAudioSettings) btnAudioSettings.addEventListener("click", openAudioSettin
 if (dlgAudioApply)    dlgAudioApply.addEventListener("click", applyAudioSettings);
 if (dlgAudioClose)    dlgAudioClose.addEventListener("click", () => dlgAudioSettings?.close());
 
+// ── RF Controls ───────────────────────────────────────────────────────────────
+
+async function loadRfControls() {
+  try {
+    const r = await fetch(`${API}/api/rig/rf`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (elRigIpo && d.ipo)               elRigIpo.value = d.ipo;
+    if (elRigAtt && d.att !== undefined)  elRigAtt.value = String(d.att);
+    if (elRigAgc && d.agc)               elRigAgc.value = d.agc;
+    if (elRfPower && d.rfpower !== undefined) {
+      elRfPower.value = d.rfpower;
+      if (elRfPowerVal) elRfPowerVal.textContent = `${d.rfpower} W`;
+    }
+  } catch (_) {}
+}
+
+async function sendRfControls() {
+  try {
+    await fetch(`${API}/api/rig/rf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ipo:     elRigIpo?.value  || "IPO",
+        att:     parseInt(elRigAtt?.value  || "0",   10),
+        agc:     elRigAgc?.value  || "MID",
+        rfpower: parseInt(elRfPower?.value || "100", 10),
+      }),
+    });
+  } catch (_) {}
+}
+
+if (elRfPower) {
+  elRfPower.addEventListener("input", () => {
+    if (elRfPowerVal) elRfPowerVal.textContent = `${elRfPower.value} W`;
+  });
+  elRfPower.addEventListener("change", sendRfControls);
+}
+if (elRigIpo) elRigIpo.addEventListener("change", sendRfControls);
+if (elRigAtt) elRigAtt.addEventListener("change", sendRfControls);
+if (elRigAgc) elRigAgc.addEventListener("change", sendRfControls);
+
+// ── Radio Settings Dialog ─────────────────────────────────────────────────────
+
+async function openRigSettings() {
+  try {
+    const r = await fetch(`${API}/api/rig/settings`);
+    if (r.ok) {
+      const d = await r.json();
+      if (elRigNb) elRigNb.value = d.nb ? "1" : "0";
+      if (elRigNbLevel) {
+        elRigNbLevel.value = Math.round(d.nb_level * 100);
+        if (elRigNbLevelVal) elRigNbLevelVal.textContent = `${elRigNbLevel.value}%`;
+      }
+      if (elRigProc) elRigProc.value = d.comp ? "1" : "0";
+      if (elRigProcLevel) {
+        elRigProcLevel.value = Math.round(d.comp_level * 100);
+        if (elRigProcLevelVal) elRigProcLevelVal.textContent = `${elRigProcLevel.value}%`;
+      }
+      if (elRigMicGain) {
+        elRigMicGain.value = Math.round(d.mic * 100);
+        if (elRigMicGainVal) elRigMicGainVal.textContent = `${elRigMicGain.value}%`;
+      }
+    }
+  } catch (_) {}
+  if (dlgRigSettings) dlgRigSettings.showModal();
+}
+
+async function applyRigSettings() {
+  try {
+    await fetch(`${API}/api/rig/settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nb:         elRigNb?.value === "1",
+        nb_level:   parseInt(elRigNbLevel?.value    || "50", 10) / 100,
+        comp:       elRigProc?.value === "1",
+        comp_level: parseInt(elRigProcLevel?.value  || "50", 10) / 100,
+        mic:        parseInt(elRigMicGain?.value    || "50", 10) / 100,
+        mic_eq:     elRigMicEq?.value  || "FLAT",
+        width:      elRigWidth?.value  || "AUTO",
+      }),
+    });
+  } catch (_) {}
+  if (dlgRigSettings) dlgRigSettings.close();
+}
+
+if (elRigNbLevel)    elRigNbLevel.addEventListener("input",    () => { if (elRigNbLevelVal)    elRigNbLevelVal.textContent    = `${elRigNbLevel.value}%`; });
+if (elRigProcLevel)  elRigProcLevel.addEventListener("input",  () => { if (elRigProcLevelVal)  elRigProcLevelVal.textContent  = `${elRigProcLevel.value}%`; });
+if (elRigMicGain)    elRigMicGain.addEventListener("input",    () => { if (elRigMicGainVal)    elRigMicGainVal.textContent    = `${elRigMicGain.value}%`; });
+if (btnRigSettings)  btnRigSettings.addEventListener("click", openRigSettings);
+if (btnRsdCancel)    btnRsdCancel.addEventListener("click", () => dlgRigSettings?.close());
+if (btnRsdApply)     btnRsdApply.addEventListener("click", applyRigSettings);
+
+// ── QSO Log ───────────────────────────────────────────────────────────────────
+
+async function loadRecentQsos() {
+  try {
+    const r = await fetch(`${API}/api/qso/recent?limit=10`);
+    if (!r.ok || !elRecentQsoBody) return;
+    const qsos = await r.json();
+    if (qsos.length === 0) {
+      elRecentQsoBody.innerHTML = `<tr><td colspan="5" class="recent-qso-empty" data-i18n="recent_qso_empty">Nenhum QSO registado</td></tr>`;
+      if (elRecentQsoCount) elRecentQsoCount.textContent = "0";
+      return;
+    }
+    elRecentQsoBody.innerHTML = qsos.map(q => `
+      <tr>
+        <td>${escapeHtml(q.callsign)}</td>
+        <td>${escapeHtml(q.band || "—")}</td>
+        <td>${escapeHtml(q.mode || "—")}</td>
+        <td>${escapeHtml(q.utc || q.logged_at || "—")}</td>
+        <td>${escapeHtml(q.rst_sent || "59")}</td>
+      </tr>`).join("");
+    if (elRecentQsoCount) elRecentQsoCount.textContent = String(qsos.length);
+  } catch (_) {}
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function logQso() {
+  const callsign = elQsoCallsign?.value?.trim().toUpperCase();
+  if (!callsign) {
+    if (elQsoCallsign) elQsoCallsign.focus();
+    return;
+  }
+  try {
+    const r = await fetch(`${API}/api/qso`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        callsign,
+        utc:       elQsoTime?.value       || "",
+        frequency: elQsoFrequency?.value  || "",
+        mode:      elQsoMode?.value       || "",
+        band:      elQsoBand?.value       || "",
+        rst_sent:  elQsoRstSent?.value    || "59",
+        rst_rx:    elQsoRstRx?.value      || "59",
+        notes:     elQsoNotes?.value      || "",
+      }),
+    });
+    if (r.ok) {
+      if (elQsoCallsign) elQsoCallsign.value = "";
+      if (elQsoRstSent)  elQsoRstSent.value  = "";
+      if (elQsoRstRx)    elQsoRstRx.value    = "";
+      if (elQsoNotes)    elQsoNotes.value    = "";
+      await loadRecentQsos();
+    }
+  } catch (_) {}
+}
+
+if (btnLogQso) btnLogQso.addEventListener("click", logQso);
+
 function setRigConnected(connected) {
   if (rigConnected === connected) return;
   rigConnected = connected;
   if (connected) {
     closeRigOfflineDialog();
     _rigOfflineShown = false;  // nova ligação — permitir mostrar modal de novo se cair
+    loadRfControls();          // carregar estado RF assim que o rádio fica acessível
   }
   if (btnRigConnect) {
     btnRigConnect.classList.toggle("is-connected", connected);
@@ -1351,6 +1543,7 @@ resizeWaterfallCanvas();
 connectWaterfall();
 pollStatus();
 pollId = window.setInterval(pollStatus, 1000);
+loadRecentQsos();
 
 /* ── Freq Ruler (DX Spots column) ───────────────────────────────────────── */
 (function () {

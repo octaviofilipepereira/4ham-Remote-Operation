@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .api.prefs import router as prefs_router
+from .api.qso import router as qso_router
 from .api.rig import router as rig_router
 from .api.webrtc import router as webrtc_router
 from .core.auth_middleware import BasicAuthMiddleware
@@ -161,6 +162,24 @@ async def lifespan(app: FastAPI):
 
     app.state.spectrum_source = spectrum_source
 
+    # ── Log de QSOs (memória + persistência em JSONL) ─────────────────────────
+    import json
+    from collections import deque
+    qso_log_path = Path("data/qso_log.jsonl")
+    qso_deque: deque = deque(maxlen=100)
+    if qso_log_path.exists():
+        try:
+            lines = qso_log_path.read_text(encoding="utf-8").strip().splitlines()
+            for line in reversed(lines[-100:]):
+                try:
+                    qso_deque.appendleft(json.loads(line))
+                except Exception:
+                    pass
+            logger.info("Log de QSOs: %d entradas carregadas de %s", len(qso_deque), qso_log_path)
+        except OSError as exc:
+            logger.warning("Não foi possível carregar log de QSOs: %s", exc)
+    app.state.qso_log = qso_deque
+
     yield
 
     await peer.close()
@@ -195,6 +214,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(rig_router)
+    app.include_router(qso_router)
     app.include_router(webrtc_router)
     app.include_router(spectrum_router)
     app.include_router(prefs_router)
