@@ -744,7 +744,7 @@ if (btnAudioSettings) btnAudioSettings.addEventListener("click", openAudioSettin
 if (dlgAudioApply)    dlgAudioApply.addEventListener("click", applyAudioSettings);
 if (dlgAudioClose)    dlgAudioClose.addEventListener("click", () => dlgAudioSettings?.close());
 
-(connected) {
+function setRigConnected(connected) {
   if (rigConnected === connected) return;
   rigConnected = connected;
   if (connected) {
