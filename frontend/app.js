@@ -99,7 +99,7 @@ const softkeys = Array.from(document.querySelectorAll(".softkey[data-multiplier]
 const bandPlanRows = Array.from(document.querySelectorAll("[data-band]"));
 
 // ── RF Controls ───────────────────────────────────────────────────────────────
-const elRigIpo      = document.getElementById("rig-ipo");
+const elRigPreamp   = document.getElementById("rig-preamp");
 const elRigAtt      = document.getElementById("rig-att");
 const elRigAgc      = document.getElementById("rig-agc");
 const elRfPower     = document.getElementById("rf-power");
