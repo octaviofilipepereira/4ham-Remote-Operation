@@ -330,6 +330,14 @@
     </section>
   </main>
 
+  <!-- ── Overlay: a ligar ao rádio (visível até ao primeiro poll) ───────── -->
+  <div id="connecting-overlay" class="connecting-overlay" role="status" aria-live="polite">
+    <div class="connecting-overlay__content">
+      <div class="connecting-overlay__spinner" aria-hidden="true"></div>
+      <p class="connecting-overlay__msg" data-i18n="connecting_title">A ligar ao rádio…</p>
+    </div>
+  </div>
+
   <!-- ── Modal: rádio desligado ─────────────────────────────────────────── -->
   <dialog id="dlg-rig-offline" class="rig-offline-dialog">
     <div class="rig-offline-dialog__body">

@@ -26,7 +26,8 @@ let voxAnalyser = null;
 let voxDataBuf  = null;
 const VOX_HANG_MS = 600;
 let rigConnected = false;
-let _rigOfflineShown = false;   // só mostrar o modal uma vez por sessão
+let _rigOfflineShown = false;   // só mostrar o modal uma vez até ao próximo reconnect
+let _firstPoll = true;          // esconder o overlay de ligação após o primeiro poll
 let _audioKey    = "audio_standby";
 let _waterfallKey = "wf_offline";
 let _lastStrengthDb = -127;
@@ -74,8 +75,9 @@ const btnConn = document.getElementById("btn-connect");
 const btnDisc = document.getElementById("btn-disconnect");
 const btnTx  = document.getElementById("btn-tx");
 const btnVox = document.getElementById("btn-vox");
-const btnRigConnect = document.getElementById("btn-rig-connect");
-const dlgRigOffline  = document.getElementById("dlg-rig-offline");
+const btnRigConnect       = document.getElementById("btn-rig-connect");
+const dlgRigOffline       = document.getElementById("dlg-rig-offline");
+const elConnectingOverlay = document.getElementById("connecting-overlay");
 const dlgBtnConnect  = document.getElementById("dlg-btn-connect");
 const dlgBtnDismiss  = document.getElementById("dlg-btn-dismiss");
 const elVoxThreshold = document.getElementById("vox-threshold");
@@ -656,7 +658,10 @@ function closeRigOfflineDialog() {
 function setRigConnected(connected) {
   if (rigConnected === connected) return;
   rigConnected = connected;
-  if (connected) closeRigOfflineDialog();
+  if (connected) {
+    closeRigOfflineDialog();
+    _rigOfflineShown = false;  // nova ligação — permitir mostrar modal de novo se cair
+  }
   if (btnRigConnect) {
     btnRigConnect.classList.toggle("is-connected", connected);
     const key = connected ? "btn_rig_connect_on" : "btn_rig_connect_off";
@@ -710,6 +715,10 @@ if (dlgBtnDismiss) {
 async function pollStatus() {
   try {
     const response = await fetch(`${API}/api/rig/status`);
+    if (_firstPoll) {
+      _firstPoll = false;
+      if (elConnectingOverlay) elConnectingOverlay.hidden = true;
+    }
     if (!response.ok) {
       setRigConnected(false);
       showRigOfflineDialog();
@@ -731,6 +740,10 @@ async function pollStatus() {
     syncModeUI(data.mode);
     elPassband.textContent = formatPassband(data.passband_hz);
   } catch (_) {
+    if (_firstPoll) {
+      _firstPoll = false;
+      if (elConnectingOverlay) elConnectingOverlay.hidden = true;
+    }
     setRigConnected(false);
     showRigOfflineDialog();
   }

@@ -802,7 +802,42 @@ body::before {
   color: rgba(180, 195, 205, 0.85);
 }
 
-.volume-row {
+/* ── Overlay: a ligar ao rádio ──────────────────────────────────────────── */
+.connecting-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg, #0d1117);
+  z-index: 9000;
+}
+.connecting-overlay[hidden] { display: none; }
+.connecting-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+.connecting-overlay__spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(146, 255, 228, 0.2);
+  border-top-color: var(--teal, #92ffe4);
+  border-radius: 50%;
+  animation: connecting-spin 0.9s linear infinite;
+}
+@keyframes connecting-spin {
+  to { transform: rotate(360deg); }
+}
+.connecting-overlay__msg {
+  color: var(--teal, #92ffe4);
+  font-size: 1rem;
+  opacity: 0.8;
+  letter-spacing: 0.03em;
+}
+
+
   display: flex;
   align-items: center;
   gap: 8px;
