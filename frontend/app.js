@@ -688,26 +688,47 @@ async function openAudioSettings() {
   const savedMic    = localStorage.getItem(MIC_DEVICE_STORAGE_KEY)    || "";
   const savedOutput = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY) || "";
 
-  // Se já existe uma track activa, mostrar o dispositivo real em vez de "default"
-  const activeMicId = micTrack ? (micTrack.getSettings().deviceId || savedMic) : savedMic;
-  const selectedMic = savedMic || activeMicId;
+  // Preferências guardadas no servidor (por label — funciona entre browsers)
+  let serverMicLabel = "", serverOutputLabel = "";
+  try {
+    const r = await fetch(`${API}/api/prefs/audio`);
+    if (r.ok) {
+      const p = await r.json();
+      serverMicLabel    = p.mic_label    || "";
+      serverOutputLabel = p.output_label || "";
+    }
+  } catch (_) { /* sem servidor — ignorar */ }
+
+  // Obter lista de dispositivos
+  let devices = [];
+  try { devices = await navigator.mediaDevices.enumerateDevices(); }
+  catch (err) { console.warn("enumerateDevices:", err); }
+
+  // Determinar que deviceId pré-seleccionar:
+  //   1. localStorage (preferência explícita neste browser)
+  //   2. label guardado no servidor → match por nome
+  //   3. track activa (browser escolheu por omissão)
+  const _findByLabel = (label, kind) =>
+    devices.find(d => d.kind === kind && d.label === label)?.deviceId || "";
+
+  const selectedMic = savedMic
+    || (serverMicLabel    ? _findByLabel(serverMicLabel,    "audioinput")  : "")
+    || (micTrack          ? (micTrack.getSettings().deviceId || "")        : "");
+
+  const selectedOutput = savedOutput
+    || (serverOutputLabel ? _findByLabel(serverOutputLabel, "audiooutput") : "");
 
   // Opção "predefinido do sistema"
   if (selMic)    _addDeviceOption(selMic,    "", t("audio_settings_default"), selectedMic);
-  if (selOutput) _addDeviceOption(selOutput, "", t("audio_settings_default"), savedOutput);
+  if (selOutput) _addDeviceOption(selOutput, "", t("audio_settings_default"), selectedOutput);
 
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    devices.forEach(d => {
-      const label = d.label || `${d.kind} (${d.deviceId.slice(0, 8)}…)`;
-      if (d.kind === "audioinput"  && selMic)
-        _addDeviceOption(selMic,    d.deviceId, label, selectedMic);
-      if (d.kind === "audiooutput" && selOutput)
-        _addDeviceOption(selOutput, d.deviceId, label, savedOutput);
-    });
-  } catch (err) {
-    console.warn("enumerateDevices:", err);
-  }
+  devices.forEach(d => {
+    const label = d.label || `${d.kind} (${d.deviceId.slice(0, 8)}…)`;
+    if (d.kind === "audioinput"  && selMic)
+      _addDeviceOption(selMic,    d.deviceId, label, selectedMic);
+    if (d.kind === "audiooutput" && selOutput)
+      _addDeviceOption(selOutput, d.deviceId, label, selectedOutput);
+  });
 
   // Esconder saída de áudio se setSinkId não suportado
   if (selOutput && typeof HTMLMediaElement.prototype.setSinkId !== "function") {
@@ -729,13 +750,24 @@ function applyAudioSettings() {
   if (outputId) localStorage.setItem(OUTPUT_DEVICE_STORAGE_KEY, outputId);
   else          localStorage.removeItem(OUTPUT_DEVICE_STORAGE_KEY);
 
+  // Guardar label no servidor (portável entre browsers)
+  const micLabel    = selMic?.options[selMic.selectedIndex]?.textContent       || "";
+  const outputLabel = selOutput?.options[selOutput.selectedIndex]?.textContent || "";
+  const defaultText = t("audio_settings_default");
+  fetch(`${API}/api/prefs/audio`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mic_label:    micLabel    === defaultText ? "" : micLabel,
+      output_label: outputLabel === defaultText ? "" : outputLabel,
+    }),
+  }).catch(err => console.warn("Falha ao guardar prefs de áudio:", err));
+
   // Aplicar saída de áudio imediatamente se o stream RX já estiver activo
   if (outputId) {
-    // AudioContext.setSinkId (Chrome 110+)
     if (audioCtx && typeof audioCtx.setSinkId === "function") {
       audioCtx.setSinkId(outputId).catch(err => console.warn("audioCtx.setSinkId:", err));
     }
-    // Fallback: elAudio directo
     if (elAudio && typeof elAudio.setSinkId === "function") {
       elAudio.setSinkId(outputId).catch(err => console.warn("elAudio.setSinkId:", err));
     }

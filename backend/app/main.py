@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from .api.prefs import router as prefs_router
 from .api.rig import router as rig_router
 from .api.webrtc import router as webrtc_router
 from .core.auth_middleware import BasicAuthMiddleware
@@ -196,6 +197,7 @@ def create_app() -> FastAPI:
     app.include_router(rig_router)
     app.include_router(webrtc_router)
     app.include_router(spectrum_router)
+    app.include_router(prefs_router)
 
     @app.get("/health")
     async def health():
