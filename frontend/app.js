@@ -1430,37 +1430,20 @@ async function connectRx() {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   });
 
-  // Criar audioCtx agora, ainda dentro do gesto do utilizador (Chrome autoplay
-  // policy: AudioContext criado fora de gesture fica suspenso).
-  // gainNode já ligado à saída; a track RX será ligada em ontrack.
-  try {
-    const savedOutputId = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY);
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (savedOutputId && typeof audioCtx.setSinkId === "function") {
-      audioCtx.setSinkId(savedOutputId).catch(() => {});
-    } else if (savedOutputId) {
-      // fallback para contextos sem setSinkId
-    }
-    gainNode = audioCtx.createGain();
-    gainNode.gain.value = parseFloat(elVolume.value) / 100;
-    gainNode.connect(audioCtx.destination);
-  } catch (_) {
-    audioCtx = null;
-    gainNode = null;
-  }
-
   pc.ontrack = (event) => {
     const stream = event.streams[0] ?? new MediaStream([event.track]);
-    if (audioCtx && gainNode) {
-      try {
-        audioCtx.resume().catch(() => {});
-        const src = audioCtx.createMediaStreamSource(stream);
-        src.connect(gainNode);
-      } catch (_) {
-        elAudio.srcObject = stream;
-      }
-    } else {
-      // fallback para audio element directo se WebAudio não disponivel
+    // WebAudio GainNode — permite amplificar além de 100%
+    try {
+      const savedOutputId = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY);
+      const ctxOptions = savedOutputId ? { sinkId: savedOutputId } : {};
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)(ctxOptions);
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = parseFloat(elVolume.value) / 100;
+      const src = audioCtx.createMediaStreamSource(stream);
+      src.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+    } catch (_) {
+      // fallback para audio element directo se WebAudio não disponível
       elAudio.srcObject = stream;
       const savedOutputId = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY);
       if (savedOutputId && typeof elAudio.setSinkId === "function") {
@@ -1482,35 +1465,7 @@ async function connectRx() {
     const micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
     micTrack = micStream.getAudioTracks()[0];
     micTrack.enabled = false;  // silencioso até PTT activo
-
-    // Cadeia de processamento de voz usando o mesmo audioCtx do RX
-    // (um único AudioContext evita conflitos de autoplay no Chrome).
-    // HPF 200 Hz (corta rumble/boom da sala) + presence +3dB @ 2kHz (SSB).
-    if (audioCtx) {
-      try {
-        const micSrc = audioCtx.createMediaStreamSource(micStream);
-        const hpf = audioCtx.createBiquadFilter();
-        hpf.type = "highpass";
-        hpf.frequency.value = 200;
-        hpf.Q.value = 0.707;
-        const presence = audioCtx.createBiquadFilter();
-        presence.type = "peaking";
-        presence.frequency.value = 2000;
-        presence.Q.value = 1.0;
-        presence.gain.value = 3;   // dB
-        const dst = audioCtx.createMediaStreamDestination();
-        micSrc.connect(hpf);
-        hpf.connect(presence);
-        presence.connect(dst);
-        const processedTrack = dst.stream.getAudioTracks()[0];
-        pc.addTrack(processedTrack, dst.stream);
-      } catch (procErr) {
-        console.warn("WebAudio mic chain falhou — a usar microfone directo", procErr);
-        pc.addTrack(micTrack, micStream);
-      }
-    } else {
-      pc.addTrack(micTrack, micStream);
-    }
+    pc.addTrack(micTrack, micStream);
   } catch (_) {
     console.warn("Microfone não disponível — TX desactivado (modo RX apenas)");
     pc.addTransceiver("audio", { direction: "recvonly" });
