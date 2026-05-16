@@ -1158,6 +1158,8 @@ function beginTxHold(event) {
   txHoldActive = true;
   setTxButtonState(true);
   if (micTrack) micTrack.enabled = true;
+  // Mutar RX durante TX para eliminar eco do MONI
+  if (gainNode) gainNode.gain.value = 0;
   sendPtt(true);
 }
 
@@ -1166,6 +1168,8 @@ function endTxHold() {
   txHoldActive = false;
   setTxButtonState(false);
   if (micTrack) micTrack.enabled = false;
+  // Restaurar volume RX após TX
+  if (gainNode) gainNode.gain.value = parseInt(elVolume.value, 10) / 100;
   sendPtt(false);
 }
 
