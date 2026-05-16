@@ -744,6 +744,31 @@ body::before {
 .audio-settings-dialog__select:focus {
   outline: 1px solid var(--amber, #f7c46d);
 }
+.audio-settings-dialog__tx-monitor-row {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.audio-settings-dialog__tx-monitor-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-primary, #cdd6f4);
+  cursor: pointer;
+}
+.audio-settings-dialog__tx-monitor-label input[type="checkbox"] {
+  accent-color: var(--amber, #f7c46d);
+  width: 1rem;
+  height: 1rem;
+}
+.audio-settings-dialog__tx-monitor-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted, #8899aa);
+  margin-left: 1.5rem;
+}
+
 .audio-settings-dialog__actions {
   display: flex;
   gap: 0.6rem;

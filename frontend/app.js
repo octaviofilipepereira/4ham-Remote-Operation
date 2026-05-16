@@ -26,6 +26,11 @@ let txAudioCtx = null;            // AudioContext para ganho de TX
 let txGainNode = null;            // GainNode no caminho TX
 let rawMicStream = null;          // stream original do getUserMedia (para cleanup)
 
+// ── TX POST-DSP MONITOR ───────────────────────────────────────────────────────
+let txMonWs         = null;       // WebSocket para /ws/tx-monitor
+let txMonCtx        = null;       // AudioContext para playback do monitor
+let txMonNextTime   = 0;          // próximo instante de playback agendado
+
 // ── VOX ──────────────────────────────────────────────────────────────────────
 let voxEnabled = false;
 let voxRafId   = null;
@@ -87,6 +92,7 @@ const btnMonLocal    = document.getElementById("btn-mon-local");
 const btnMonRadio    = document.getElementById("btn-mon-radio");
 const elMicPcGain    = document.getElementById("mic-pc-gain");
 const elMicPcGainVal = document.getElementById("mic-pc-gain-val");
+const chkTxMonitor   = document.getElementById("chk-tx-monitor");
 const btnRigConnect       = document.getElementById("btn-rig-connect");
 const dlgRigOffline       = document.getElementById("dlg-rig-offline");
 const elConnectingOverlay = document.getElementById("connecting-overlay");
@@ -1472,6 +1478,49 @@ elMicPcGain?.addEventListener("input", () => {
   if (txGainNode) txGainNode.gain.value = pct / 100;
 });
 
+// ── TX MONITOR pós-DSP ────────────────────────────────────────────────────────
+chkTxMonitor?.addEventListener("change", () => {
+  if (chkTxMonitor.checked) {
+    startTxMonitor();
+  } else {
+    stopTxMonitor();
+  }
+});
+
+function startTxMonitor() {
+  if (txMonWs) return;
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  txMonWs = new WebSocket(`${proto}//${location.host}/ws/tx-monitor`);
+  txMonWs.binaryType = "arraybuffer";
+  txMonCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  txMonNextTime = 0;
+  txMonWs.onmessage = (evt) => {
+    const int16 = new Int16Array(evt.data);
+    const float32 = new Float32Array(int16.length);
+    for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768.0;
+    const buf = txMonCtx.createBuffer(1, float32.length, 48000);
+    buf.copyToChannel(float32, 0);
+    const src = txMonCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(txMonCtx.destination);
+    const now = txMonCtx.currentTime;
+    // Manter 40 ms de buffer mínimo para playback suave
+    if (txMonNextTime < now + 0.04) txMonNextTime = now + 0.04;
+    src.start(txMonNextTime);
+    txMonNextTime += buf.duration;
+  };
+  txMonWs.onclose = () => {
+    stopTxMonitor();
+    if (chkTxMonitor) chkTxMonitor.checked = false;
+  };
+  txMonWs.onerror = () => txMonWs?.close();
+}
+
+function stopTxMonitor() {
+  if (txMonWs) { txMonWs.onclose = null; txMonWs.close(); txMonWs = null; }
+  if (txMonCtx) { txMonCtx.close().catch(() => {}); txMonCtx = null; }
+  txMonNextTime = 0;
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 // F8 global — PTT independente do foco, mas não quando o cursor está num input de texto

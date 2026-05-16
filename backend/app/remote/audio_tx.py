@@ -14,6 +14,7 @@ Para desactivar todo o DSP rapidamente (A/B test ou rollback instantâneo):
 
 from __future__ import annotations
 
+import asyncio
 import collections
 import logging
 import math
@@ -100,6 +101,9 @@ class AudioTxService:
         self._exp_rel_coef  = math.exp(-block_ms / max(_EXP_RELEASE_MS, 0.1))
         self._exp_gain      = 1.0
 
+        # Monitor pós-DSP: fan-out para WebSocket
+        self._monitor_queues: list[asyncio.Queue] = []
+
     # ── lifecycle ─────────────────────────────────────────────────────────────
 
     def start(self) -> None:
@@ -147,6 +151,27 @@ class AudioTxService:
             mono = self._apply_eq(mono)
             mono = self._apply_expander(mono)
         self._buf.append(mono)
+        # Fan-out para subscritores do monitor pós-DSP
+        if self._monitor_queues:
+            data = mono.tobytes()
+            for q in list(self._monitor_queues):
+                try:
+                    q.put_nowait(data)
+                except asyncio.QueueFull:
+                    pass
+
+    def subscribe_monitor(self, maxsize: int = 16) -> asyncio.Queue:
+        """Subscreve o monitor pós-DSP. Devolve uma asyncio.Queue de bytes."""
+        q: asyncio.Queue = asyncio.Queue(maxsize=maxsize)
+        self._monitor_queues.append(q)
+        return q
+
+    def unsubscribe_monitor(self, queue: asyncio.Queue) -> None:
+        """Remove um subscritor do monitor pós-DSP."""
+        try:
+            self._monitor_queues.remove(queue)
+        except ValueError:
+            pass
 
     # ── EQ ────────────────────────────────────────────────────────────────────
 

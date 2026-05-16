@@ -20,6 +20,7 @@ from .remote.profiles import load_profile
 from .remote.rigctld_manager import RigctldManager, detect_serial_port
 from .remote.webrtc_peer import WebRTCPeer
 from .websocket.spectrum import router as spectrum_router
+from .websocket.tx_monitor import router as tx_monitor_router
 
 logger = logging.getLogger(__name__)
 
@@ -218,6 +219,7 @@ def create_app() -> FastAPI:
     app.include_router(qso_router)
     app.include_router(webrtc_router)
     app.include_router(spectrum_router)
+    app.include_router(tx_monitor_router)
     app.include_router(prefs_router)
 
     @app.get("/health")

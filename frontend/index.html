@@ -485,6 +485,14 @@
       <label class="audio-settings-dialog__label" for="sel-output" data-i18n="audio_settings_output">Saída de áudio (RX)</label>
       <select id="sel-output" class="audio-settings-dialog__select"></select>
 
+      <div class="audio-settings-dialog__tx-monitor-row">
+        <label class="audio-settings-dialog__tx-monitor-label">
+          <input id="chk-tx-monitor" type="checkbox">
+          Monitor TX pós-DSP
+        </label>
+        <span class="audio-settings-dialog__tx-monitor-hint">Ouve o sinal exacto que chega ao rádio (EQ + expander do Pi). Apenas durante TX.</span>
+      </div>
+
       <div class="audio-settings-dialog__actions">
         <button id="dlg-audio-apply" class="audio-settings-dialog__btn" type="button" data-i18n="audio_settings_apply">Aplicar</button>
         <button id="dlg-audio-close" class="audio-settings-dialog__dismiss" type="button" data-i18n="audio_settings_close">Fechar</button>
@@ -527,6 +535,6 @@
   </dialog>
 
   <script src="i18n.js?v=20260515e"></script>
-  <script src="app.js?v=20260517h"></script>
+  <script src="app.js?v=20260517i"></script>
 </body>
 </html>
