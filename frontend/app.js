@@ -19,7 +19,7 @@ let knobAngle = 0;
 let knobDrag = null;
 let txHoldActive = false;
 let micTrack = null;   // MediaStreamTrack do microfone; null se não autorizado
-let localMonitorGain = null;  // GainNode para monitorização local do mic durante TX
+let localMonitorEl = null;  // <audio> para monitorização local do mic durante TX
 
 // ── VOX ──────────────────────────────────────────────────────────────────────
 let voxEnabled = false;
@@ -1162,14 +1162,11 @@ function beginTxHold(event) {
   // Mutar RX durante TX (evita eco do MONI via rede)
   if (gainNode) gainNode.gain.value = 0;
   // Monitorização local: ouvir o microfone em tempo real sem passar pela rede
-  if (audioCtx && micTrack && !localMonitorGain) {
-    try {
-      const monSrc = audioCtx.createMediaStreamSource(new MediaStream([micTrack]));
-      localMonitorGain = audioCtx.createGain();
-      localMonitorGain.gain.value = 0.8;
-      monSrc.connect(localMonitorGain);
-      localMonitorGain.connect(audioCtx.destination);
-    } catch (_) { localMonitorGain = null; }
+  if (micTrack && !localMonitorEl) {
+    localMonitorEl = new Audio();
+    localMonitorEl.srcObject = new MediaStream([micTrack]);
+    localMonitorEl.volume = 0.8;
+    localMonitorEl.play().catch(() => {});
   }
   sendPtt(true);
 }
@@ -1180,7 +1177,11 @@ function endTxHold() {
   setTxButtonState(false);
   if (micTrack) micTrack.enabled = false;
   // Parar monitorização local do mic
-  if (localMonitorGain) { localMonitorGain.disconnect(); localMonitorGain = null; }
+  if (localMonitorEl) {
+    localMonitorEl.pause();
+    localMonitorEl.srcObject = null;
+    localMonitorEl = null;
+  }
   // Restaurar volume RX após TX
   if (gainNode) gainNode.gain.value = parseInt(elVolume.value, 10) / 100;
   sendPtt(false);
