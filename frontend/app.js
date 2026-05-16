@@ -20,8 +20,11 @@ let knobDrag = null;
 let txHoldActive = false;
 let micTrack = null;   // MediaStreamTrack do microfone; null se não autorizado
 let localMonitorEl = null;  // <audio> para monitorização local do mic durante TX
-let localMonitorEnabled = true;   // toggle Monitor local
-let moniRadioEnabled = false;     // toggle MONI Rádio (não muta RX durante TX)
+let localMonitorEnabled = false;  // toggle Monitor local (OFF por defeito)
+let moniRadioEnabled = false;     // toggle MONI Rádio (OFF por defeito)
+let txAudioCtx = null;            // AudioContext para ganho de TX
+let txGainNode = null;            // GainNode no caminho TX
+let rawMicStream = null;          // stream original do getUserMedia (para cleanup)
 
 // ── VOX ──────────────────────────────────────────────────────────────────────
 let voxEnabled = false;
@@ -80,10 +83,10 @@ const btnConn = document.getElementById("btn-connect");
 const btnDisc = document.getElementById("btn-disconnect");
 const btnTx  = document.getElementById("btn-tx");
 const btnVox = document.getElementById("btn-vox");
-const btnMonLocal  = document.getElementById("btn-mon-local");
-const btnMonRadio  = document.getElementById("btn-mon-radio");
-const elMonLocalGain    = document.getElementById("mon-local-gain");
-const elMonLocalGainVal = document.getElementById("mon-local-gain-val");
+const btnMonLocal    = document.getElementById("btn-mon-local");
+const btnMonRadio    = document.getElementById("btn-mon-radio");
+const elMicPcGain    = document.getElementById("mic-pc-gain");
+const elMicPcGainVal = document.getElementById("mic-pc-gain-val");
 const btnRigConnect       = document.getElementById("btn-rig-connect");
 const dlgRigOffline       = document.getElementById("dlg-rig-offline");
 const elConnectingOverlay = document.getElementById("connecting-overlay");
@@ -1174,7 +1177,7 @@ function beginTxHold(event) {
       const monStream = new MediaStream([monTrack]);
       localMonitorEl = new Audio();
       localMonitorEl.srcObject = monStream;
-      localMonitorEl.volume = (elMonLocalGain ? parseInt(elMonLocalGain.value, 10) : 80) / 100;
+      localMonitorEl.volume = 0.8;
       localMonitorEl.play().catch(e => console.warn('[4ham] monitor local:', e));
     } catch (e) {
       console.warn('[4ham] monitor local erro:', e);
@@ -1442,13 +1445,11 @@ btnMonRadio?.addEventListener("click", () => {
   btnMonRadio.classList.toggle("is-active", moniRadioEnabled);
 });
 
-if (elMonLocalGain) {
-  elMonLocalGain.addEventListener("input", () => {
-    const pct = parseInt(elMonLocalGain.value, 10);
-    if (elMonLocalGainVal) elMonLocalGainVal.textContent = `${pct}%`;
-    if (localMonitorEl) localMonitorEl.volume = pct / 100;
-  });
-}
+elMicPcGain?.addEventListener("input", () => {
+  const pct = parseInt(elMicPcGain.value, 10);
+  if (elMicPcGainVal) elMicPcGainVal.textContent = `${pct}%`;
+  if (txGainNode) txGainNode.gain.value = pct / 100;
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1524,9 +1525,19 @@ async function connectRx() {
       ? { deviceId: { exact: savedMicId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       : { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
     const micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
-    micTrack = micStream.getAudioTracks()[0];
+    rawMicStream = micStream;
+    // Inserir GainNode no caminho TX para controlo de ganho do mic local
+    txAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+    if (txAudioCtx.state === "suspended") txAudioCtx.resume().catch(() => {});
+    const txSrc = txAudioCtx.createMediaStreamSource(micStream);
+    txGainNode = txAudioCtx.createGain();
+    txGainNode.gain.value = (elMicPcGain ? parseInt(elMicPcGain.value, 10) : 100) / 100;
+    const txDst = txAudioCtx.createMediaStreamDestination();
+    txSrc.connect(txGainNode);
+    txGainNode.connect(txDst);
+    micTrack = txDst.stream.getAudioTracks()[0];
     micTrack.enabled = false;  // silencioso até PTT activo
-    pc.addTrack(micTrack, micStream);
+    pc.addTrack(micTrack, txDst.stream);
     // Logar label do mic activo — visível na consola e no título do botão TX
     const micLabel = micTrack.label || "desconhecido";
     console.info("[4ham] Microfone activo:", micLabel, "| deviceId:", micTrack.getSettings().deviceId);
@@ -1605,6 +1616,8 @@ async function connectRx() {
 
       if (state === "closed" || state === "failed") {
         if (micTrack) { micTrack.stop(); micTrack = null; }
+        if (rawMicStream) { rawMicStream.getTracks().forEach(t => t.stop()); rawMicStream = null; }
+        if (txAudioCtx) { txAudioCtx.close().catch(() => {}); txAudioCtx = null; txGainNode = null; }
         pc = null;
       }
     }
@@ -1615,10 +1628,9 @@ async function disconnectRx() {
   endTxHold();   // PTT OFF imediato antes de fechar
   voxStopAnalyser();
 
-  if (micTrack) {
-    micTrack.stop();
-    micTrack = null;
-  }
+  if (micTrack) { micTrack.stop(); micTrack = null; }
+  if (rawMicStream) { rawMicStream.getTracks().forEach(t => t.stop()); rawMicStream = null; }
+  if (txAudioCtx) { await txAudioCtx.close().catch(() => {}); txAudioCtx = null; txGainNode = null; }
 
   if (pc) {
     pc.close();
