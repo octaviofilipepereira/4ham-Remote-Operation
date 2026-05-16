@@ -360,6 +360,7 @@ async def get_rig_settings(request: Request) -> dict:
     comp     = await _safe_func("COMP")
     comp_level = await _safe_level("COMP", 0.5)
     mic      = await _safe_level("MIC", 0.5)
+    moni     = await _safe_level("MONITOR", 0.0)
 
     return {
         "nb":         nb,
@@ -367,6 +368,7 @@ async def get_rig_settings(request: Request) -> dict:
         "comp":       comp,
         "comp_level": comp_level,
         "mic":        mic,
+        "moni":       moni,
     }
 
 
@@ -378,6 +380,7 @@ class SetRigSettingsRequest(BaseModel):
     comp:       bool  | None = None
     comp_level: float | None = Field(None, ge=0.0, le=1.0)
     mic:        float | None = Field(None, ge=0.0, le=1.0)
+    moni:       float | None = Field(None, ge=0.0, le=1.0)
     width:   str | None = None
 
 
@@ -412,6 +415,11 @@ async def set_rig_settings(body: SetRigSettingsRequest, request: Request) -> dic
             await driver.set_level("MIC", body.mic)
         except Exception as exc:
             errors.append(f"MIC: {exc}")
+    if body.moni is not None:
+        try:
+            await driver.set_level("MONITOR", body.moni)
+        except Exception as exc:
+            errors.append(f"MONITOR: {exc}")
 
     if errors:
         logger.warning("set_rig_settings: comandos parcialmente ignorados — %s", "; ".join(errors))

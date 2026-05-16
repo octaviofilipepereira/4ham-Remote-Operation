@@ -1443,6 +1443,12 @@ btnMonLocal?.addEventListener("click", () => {
 btnMonRadio?.addEventListener("click", () => {
   moniRadioEnabled = !moniRadioEnabled;
   btnMonRadio.classList.toggle("is-active", moniRadioEnabled);
+  // Activar/desactivar MONI hardware no rádio via CAT
+  fetch(`${API}/api/rig/settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ moni: moniRadioEnabled ? 0.5 : 0.0 }),
+  }).catch(() => {});
 });
 
 elMicPcGain?.addEventListener("input", () => {
