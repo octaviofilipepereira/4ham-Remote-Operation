@@ -135,6 +135,15 @@ class WebRTCPeer:
         """Lê frames de áudio do browser e encaminha para AudioTxService."""
         if self._audio_tx is not None:
             self._audio_tx.start()
+        # ── gravação temporária para diagnóstico ─────────────────────────────
+        import wave, os, time as _time
+        from .audio_capture import AUDIO_SAMPLE_RATE
+        _rec_path = os.path.expanduser("~/4ham-remote-operation/logs/tx_debug.wav")
+        _rec_max_frames = AUDIO_SAMPLE_RATE * 15   # 15 segundos
+        _rec_frames: list = []
+        _rec_done = False
+        logger.info("TX debug: a gravar até 15 s em %s", _rec_path)
+        # ─────────────────────────────────────────────────────────────────────
         try:
             while True:
                 try:
@@ -146,7 +155,22 @@ class WebRTCPeer:
                 arr = frame.to_ndarray()   # int16, shape (1, samples) para mono
                 if arr.dtype != np.int16:
                     arr = (arr.astype(np.float32) * 32767.0).clip(-32768, 32767).astype(np.int16)
-                self._audio_tx.push(arr.flatten())
+                flat = arr.flatten()
+                # gravar ANTES do processamento DSP (sinal cru do browser)
+                if not _rec_done:
+                    _rec_frames.append(flat.tobytes())
+                    if sum(len(b) for b in _rec_frames) >= _rec_max_frames * 2:
+                        try:
+                            with wave.open(_rec_path, "wb") as wf:
+                                wf.setnchannels(1)
+                                wf.setsampwidth(2)
+                                wf.setframerate(AUDIO_SAMPLE_RATE)
+                                wf.writeframes(b"".join(_rec_frames))
+                            logger.info("TX debug: gravação guardada em %s", _rec_path)
+                        except Exception as e:
+                            logger.warning("TX debug: erro ao gravar WAV: %s", e)
+                        _rec_done = True
+                self._audio_tx.push(flat)
         finally:
             logger.info("WebRTC: track TX encerrada")
             if self._audio_tx is not None:
