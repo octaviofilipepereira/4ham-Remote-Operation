@@ -19,6 +19,7 @@ let knobAngle = 0;
 let knobDrag = null;
 let txHoldActive = false;
 let micTrack = null;   // MediaStreamTrack do microfone; null se não autorizado
+let micProcessCtx = null;  // AudioContext dedicado ao processamento do mic
 
 // ── VOX ──────────────────────────────────────────────────────────────────────
 let voxEnabled = false;
@@ -1470,12 +1471,37 @@ async function connectRx() {
   try {
     const savedMicId = localStorage.getItem(MIC_DEVICE_STORAGE_KEY);
     const audioConstraints = savedMicId
-      ? { deviceId: { exact: savedMicId }, echoCancellation: true, noiseSuppression: false, autoGainControl: false }
-      : { echoCancellation: true, noiseSuppression: false, autoGainControl: false };
+      ? { deviceId: { exact: savedMicId }, echoCancellation: true, noiseSuppression: true, autoGainControl: false }
+      : { echoCancellation: true, noiseSuppression: true, autoGainControl: false };
     const micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
     micTrack = micStream.getAudioTracks()[0];
     micTrack.enabled = false;  // silencioso até PTT activo
-    pc.addTrack(micTrack, micStream);
+
+    // Cadeia de processamento de voz: HPF 200 Hz (corta rumble e boom da sala)
+    // + realce de presença a 2 kHz (intelegibilidade SSB).
+    try {
+      micProcessCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const micSrc = micProcessCtx.createMediaStreamSource(micStream);
+      const hpf = micProcessCtx.createBiquadFilter();
+      hpf.type = "highpass";
+      hpf.frequency.value = 200;
+      hpf.Q.value = 0.707;
+      const presence = micProcessCtx.createBiquadFilter();
+      presence.type = "peaking";
+      presence.frequency.value = 2000;
+      presence.Q.value = 1.0;
+      presence.gain.value = 3;   // dB
+      const dst = micProcessCtx.createMediaStreamDestination();
+      micSrc.connect(hpf);
+      hpf.connect(presence);
+      presence.connect(dst);
+      const processedTrack = dst.stream.getAudioTracks()[0];
+      pc.addTrack(processedTrack, dst.stream);
+      // micTrack.enabled continua a controlar o gate (afecta a fonte)
+    } catch (procErr) {
+      console.warn("WebAudio mic chain falhou — a usar microfone directo", procErr);
+      pc.addTrack(micTrack, micStream);
+    }
   } catch (_) {
     console.warn("Microfone não disponível — TX desactivado (modo RX apenas)");
     pc.addTransceiver("audio", { direction: "recvonly" });
@@ -1563,6 +1589,11 @@ async function disconnectRx() {
   if (micTrack) {
     micTrack.stop();
     micTrack = null;
+  }
+
+  if (micProcessCtx) {
+    await micProcessCtx.close().catch(() => {});
+    micProcessCtx = null;
   }
 
   if (pc) {
