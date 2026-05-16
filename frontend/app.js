@@ -1471,8 +1471,8 @@ async function connectRx() {
   try {
     const savedMicId = localStorage.getItem(MIC_DEVICE_STORAGE_KEY);
     const audioConstraints = savedMicId
-      ? { deviceId: { exact: savedMicId }, echoCancellation: true, noiseSuppression: true, autoGainControl: false }
-      : { echoCancellation: true, noiseSuppression: true, autoGainControl: false };
+      ? { deviceId: { exact: savedMicId } }
+      : true;
     const micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
     micTrack = micStream.getAudioTracks()[0];
     micTrack.enabled = false;  // silencioso até PTT activo
