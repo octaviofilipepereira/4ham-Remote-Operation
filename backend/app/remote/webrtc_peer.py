@@ -135,6 +135,7 @@ class WebRTCPeer:
         """Lê frames de áudio do browser e encaminha para AudioTxService."""
         if self._audio_tx is not None:
             self._audio_tx.start()
+        _first_frame = True
         try:
             while True:
                 try:
@@ -143,10 +144,32 @@ class WebRTCPeer:
                     break
                 if self._audio_tx is None:
                     continue
-                arr = frame.to_ndarray()   # int16, shape (1, samples) para mono
+
+                arr = frame.to_ndarray()
+                n_ch = frame.channels
+
+                # Log do primeiro frame para diagnóstico
+                if _first_frame:
+                    logger.info(
+                        "TX audio frame: shape=%s dtype=%s sample_rate=%d channels=%d samples=%d",
+                        arr.shape, arr.dtype,
+                        getattr(frame, "sample_rate", 0),
+                        n_ch, frame.samples,
+                    )
+                    _first_frame = False
+
                 if arr.dtype != np.int16:
-                    arr = (arr.astype(np.float32) * 32767.0).clip(-32768, 32767).astype(np.int16)
-                self._audio_tx.push(arr.flatten())
+                    # Formato planar (fltp): shape (channels, samples)
+                    # Extrair canal 0 antes de converter
+                    if arr.ndim == 2 and n_ch > 1:
+                        arr = arr[0:1, :]
+                    mono = (arr.astype(np.float32) * 32767.0).clip(-32768, 32767).astype(np.int16).flatten()
+                else:
+                    # Formato packed (s16): shape (1, channels * samples)
+                    flat = arr.flatten()
+                    mono = flat[::n_ch] if n_ch > 1 else flat
+
+                self._audio_tx.push(mono)
         finally:
             logger.info("WebRTC: track TX encerrada")
             if self._audio_tx is not None:
