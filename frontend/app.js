@@ -1432,6 +1432,15 @@ async function connectRx() {
 
   pc.ontrack = (event) => {
     const stream = event.streams[0] ?? new MediaStream([event.track]);
+    // Workaround Chrome: WebRTC remote streams só são "puxadas" pelo motor de áudio
+    // se estiverem anexadas a um HTMLMediaElement. Sem isto, createMediaStreamSource
+    // não produz som no Chrome (bug histórico).
+    try {
+      const sink = new Audio();
+      sink.srcObject = stream;
+      sink.muted = true;
+      sink.play().catch(() => {});
+    } catch (_) {}
     // WebAudio GainNode — permite amplificar além de 100%
     try {
       const savedOutputId = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY);
