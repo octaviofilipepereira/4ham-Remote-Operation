@@ -1442,6 +1442,8 @@ async function connectRx() {
       const src = audioCtx.createMediaStreamSource(stream);
       src.connect(gainNode);
       gainNode.connect(audioCtx.destination);
+      // Chrome suspende o AudioContext por política de autoplay; forçar resume
+      if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
     } catch (_) {
       // fallback para audio element directo se WebAudio não disponível
       elAudio.srcObject = stream;
