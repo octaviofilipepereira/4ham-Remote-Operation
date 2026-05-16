@@ -1438,11 +1438,26 @@ btnVox?.addEventListener("click", () => setVoxEnabled(!voxEnabled));
 btnMonLocal?.addEventListener("click", () => {
   localMonitorEnabled = !localMonitorEnabled;
   btnMonLocal.classList.toggle("is-active", localMonitorEnabled);
+  // Mutuamente exclusivo com Radio Monitor
+  if (localMonitorEnabled && moniRadioEnabled) {
+    moniRadioEnabled = false;
+    btnMonRadio?.classList.remove("is-active");
+    fetch(`${API}/api/rig/settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ moni: 0.0 }),
+    }).catch(() => {});
+  }
 });
 
 btnMonRadio?.addEventListener("click", () => {
   moniRadioEnabled = !moniRadioEnabled;
   btnMonRadio.classList.toggle("is-active", moniRadioEnabled);
+  // Mutuamente exclusivo com Local Monitor
+  if (moniRadioEnabled && localMonitorEnabled) {
+    localMonitorEnabled = false;
+    btnMonLocal?.classList.remove("is-active");
+  }
   // Activar/desactivar MONI hardware no rádio via CAT
   fetch(`${API}/api/rig/settings`, {
     method: "POST",
