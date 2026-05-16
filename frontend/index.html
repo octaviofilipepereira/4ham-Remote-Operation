@@ -235,6 +235,12 @@
                         <input id="vox-threshold" type="range" min="1" max="50" value="15" step="1" class="volume-slider">
                         <span id="vox-level" class="vox-level-bar" title="nível mic"></span>
                       </div>
+                      <div class="vox-row">
+                        <button id="btn-mon-local" class="panel-button panel-button--vox is-active" type="button">Monitor</button>
+                        <input id="mon-local-gain" type="range" min="0" max="100" value="80" step="5" class="volume-slider" title="Ganho monitor local">
+                        <span id="mon-local-gain-val" class="volume-val">80%</span>
+                        <button id="btn-mon-radio" class="panel-button panel-button--vox" type="button">MONI Rádio</button>
+                      </div>
                     </div>
                     <!-- [2,2] Knob VFO centrado -->
                     <div class="audio-block-rf-bottom">
@@ -518,6 +524,6 @@
   </dialog>
 
   <script src="i18n.js?v=20260515e"></script>
-  <script src="app.js?v=20260516o"></script>
+  <script src="app.js?v=20260517a"></script>
 </body>
 </html>

@@ -20,6 +20,8 @@ let knobDrag = null;
 let txHoldActive = false;
 let micTrack = null;   // MediaStreamTrack do microfone; null se não autorizado
 let localMonitorEl = null;  // <audio> para monitorização local do mic durante TX
+let localMonitorEnabled = true;   // toggle Monitor local
+let moniRadioEnabled = false;     // toggle MONI Rádio (não muta RX durante TX)
 
 // ── VOX ──────────────────────────────────────────────────────────────────────
 let voxEnabled = false;
@@ -78,6 +80,10 @@ const btnConn = document.getElementById("btn-connect");
 const btnDisc = document.getElementById("btn-disconnect");
 const btnTx  = document.getElementById("btn-tx");
 const btnVox = document.getElementById("btn-vox");
+const btnMonLocal  = document.getElementById("btn-mon-local");
+const btnMonRadio  = document.getElementById("btn-mon-radio");
+const elMonLocalGain    = document.getElementById("mon-local-gain");
+const elMonLocalGainVal = document.getElementById("mon-local-gain-val");
 const btnRigConnect       = document.getElementById("btn-rig-connect");
 const dlgRigOffline       = document.getElementById("dlg-rig-offline");
 const elConnectingOverlay = document.getElementById("connecting-overlay");
@@ -1159,16 +1165,16 @@ function beginTxHold(event) {
   txHoldActive = true;
   setTxButtonState(true);
   if (micTrack) micTrack.enabled = true;
-  // Mutar RX durante TX (evita eco do MONI via rede)
-  if (gainNode) gainNode.gain.value = 0;
+  // Mutar ou não o RX consoante modo MONI Rádio
+  if (gainNode) gainNode.gain.value = moniRadioEnabled ? parseInt(elVolume.value, 10) / 100 : 0;
   // Monitorização local: clone da track (independente do WebRTC) → Audio element
-  if (micTrack && !localMonitorEl) {
+  if (localMonitorEnabled && micTrack && !localMonitorEl) {
     try {
       const monTrack = micTrack.clone();
       const monStream = new MediaStream([monTrack]);
       localMonitorEl = new Audio();
       localMonitorEl.srcObject = monStream;
-      localMonitorEl.volume = 0.8;
+      localMonitorEl.volume = (elMonLocalGain ? parseInt(elMonLocalGain.value, 10) : 80) / 100;
       localMonitorEl.play().catch(e => console.warn('[4ham] monitor local:', e));
     } catch (e) {
       console.warn('[4ham] monitor local erro:', e);
@@ -1425,6 +1431,24 @@ function setVoxEnabled(active) {
 }
 
 btnVox?.addEventListener("click", () => setVoxEnabled(!voxEnabled));
+
+btnMonLocal?.addEventListener("click", () => {
+  localMonitorEnabled = !localMonitorEnabled;
+  btnMonLocal.classList.toggle("is-active", localMonitorEnabled);
+});
+
+btnMonRadio?.addEventListener("click", () => {
+  moniRadioEnabled = !moniRadioEnabled;
+  btnMonRadio.classList.toggle("is-active", moniRadioEnabled);
+});
+
+if (elMonLocalGain) {
+  elMonLocalGain.addEventListener("input", () => {
+    const pct = parseInt(elMonLocalGain.value, 10);
+    if (elMonLocalGainVal) elMonLocalGainVal.textContent = `${pct}%`;
+    if (localMonitorEl) localMonitorEl.volume = pct / 100;
+  });
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
