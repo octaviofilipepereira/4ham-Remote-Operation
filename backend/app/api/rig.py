@@ -417,9 +417,9 @@ async def set_rig_settings(body: SetRigSettingsRequest, request: Request) -> dic
             errors.append(f"MICGAIN: {exc}")
     if body.moni is not None:
         try:
-            await driver.set_level("MONITOR_GAIN", body.moni)
+            await driver.set_func("MON", body.moni > 0)
         except Exception as exc:
-            errors.append(f"MONITOR_GAIN: {exc}")
+            errors.append(f"MON: {exc}")
 
     if errors:
         logger.warning("set_rig_settings: comandos parcialmente ignorados — %s", "; ".join(errors))
