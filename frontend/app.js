@@ -1480,10 +1480,9 @@ async function connectRx() {
     // Logar label do mic activo — visível na consola e no título do botão TX
     const micLabel = micTrack.label || "desconhecido";
     console.info("[4ham] Microfone activo:", micLabel, "| deviceId:", micTrack.getSettings().deviceId);
-    const btnTxEl = document.getElementById("btnTx");
-    if (btnTxEl) btnTxEl.title = "Mic: " + micLabel;
-  } catch (_) {
-    console.warn("Microfone não disponível — TX desactivado (modo RX apenas)");
+    btnTx.title = "Mic: " + micLabel;
+  } catch (micErr) {
+    console.warn("Microfone não disponível — TX desactivado (modo RX apenas)", micErr);
     pc.addTransceiver("audio", { direction: "recvonly" });
   }
 
