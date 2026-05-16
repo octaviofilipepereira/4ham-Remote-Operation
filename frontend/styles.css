@@ -957,7 +957,8 @@ body::before {
 .volume-val {
   font-size: 11px;
   color: var(--text-muted, #8899aa);
-  min-width: 36px;
+  min-width: 16px;
+  text-align: right;
   text-align: right;
 }
 
@@ -1966,7 +1967,7 @@ body[data-knob-active="true"] .vfo-knob {
 .audio-block-tx-bottom .vox-row .hardware-label { font-size: 0.75rem; font-weight: 700; }
 .audio-block-tx-bottom .vox-level-bar { display: none; }
 .audio-block-tx-bottom .volume-val { font-size: 0.75rem; }
-#mic-pc-gain { flex: 0 0 70px; max-width: 70px; }
+#mic-pc-gain { flex: 0 0 70px; max-width: 132px; }
 
 .audio-block-rf-top {
   border-left: 1px solid rgba(255,255,255,0.07);
