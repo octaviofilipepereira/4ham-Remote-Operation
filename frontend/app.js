@@ -1161,12 +1161,19 @@ function beginTxHold(event) {
   if (micTrack) micTrack.enabled = true;
   // Mutar RX durante TX (evita eco do MONI via rede)
   if (gainNode) gainNode.gain.value = 0;
-  // Monitorização local: ouvir o microfone em tempo real sem passar pela rede
+  // Monitorização local: clone da track (independente do WebRTC) → Audio element
   if (micTrack && !localMonitorEl) {
-    localMonitorEl = new Audio();
-    localMonitorEl.srcObject = new MediaStream([micTrack]);
-    localMonitorEl.volume = 0.8;
-    localMonitorEl.play().catch(() => {});
+    try {
+      const monTrack = micTrack.clone();
+      const monStream = new MediaStream([monTrack]);
+      localMonitorEl = new Audio();
+      localMonitorEl.srcObject = monStream;
+      localMonitorEl.volume = 0.8;
+      localMonitorEl.play().catch(e => console.warn('[4ham] monitor local:', e));
+    } catch (e) {
+      console.warn('[4ham] monitor local erro:', e);
+      localMonitorEl = null;
+    }
   }
   sendPtt(true);
 }
@@ -1176,8 +1183,9 @@ function endTxHold() {
   txHoldActive = false;
   setTxButtonState(false);
   if (micTrack) micTrack.enabled = false;
-  // Parar monitorização local do mic
+  // Parar monitorização local do mic e libertar o clone
   if (localMonitorEl) {
+    localMonitorEl.srcObject?.getTracks().forEach(t => t.stop());
     localMonitorEl.pause();
     localMonitorEl.srcObject = null;
     localMonitorEl = null;
@@ -1489,8 +1497,8 @@ async function connectRx() {
   try {
     const savedMicId = localStorage.getItem(MIC_DEVICE_STORAGE_KEY);
     const audioConstraints = savedMicId
-      ? { deviceId: { exact: savedMicId } }
-      : true;
+      ? { deviceId: { exact: savedMicId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      : { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
     const micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
     micTrack = micStream.getAudioTracks()[0];
     micTrack.enabled = false;  // silencioso até PTT activo
