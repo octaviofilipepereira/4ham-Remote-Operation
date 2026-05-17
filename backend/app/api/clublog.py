@@ -7,18 +7,18 @@ from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/clublog", tags=["clublog"])
 logger = logging.getLogger(__name__)
 
-_CLUBLOG_UPLOAD_URL = "https://clublog.org/upload_adif.php"
+_CLUBLOG_UPLOAD_URL = "https://clublog.org/putlogs.php"
 _QSO_LOG_PATH = Path("data/qso_log.jsonl")
 
 
 class ClublogUploadBody(BaseModel):
     email:    str = Field(..., min_length=1, max_length=256)
+    password: str = Field(..., min_length=1, max_length=256)
     api_key:  str = Field(..., min_length=1, max_length=64)
     callsign: str = Field(..., min_length=1, max_length=32)
     adif:     str = Field(..., min_length=1)
@@ -26,16 +26,17 @@ class ClublogUploadBody(BaseModel):
 
 @router.post("/upload")
 async def upload_to_clublog(body: ClublogUploadBody) -> dict:
-    """Proxy de upload ADIF para o Clublog."""
+    """Proxy de upload ADIF (batch) para o Clublog via putlogs.php."""
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
                 _CLUBLOG_UPLOAD_URL,
+                files={"file": ("qsos.adi", body.adif.encode(), "text/plain")},
                 data={
                     "email":    body.email,
-                    "api":      body.api_key,
+                    "password": body.password,
                     "callsign": body.callsign,
-                    "adif":     body.adif,
+                    "api":      body.api_key,
                 },
             )
     except httpx.RequestError as exc:
@@ -43,8 +44,7 @@ async def upload_to_clublog(body: ClublogUploadBody) -> dict:
         raise HTTPException(status_code=502, detail="Não foi possível contactar o Clublog") from exc
 
     text = resp.text.strip()
-    ok = resp.status_code == 200 and "error" not in text.lower()
-    if resp.status_code not in (200, 201):
-        raise HTTPException(status_code=502, detail=f"Clublog devolveu HTTP {resp.status_code}: {text[:200]}")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=f"Clublog: {text[:300]}")
 
-    return {"ok": ok, "message": text}
+    return {"ok": True, "message": text or "Upload enviado para a fila do Clublog."}

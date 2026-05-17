@@ -1120,10 +1120,11 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
 // ── Clublog ───────────────────────────────────────────────────────────────────
 
 (function () {
-  const _LS = { call: "clublog_callsign", email: "clublog_email", key: "clublog_apikey" };
+  const _LS = { call: "clublog_callsign", email: "clublog_email", key: "clublog_apikey", pass: "clublog_password" };
   const dlg          = document.getElementById("dlg-clublog");
   const inpCall      = document.getElementById("clublog-callsign");
   const inpEmail     = document.getElementById("clublog-email");
+  const inpPassword  = document.getElementById("clublog-password");
   const inpKey       = document.getElementById("clublog-apikey");
   const statusEl     = document.getElementById("clublog-status");
   const btnOpen      = document.getElementById("btn-clublog-open");
@@ -1141,15 +1142,17 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
   });
 
   function loadCreds() {
-    if (inpCall)  inpCall.value  = localStorage.getItem(_LS.call)  || "";
-    if (inpEmail) inpEmail.value = localStorage.getItem(_LS.email) || "";
-    if (inpKey)   inpKey.value   = localStorage.getItem(_LS.key)   || "";
+    if (inpCall)     inpCall.value     = localStorage.getItem(_LS.call)  || "";
+    if (inpEmail)    inpEmail.value    = localStorage.getItem(_LS.email) || "";
+    if (inpPassword) inpPassword.value = localStorage.getItem(_LS.pass)  || "";
+    if (inpKey)      inpKey.value      = localStorage.getItem(_LS.key)   || "";
   }
 
   function saveCreds() {
-    if (inpCall)  localStorage.setItem(_LS.call,  inpCall.value.trim().toUpperCase());
-    if (inpEmail) localStorage.setItem(_LS.email, inpEmail.value.trim());
-    if (inpKey)   localStorage.setItem(_LS.key,   inpKey.value.trim());
+    if (inpCall)     localStorage.setItem(_LS.call,  inpCall.value.trim().toUpperCase());
+    if (inpEmail)    localStorage.setItem(_LS.email, inpEmail.value.trim());
+    if (inpPassword) localStorage.setItem(_LS.pass,  inpPassword.value.trim());
+    if (inpKey)      localStorage.setItem(_LS.key,   inpKey.value.trim());
   }
 
   function setStatus(msg, isError) {
@@ -1170,9 +1173,10 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
   if (btnUpload) btnUpload.addEventListener("click", async () => {
     saveCreds();
     const email    = inpEmail?.value.trim();
+    const password = inpPassword?.value.trim();
     const api_key  = inpKey?.value.trim();
     const callsign = inpCall?.value.trim().toUpperCase();
-    if (!email || !api_key || !callsign) {
+    if (!email || !password || !api_key || !callsign) {
       setStatus(t("clublog_missing_fields"), true);
       return;
     }
@@ -1183,7 +1187,7 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
       const r = await fetch(`${API}/api/clublog/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, api_key, callsign, adif }),
+        body: JSON.stringify({ email, password, api_key, callsign, adif }),
       });
       const body = await r.json().catch(() => ({}));
       if (r.ok && body.ok) {
