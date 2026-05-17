@@ -1165,6 +1165,11 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
   if (btnClose) btnClose.addEventListener("click", () => dlg.close());
   dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
 
+  /* Re-activar botão de upload se o utilizador editar qualquer campo de credenciais após um erro 403 */
+  [inpEmail, inpPassword, inpKey, inpCall].forEach(inp => {
+    if (inp) inp.addEventListener("input", () => { if (btnUpload) btnUpload.disabled = false; });
+  });
+
   if (btnSave) btnSave.addEventListener("click", () => {
     saveCreds();
     setStatus(t("clublog_saved"));
@@ -1182,6 +1187,7 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
     }
     btnUpload.disabled = true;
     setStatus(t("clublog_uploading"));
+    let credentialsError = false;
     try {
       const adif = await buildAdifFromQsos();
       const r = await fetch(`${API}/api/clublog/upload`, {
@@ -1192,13 +1198,16 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
       const body = await r.json().catch(() => ({}));
       if (r.ok && body.ok) {
         setStatus(t("clublog_upload_ok"));
+      } else if (r.status === 403) {
+        credentialsError = true;
+        setStatus(t("clublog_upload_403"), true);
       } else {
         setStatus((body.message || body.detail || t("clublog_upload_error")), true);
       }
     } catch (e) {
       setStatus(t("clublog_upload_error"), true);
     } finally {
-      btnUpload.disabled = false;
+      if (!credentialsError) btnUpload.disabled = false;
     }
   });
 })();

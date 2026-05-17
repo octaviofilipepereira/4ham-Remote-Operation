@@ -110,6 +110,7 @@ const LOCALES = {
     clublog_uploading:     "A enviar…",
     clublog_upload_ok:     "Upload concluído com sucesso!",
     clublog_upload_error:  "Erro ao enviar para o Clublog.",
+    clublog_upload_403:    "Credenciais inválidas (403). Corrija e-mail, palavra-passe ou API Key. Não repita o envio sem corrigir — o IP pode ser bloqueado.",
     clublog_missing_fields: "Preencha o Indicativo, E-mail, Palavra-passe de Aplicação e API Key.",
     btn_close:             "Fechar",
     /* Cluster DX */
@@ -252,6 +253,7 @@ const LOCALES = {
     clublog_uploading:     "Uploading\u2026",
     clublog_upload_ok:     "Upload completed successfully!",
     clublog_upload_error:  "Error uploading to Clublog.",
+    clublog_upload_403:    "Invalid credentials (403). Fix your e-mail, password or API Key. Do not retry without correcting them — your IP may be blocked.",
     clublog_missing_fields: "Please fill in Callsign, E-mail, Application Password and API Key.",
     btn_close:             "Close",
     /* DX Cluster */
