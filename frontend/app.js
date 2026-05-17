@@ -1493,9 +1493,17 @@ function startTxMonitor() {
   txMonWs = new WebSocket(`${proto}//${location.host}/ws/tx-monitor`);
   txMonWs.binaryType = "arraybuffer";
   txMonCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  txMonCtx.resume().catch(() => {});
   txMonNextTime = 0;
+  let _rxFrames = 0;
   txMonWs.onmessage = (evt) => {
+    if (txMonCtx.state === "suspended") txMonCtx.resume().catch(() => {});
     const int16 = new Int16Array(evt.data);
+    if (_rxFrames === 0) {
+      console.log("[TX Monitor] primeiro frame: amostras=", int16.length,
+                  "ctx.sampleRate=", txMonCtx.sampleRate, "ctx.state=", txMonCtx.state);
+    }
+    _rxFrames++;
     const float32 = new Float32Array(int16.length);
     for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768.0;
     const buf = txMonCtx.createBuffer(1, float32.length, 48000);
