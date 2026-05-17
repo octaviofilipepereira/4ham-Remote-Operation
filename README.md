@@ -8,6 +8,9 @@ Controls a transceiver (Yaesu FT-991A, Xiegu X6100, or any Hamlib-supported radi
 
 - Real-time bidirectional RX/TX audio (WebRTC Opus, <80 ms LAN)
 - Full CAT control (frequency, mode, PTT, S-meter)
+- TX voice DSP pipeline on Pi (HPF + EQ + LPF + downward expander)
+- TX post-DSP audio monitor (buffer-and-play after PTT release, no echo)
+- Automatic RX muting during TX (acoustic echo prevention)
 - Digital modes: FT8, FT4, live CW decode
 - APRS via Direwolf/TNC
 - Real-time AF waterfall in the browser
@@ -59,10 +62,12 @@ This project extensively reuses modules from 4ham:
 │   │   ├── remote/              # New code: CAT, PTT, audio I/O, WebRTC
 │   │   │   ├── cat_driver.py    # rigctld TCP client
 │   │   │   ├── profiles/        # Per-radio profiles (ft991a.py, x6100.py)
-│   │   │   ├── audio_rx.py      # sounddevice → WebRTC AudioTrack
-│   │   │   ├── audio_tx.py      # WebRTC AudioTrack → sounddevice
+│   │   │   ├── audio_rx.py      # sounddevice → WebRTC AudioTrack (+ RX muting)
+│   │   │   ├── audio_tx.py      # WebRTC AudioTrack → sounddevice + DSP pipeline
 │   │   │   └── webrtc_peer.py   # aiortc RTCPeerConnection
 │   │   ├── api/                 # REST endpoints (CAT, WebRTC offer/answer)
+│   │   ├── websocket/           # WebSocket endpoints
+│   │   │   └── tx_monitor.py    # /ws/tx-monitor — post-DSP TX audio stream
 │   │   ├── decoders/            # Ported from 4ham
 │   │   ├── dsp/                 # Ported from 4ham
 │   │   ├── core/                # Ported from 4ham (auth, storage)

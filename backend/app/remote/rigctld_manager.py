@@ -201,6 +201,13 @@ class RigctldManager:
         )
         return True
 
+    def is_running(self) -> bool:
+        """Devolve True se o processo rigctld gerido está activo."""
+        if self._managed:
+            return self._process is not None and self._process.returncode is None
+        # Modo passivo: confiamos que o processo externo continua activo
+        return True
+
     async def _monitor(self) -> None:
         """Aguarda o fim do processo e regista eventuais erros."""
         assert self._process is not None

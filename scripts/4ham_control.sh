@@ -18,6 +18,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT_DIR/logs"
 LOG_FILE="$LOG_DIR/backend.log"
 PID_FILE="$LOG_DIR/backend.pid"
+SETUP_PID_FILE="$LOG_DIR/setup-http.pid"
 PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
 SERVICE_NAME="4ham-remote"
 
@@ -90,7 +91,7 @@ do_status_systemd() {
   systemctl status "$SERVICE_NAME" --no-pager || true
   echo
   echo "=== API health ==="
-  curl -sk -m 3 https://127.0.0.1:8000/health 2>/dev/null || echo "API não responde."
+  curl -s -m 3 http://127.0.0.1:8001/health 2>/dev/null || echo "API não responde."
 }
 
 do_logs_systemd() {
@@ -116,15 +117,30 @@ do_start_manual() {
   export REMOTE_CONFIG="$ROOT_DIR/config/remote_config.yaml"
   nohup "$PYTHON_BIN" -m uvicorn backend.app.main:app \
     --host 0.0.0.0 \
-    --port 8000 \
+    --port 8001 \
+    --ssl-keyfile "$ROOT_DIR/certs/key.pem" \
     --ssl-certfile "$ROOT_DIR/certs/cert.pem" \
-    --ssl-keyfile  "$ROOT_DIR/certs/key.pem" \
     >> "$LOG_FILE" 2>&1 &
   local pid="$!"
   echo "$pid" > "$PID_FILE"
+
+  # Servidor HTTP simples na porta 8002 — serve apenas a CA cert (sem TLS)
+  # Permite descarregar o certificado antes de o instalar no browser
+  local pub_dir="$ROOT_DIR/certs/public"
+  if [[ -f "$ROOT_DIR/certs/ca.pem" ]]; then
+    mkdir -p "$pub_dir"
+    cp "$ROOT_DIR/certs/ca.pem" "$pub_dir/4ham-local-ca.pem"
+    nohup "$PYTHON_BIN" -m http.server 8002 \
+      --directory "$pub_dir" --bind 0.0.0.0 \
+      >> "$LOG_DIR/setup-http.log" 2>&1 &
+    echo "$!" > "$SETUP_PID_FILE"
+    echo "Setup HTTP iniciado na porta 8002"
+  fi
+
   echo "Servidor iniciado (PID: $pid)"
   echo "Log : $LOG_FILE"
-  echo "URL : https://127.0.0.1:8000/"
+  echo "URL : https://127.0.0.1:8001/"
+  echo "CA  : http://<IP>:8002/4ham-local-ca.pem"
 }
 
 do_stop_manual() {
@@ -144,6 +160,18 @@ do_stop_manual() {
   done
   wait_for_shutdown
   rm -f "$PID_FILE"
+
+  # Parar servidor HTTP de setup se estiver em execução
+  if [[ -f "$SETUP_PID_FILE" ]]; then
+    local spid
+    spid="$(cat "$SETUP_PID_FILE" 2>/dev/null || true)"
+    if [[ -n "$spid" ]]; then
+      kill "$spid" 2>/dev/null || true
+    fi
+    rm -f "$SETUP_PID_FILE"
+  fi
+  pkill -f 'http.server 8002' 2>/dev/null || true
+
   echo "Servidor parado."
 }
 
@@ -164,12 +192,12 @@ do_status_manual() {
   fi
 
   echo
-  echo "=== Porta 8000 ==="
-  ss -ltnp 2>/dev/null | grep ':8000' || echo "Porta 8000 não está a escutar."
+  echo "=== Porta 8001 ==="
+  ss -ltnp 2>/dev/null | grep ':8001' || echo "Porta 8001 não está a escutar."
 
   echo
   echo "=== API health ==="
-  curl -sk -m 3 https://127.0.0.1:8000/health 2>/dev/null || echo "API não responde."
+  curl -s -m 3 http://127.0.0.1:8001/health 2>/dev/null || echo "API não responde."
 
   echo
   echo "=== Últimas 20 linhas do log ==="

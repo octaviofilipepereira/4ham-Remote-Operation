@@ -14,7 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 logger = logging.getLogger(__name__)
 
 # Rotas que não precisam de autenticação
-_PUBLIC_PATHS = {"/health"}
+_PUBLIC_PATHS = {"/health", "/api/setup/ca-cert"}
 
 # Cache de credenciais verificadas com sucesso.
 # Chave: (username, SHA-256 da password) → timestamp de expiração.

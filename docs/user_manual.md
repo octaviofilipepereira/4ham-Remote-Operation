@@ -2,7 +2,7 @@
 © 2026 Octávio Filipe Gonçalves
 Indicativo: CT7BFV
 Licença: GNU AGPL-3.0 (https://www.gnu.org/licenses/agpl-3.0.html)
-Última actualização: 2026-05-13 UTC
+Última actualização: 2026-05-17 UTC
 -->
 
 # 4HAM Remote Operation — Manual do Utilizador
@@ -24,6 +24,9 @@ Licença: GNU AGPL-3.0 (https://www.gnu.org/licenses/agpl-3.0.html)
    - [PTT e Transmissão](#ptt-e-transmissão)
 5. [Áudio RX — Ouvir o Rádio](#5-áudio-rx--ouvir-o-rádio)
 6. [Áudio TX — Transmitir Voz SSB](#6-áudio-tx--transmitir-voz-ssb)
+   - [DSP no Pi](#dsp-no-pi)
+   - [Definições de Áudio](#definições-de-áudio)
+   - [Monitor TX pós-DSP](#monitor-tx-pós-dsp)
 7. [Waterfall e Espectro](#7-waterfall-e-espectro)
    - [Painel de Espectro](#painel-de-espectro)
    - [Waterfall AF](#waterfall-af)
@@ -88,7 +91,7 @@ O utilizador controla o transceptor físico (frequência, modo, PTT) e ouve/tran
 O endereço é fornecido pelo administrador da estação. Formato típico:
 
 ```
-https://<endereço>:8000/
+https://<endereço>:8001/
 ```
 
 Na primeira visita o browser pode alertar para um certificado auto-assinado. Clicar em **Avançar** (ou equivalente no browser) para aceitar.
@@ -181,6 +184,47 @@ O badge **TX/RX** no topo da interface indica o estado actual.
 5. Clicar novamente em **TX HOLD** para libertar o PTT.
 
 > **Safety timeout:** Se a ligação WebRTC cair durante TX, o PTT é libertado automaticamente em menos de 500 ms.
+
+> **Silenciamento RX durante TX:** Enquanto o PTT está activo, o áudio de recepção é automaticamente silenciado no servidor. Isto elimina o eco acústico (auscultadores/altifalantes → microfone → rádio TX) sem necessidade de qualquer configuração adicional. O áudio RX retoma imediatamente ao soltar o PTT.
+
+### DSP no Pi
+
+O áudio de voz captado pelo microfone é transmitido ao Pi via WebRTC e processado antes de chegar ao rádio. A cadeia de processamento aplicada (por esta ordem) é:
+
+| Etapa | Tipo | Parâmetros |
+|---|---|---|
+| HPF | Passa-alto | 200 Hz — elimina ruído de baixa frequência |
+| Bell EQ | Corte | −6 dB @ 350 Hz — reduz ressalto de voz masculina |
+| Bell EQ | Realce | +3 dB @ 2200 Hz — melhora inteligibilidade SSB |
+| LPF | Passa-baixo | 3200 Hz — banda SSB padrão |
+| Expander | Downward expander | Reduz nível quando a voz está abaixo do limiar (supressão de fundo) |
+
+Este processamento é aplicado sempre que o PTT está activo, independentemente do modo de monitorização seleccionado.
+
+### Definições de Áudio
+
+O botão **⚙ Áudio** (ou similar) abre uma popup com opções de configuração de áudio TX:
+
+| Opção | Descrição |
+|---|---|
+| **Dispositivo de microfone** | Seleccionar o microfone a usar para TX |
+| **Monitor TX pós-DSP** | Ver secção abaixo |
+
+### Monitor TX pós-DSP
+
+A checkbox **Monitor TX pós-DSP** na popup de Áudio permite ouvir o sinal exacto que chegou ao rádio após todo o processamento DSP.
+
+**Como funciona:**
+- Durante o PTT, o Pi envia os frames de áudio processados para o browser via WebSocket (`/ws/tx-monitor`)
+- O browser *não* os reproduz durante a transmissão (evitaria eco)
+- Ao **soltar o PTT**, o browser reproduz imediatamente todos os frames acumulados em sequência
+
+**Para que serve:**
+- Verificar a qualidade do sinal transmitido (EQ, nível do expander)
+- Diagnosticar problemas de áudio sem necessitar de outro operador
+- Confirmar que a voz soa correctamente antes de um QSO
+
+> O Monitor TX pós-DSP **não causa eco** porque o áudio é reproduzido apenas depois de o PTT ser libertado e o microfone desactivado.
 
 ---
 
@@ -285,6 +329,20 @@ Clicar em **Log QSO** para guardar o registo.
 - Confirmar que o modo é USB ou LSB (modos AM/FM/CW têm restrições de TX via microfone)
 - Verificar que o browser tem permissão de microfone
 - Confirmar que a antena está ligada no rádio
+
+### Eco reportado pelo outro operador
+
+O sistema silencia automaticamente o áudio RX durante TX para eliminar o eco. Se o eco persistir:
+
+1. Confirmar que o **Monitor TX pós-DSP** está desligado durante o QSO real (apenas para diagnóstico)
+2. Verificar que não há outro dispositivo de áudio a reproduzir som próximo do microfone
+3. Desligar e religar a ligação WebRTC
+
+### Monitor TX pós-DSP não produz áudio
+
+- Confirmar que a checkbox está activa antes de premir PTT
+- Verificar no log do browser (F12 → Console) se aparece "[TX Monitor] primeiro frame"
+- O áudio só é reproduzido **após soltar o PTT** — é comportamento esperado
 
 ### O browser mostra "Aviso de segurança" no certificado
 

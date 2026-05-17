@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -32,6 +32,16 @@ class FT991AProfile:
     # Canal 0 (L) = áudio RX; canal 1 (R) = áudio TX
     audio_rx_channel: int = 0
     audio_tx_channel: int = 1
+
+    # ── Capacidades RF (usadas pelo endpoint /api/rig/caps) ───────────────────
+    # ATT: passos em dB (0 = OFF).  FT-991A tem um único passo de 12 dB.
+    att_steps: list[int] = field(default_factory=lambda: [0, 12])
+    # PREAMP: passos em dB (0 = IPO/bypass).  FT-991A: 0=IPO, 10=AMP1, 20=AMP2.
+    preamp_steps: list[int] = field(default_factory=lambda: [0, 10, 20])
+    # Rótulos legíveis para cada passo de PREAMP (chave = str(dB)).
+    preamp_labels: dict = field(default_factory=lambda: {"0": "IPO", "10": "AMP1", "20": "AMP2"})
+    # Modos AGC suportados (em ordem crescente de tempo de recuperação).
+    agc_modes: list[str] = field(default_factory=lambda: ["FAST", "MID", "SLOW", "AUTO"])
 
 
 PROFILE = FT991AProfile()

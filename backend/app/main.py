@@ -8,15 +8,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from .api.prefs import router as prefs_router
+from .api.qso import router as qso_router
 from .api.rig import router as rig_router
 from .api.webrtc import router as webrtc_router
 from .core.auth_middleware import BasicAuthMiddleware
 from .remote.audio_capture import AudioCaptureService
+from .remote.audio_tx import AudioTxService
 from .remote.cat_driver import CATDriver
 from .remote.profiles import load_profile
 from .remote.rigctld_manager import RigctldManager, detect_serial_port
 from .remote.webrtc_peer import WebRTCPeer
 from .websocket.spectrum import router as spectrum_router
+from .websocket.tx_monitor import router as tx_monitor_router
 
 logger = logging.getLogger(__name__)
 
@@ -86,15 +90,23 @@ async def lifespan(app: FastAPI):
             profile_name,
         )
 
+    app.state.rigctld_manager = rigctld_manager
+    app.state.rigctld_host    = rigctld_host
+    app.state.rigctld_port    = rigctld_port
+    app.state.rig_serial_port = serial_port
+    app.state.rig_profile             = profile
+    app.state.rig_profile_name        = profile_name
+    app.state.rig_profile_hamlib_model = int(rig_cfg.get("hamlib_model", profile_hamlib_model))
+    app.state.rig_profile_baud         = int(rig_cfg.get("baud", profile_baud))
+
     driver = CATDriver(
         host=rigctld_host,
         port=rigctld_port,
     )
     app.state.cat_driver = driver
-    try:
-        await driver.connect()
-    except OSError:
-        logger.warning("rigctld não disponível no arranque — será tentado no primeiro comando")
+    # Não tentamos conectar no arranque: o rádio pode estar desligado.
+    # A ligação é feita de forma lazy no primeiro comando CAT,
+    # ou explicitamente via POST /api/rig/connect.
 
     audio_cfg = cfg.get("audio", {})
     audio_source = AudioCaptureService(
@@ -103,8 +115,22 @@ async def lifespan(app: FastAPI):
         rx_gain=float(os.getenv("AUDIO_RX_GAIN", audio_cfg.get("rx_gain", 1.0))),
     )
     app.state.audio_capture = audio_source
+
+    audio_tx = AudioTxService(
+        device=os.getenv("AUDIO_DEVICE") or audio_cfg.get("device") or None,
+        tx_channel=int(os.getenv("AUDIO_TX_CHANNEL", audio_cfg.get("tx_channel", 1))),
+    )
+    app.state.audio_tx = audio_tx
+
+    ptt_cfg = cfg.get("ptt", {})
+    app.state.ptt_allowed_bands = ptt_cfg.get("allowed_bands", [])
+    app.state.ptt_max_tx_seconds = int(ptt_cfg.get("max_tx_seconds", 180))
+    app.state.tx_timer = None
+
     peer = WebRTCPeer(
         audio_source=audio_source,
+        audio_tx=audio_tx,
+        cat_driver=driver,
     )
     app.state.webrtc_peer = peer
 
@@ -138,10 +164,29 @@ async def lifespan(app: FastAPI):
 
     app.state.spectrum_source = spectrum_source
 
+    # ── Log de QSOs (memória + persistência em JSONL) ─────────────────────────
+    import json
+    from collections import deque
+    qso_log_path = Path("data/qso_log.jsonl")
+    qso_deque: deque = deque(maxlen=100)
+    if qso_log_path.exists():
+        try:
+            lines = qso_log_path.read_text(encoding="utf-8").strip().splitlines()
+            for line in reversed(lines[-100:]):
+                try:
+                    qso_deque.appendleft(json.loads(line))
+                except Exception:
+                    pass
+            logger.info("Log de QSOs: %d entradas carregadas de %s", len(qso_deque), qso_log_path)
+        except OSError as exc:
+            logger.warning("Não foi possível carregar log de QSOs: %s", exc)
+    app.state.qso_log = qso_deque
+
     yield
 
     await peer.close()
     await audio_source.close()
+    audio_tx.stop()
     await driver.close()
     await spectrum_source.stop()
     if rigctld_manager:
@@ -171,8 +216,11 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(rig_router)
+    app.include_router(qso_router)
     app.include_router(webrtc_router)
     app.include_router(spectrum_router)
+    app.include_router(tx_monitor_router)
+    app.include_router(prefs_router)
 
     @app.get("/health")
     async def health():

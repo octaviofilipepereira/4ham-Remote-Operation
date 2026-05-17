@@ -2,6 +2,8 @@ const API = "";
 const MAX_FREQUENCY_HZ = 999999999;
 const DEFAULT_FREQUENCY_HZ = 7100000;
 const LAST_FREQUENCY_STORAGE_KEY = "4ham.lastFrequencyHz";
+const MIC_DEVICE_STORAGE_KEY     = "4ham.micDeviceId";
+const OUTPUT_DEVICE_STORAGE_KEY  = "4ham.outputDeviceId";
 const STEP_PRESETS = [10, 100, 1000, 10000, 100000, 1000000];
 const DIGIT_STEPS = [100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1];
 
@@ -16,6 +18,32 @@ let freqCommitTimer = null;
 let knobAngle = 0;
 let knobDrag = null;
 let txHoldActive = false;
+let micTrack = null;   // MediaStreamTrack do microfone; null se não autorizado
+let localMonitorEl = null;  // <audio> para monitorização local do mic durante TX
+let localMonitorEnabled = false;  // toggle Monitor local (OFF por defeito)
+let moniRadioEnabled = false;     // toggle MONI Rádio (OFF por defeito)
+let txAudioCtx = null;            // AudioContext para ganho de TX
+let txGainNode = null;            // GainNode no caminho TX
+let rawMicStream = null;          // stream original do getUserMedia (para cleanup)
+
+// ── TX POST-DSP MONITOR ───────────────────────────────────────────────────────
+let txMonWs         = null;       // WebSocket para /ws/tx-monitor
+let txMonCtx        = null;       // AudioContext para playback do monitor
+let txMonNextTime   = 0;          // próximo instante de playback agendado
+let txMonPttActive  = false;      // true enquanto PTT está activo
+let txMonPlayBuf    = [];         // frames Float32 bufferizados durante PTT
+const TX_MON_MAX_BUF = 1500;     // máx ~30 s de buffer (1500 × 20 ms)
+
+// ── VOX ──────────────────────────────────────────────────────────────────────
+let voxEnabled = false;
+let voxRafId   = null;
+let voxHangTimer = null;
+let voxAnalyser = null;
+let voxDataBuf  = null;
+const VOX_HANG_MS = 600;
+let rigConnected = false;
+let _rigOfflineShown = false;   // só mostrar o modal uma vez até ao próximo reconnect
+let _firstPoll = true;          // esconder o overlay de ligação após o primeiro poll
 let _audioKey    = "audio_standby";
 let _waterfallKey = "wf_offline";
 let _lastStrengthDb = -127;
@@ -61,7 +89,26 @@ const elQsoBand = document.getElementById("qso-band");
 const elQsoTime = document.getElementById("qso-time");
 const btnConn = document.getElementById("btn-connect");
 const btnDisc = document.getElementById("btn-disconnect");
-const btnTx = document.getElementById("btn-tx");
+const btnTx  = document.getElementById("btn-tx");
+const btnVox = document.getElementById("btn-vox");
+const btnMonLocal    = document.getElementById("btn-mon-local");
+const btnMonRadio    = document.getElementById("btn-mon-radio");
+const elMicPcGain    = document.getElementById("mic-pc-gain");
+const elMicPcGainVal = document.getElementById("mic-pc-gain-val");
+const chkTxMonitor   = document.getElementById("chk-tx-monitor");
+const btnRigConnect       = document.getElementById("btn-rig-connect");
+const dlgRigOffline       = document.getElementById("dlg-rig-offline");
+const elConnectingOverlay = document.getElementById("connecting-overlay");
+const dlgBtnConnect  = document.getElementById("dlg-btn-connect");
+const dlgBtnDismiss  = document.getElementById("dlg-btn-dismiss");
+const btnAudioSettings  = document.getElementById("btn-audio-settings");
+const dlgAudioSettings  = document.getElementById("dlg-audio-settings");
+const selMic            = document.getElementById("sel-mic");
+const selOutput         = document.getElementById("sel-output");
+const dlgAudioApply     = document.getElementById("dlg-audio-apply");
+const dlgAudioClose     = document.getElementById("dlg-audio-close");
+const elVoxThreshold = document.getElementById("vox-threshold");
+const elVoxLevel     = document.getElementById("vox-level");
 const modeReadouts = Array.from(document.querySelectorAll("[data-mode-readout]"));
 const audioReadouts = Array.from(document.querySelectorAll("[data-audio-readout]"));
 const stepReadouts = Array.from(document.querySelectorAll("[data-step-readout]"));
@@ -69,6 +116,37 @@ const stepCaptions = Array.from(document.querySelectorAll("[data-step-caption]")
 const stepButtons = Array.from(document.querySelectorAll(".step-btn"));
 const softkeys = Array.from(document.querySelectorAll(".softkey[data-multiplier]"));
 const bandPlanRows = Array.from(document.querySelectorAll("[data-band]"));
+
+// ── RF Controls ───────────────────────────────────────────────────────────────
+const elRigPreamp   = document.getElementById("rig-preamp");
+const elRigAtt      = document.getElementById("rig-att");
+const elRigAgc      = document.getElementById("rig-agc");
+const elRfPower     = document.getElementById("rf-power");
+const elRfPowerVal  = document.getElementById("rf-power-val");
+
+// ── Radio Settings Dialog ─────────────────────────────────────────────────────
+const btnRigSettings    = document.getElementById("btn-rig-settings");
+const dlgRigSettings    = document.getElementById("dlg-rig-settings");
+const elRigNb           = document.getElementById("rig-nb");
+const elRigNbLevel      = document.getElementById("rig-nb-level");
+const elRigNbLevelVal   = document.getElementById("rig-nb-level-val");
+const elRigProc         = document.getElementById("rig-proc");
+const elRigProcLevel    = document.getElementById("rig-proc-level");
+const elRigProcLevelVal = document.getElementById("rig-proc-level-val");
+const elRigMicGain      = document.getElementById("rig-mic-gain");
+const elRigMicGainVal   = document.getElementById("rig-mic-gain-val");
+const elRigWidth        = document.getElementById("rig-width");
+const btnRsdApply       = document.getElementById("rsd-apply");
+const btnRsdCancel      = document.getElementById("rsd-cancel");
+
+// ── QSO Log ───────────────────────────────────────────────────────────────────
+const elQsoCallsign    = document.getElementById("qso-callsign");
+const elQsoRstSent     = document.getElementById("qso-rst-sent");
+const elQsoRstRx       = document.getElementById("qso-rst-rx");
+const elQsoNotes       = document.getElementById("qso-notes");
+const btnLogQso        = document.getElementById("btn-log-qso");
+const elRecentQsoBody  = document.getElementById("recent-qso-body");
+const elRecentQsoCount = document.getElementById("recent-qso-count");
 
 function clampFrequency(hz) {
   return Math.max(1, Math.min(MAX_FREQUENCY_HZ, Math.round(hz)));
@@ -120,6 +198,7 @@ function formatLogFrequency(frequencyHz) {
 
 function getBandLabel(frequencyHz) {
   if (!Number.isFinite(frequencyHz)) return "";
+  if (frequencyHz >= 1810000 && frequencyHz < 2000000) return "160m";
   if (frequencyHz >= 3500000 && frequencyHz < 4000000) return "80m";
   if (frequencyHz >= 7000000 && frequencyHz < 7300000) return "40m";
   if (frequencyHz >= 10100000 && frequencyHz < 10150000) return "30m";
@@ -618,11 +697,439 @@ function normalizeAngleDelta(delta) {
   return adjusted;
 }
 
+// ── Ligação ao rádio ─────────────────────────────────────────────────────────
+
+function showRigOfflineDialog() {
+  if (!dlgRigOffline || _rigOfflineShown) return;
+  _rigOfflineShown = true;
+  // Actualizar textos i18n no modal
+  dlgRigOffline.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (t(key) !== key) el.textContent = t(key);
+  });
+  dlgRigOffline.showModal();
+}
+
+function closeRigOfflineDialog() {
+  if (dlgRigOffline && dlgRigOffline.open) dlgRigOffline.close();
+}
+
+// ── Configuração de áudio ────────────────────────────────────────────────────
+
+function _addDeviceOption(selectEl, deviceId, label, savedId) {
+  const opt = document.createElement("option");
+  opt.value = deviceId;
+  opt.textContent = label || t("audio_settings_default");
+  if (deviceId === savedId) opt.selected = true;
+  selectEl.appendChild(opt);
+}
+
+async function openAudioSettings() {
+  if (!dlgAudioSettings) return;
+
+  // Actualizar textos i18n
+  dlgAudioSettings.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (t(key) !== key) el.textContent = t(key);
+  });
+
+  if (selMic)    selMic.innerHTML    = "";
+  if (selOutput) selOutput.innerHTML = "";
+
+  const savedMic    = localStorage.getItem(MIC_DEVICE_STORAGE_KEY)    || "";
+  const savedOutput = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY) || "";
+
+  // Preferências guardadas no servidor (label + deviceId — portável entre browsers)
+  let serverMicLabel = "", serverMicId = "", serverOutputLabel = "", serverOutputId = "";
+  try {
+    const r = await fetch(`${API}/api/prefs/audio`);
+    if (r.ok) {
+      const p = await r.json();
+      serverMicLabel    = p.mic_label        || "";
+      serverMicId       = p.mic_device_id    || "";
+      serverOutputLabel = p.output_label     || "";
+      serverOutputId    = p.output_device_id || "";
+    }
+  } catch (_) { /* sem servidor — ignorar */ }
+
+  // Se não há permissão de mic (labels vazios), pedir brevemente para obter os nomes
+  let devices = [];
+  try { devices = await navigator.mediaDevices.enumerateDevices(); } catch (_) {}
+  const hasLabels = devices.some(d => d.kind === "audioinput" && d.label);
+  if (!hasLabels) {
+    try {
+      const tmp = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      devices = await navigator.mediaDevices.enumerateDevices(); // enumerar enquanto stream activo (Firefox)
+      tmp.getTracks().forEach(t => t.stop());
+    } catch (_) { /* utilizador recusou — continuar sem labels */ }
+  }
+
+  // Determinar que deviceId pré-seleccionar:
+  //   1. localStorage (preferência explícita neste browser)
+  //   2. deviceId do servidor (mesmo browser, sessão anterior)
+  //   3. label do servidor → match por nome (outro browser, mesma máquina)
+  //   4. track activa (browser escolheu por omissão)
+  const _findByLabel = (label, kind) =>
+    devices.find(d => d.kind === kind && d.label === label)?.deviceId || "";
+  const _deviceExists = (id, kind) =>
+    devices.some(d => d.kind === kind && d.deviceId === id);
+
+  const selectedMic =
+    (savedMic    && _deviceExists(savedMic,    "audioinput")  ? savedMic    : "") ||
+    (serverMicId && _deviceExists(serverMicId, "audioinput")  ? serverMicId : "") ||
+    (serverMicLabel ? _findByLabel(serverMicLabel, "audioinput")  : "") ||
+    (micTrack       ? (micTrack.getSettings().deviceId || "")     : "");
+
+  const selectedOutput =
+    (savedOutput     && _deviceExists(savedOutput,     "audiooutput") ? savedOutput     : "") ||
+    (serverOutputId  && _deviceExists(serverOutputId,  "audiooutput") ? serverOutputId  : "") ||
+    (serverOutputLabel ? _findByLabel(serverOutputLabel, "audiooutput") : "");
+
+  // Opção "predefinido do sistema"
+  if (selMic)    _addDeviceOption(selMic,    "", t("audio_settings_default"), selectedMic);
+  if (selOutput) _addDeviceOption(selOutput, "", t("audio_settings_default"), selectedOutput);
+
+  devices.forEach(d => {
+    const label = d.label || `${d.kind} (${d.deviceId.slice(0, 8)}…)`;
+    if (d.kind === "audioinput"  && selMic)
+      _addDeviceOption(selMic,    d.deviceId, label, selectedMic);
+    if (d.kind === "audiooutput" && selOutput)
+      _addDeviceOption(selOutput, d.deviceId, label, selectedOutput);
+  });
+
+  // Esconder saída de áudio se setSinkId não suportado
+  if (selOutput && typeof HTMLMediaElement.prototype.setSinkId !== "function") {
+    const outLabel = selOutput.previousElementSibling;
+    if (outLabel) outLabel.style.display = "none";
+    selOutput.style.display = "none";
+  }
+
+  dlgAudioSettings.showModal();
+}
+
+function applyAudioSettings() {
+  if (!dlgAudioSettings) return;
+  const micId    = selMic    ? selMic.value    : "";
+  const outputId = selOutput ? selOutput.value : "";
+
+  if (micId)    localStorage.setItem(MIC_DEVICE_STORAGE_KEY,    micId);
+  else          localStorage.removeItem(MIC_DEVICE_STORAGE_KEY);
+
+  if (outputId) localStorage.setItem(OUTPUT_DEVICE_STORAGE_KEY, outputId);
+  else          localStorage.removeItem(OUTPUT_DEVICE_STORAGE_KEY);
+
+  // Guardar label + deviceId no servidor (portável entre browsers; deviceId acelera match)
+  const micLabel    = selMic?.options[selMic.selectedIndex]?.textContent       || "";
+  const outputLabel = selOutput?.options[selOutput.selectedIndex]?.textContent || "";
+  const defaultText = t("audio_settings_default");
+  fetch(`${API}/api/prefs/audio`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mic_label:        micLabel    === defaultText ? "" : micLabel,
+      mic_device_id:    micLabel    === defaultText ? "" : micId,
+      output_label:     outputLabel === defaultText ? "" : outputLabel,
+      output_device_id: outputLabel === defaultText ? "" : outputId,
+    }),
+  }).catch(err => console.warn("Falha ao guardar prefs de áudio:", err));
+
+  // Aplicar saída de áudio imediatamente se o stream RX já estiver activo
+  if (outputId) {
+    if (audioCtx && typeof audioCtx.setSinkId === "function") {
+      audioCtx.setSinkId(outputId).catch(err => console.warn("audioCtx.setSinkId:", err));
+    }
+    if (elAudio && typeof elAudio.setSinkId === "function") {
+      elAudio.setSinkId(outputId).catch(err => console.warn("elAudio.setSinkId:", err));
+    }
+  }
+
+  dlgAudioSettings.close();
+}
+
+if (btnAudioSettings) btnAudioSettings.addEventListener("click", openAudioSettings);
+if (dlgAudioApply)    dlgAudioApply.addEventListener("click", applyAudioSettings);
+if (dlgAudioClose)    dlgAudioClose.addEventListener("click", () => dlgAudioSettings?.close());
+
+// ── RF Controls ───────────────────────────────────────────────────────────────
+
+// Popula os selects ATT, PREAMP e AGC com base nas capacidades do rádio activo.
+async function loadRigCaps() {
+  try {
+    const r = await fetch(`${API}/api/rig/caps`);
+    if (!r.ok) return;
+    const caps = await r.json();
+
+    // Label do painel PREAMP = rótulo do primeiro passo (ex: "IPO" ou "OFF")
+    const lblPreamp = document.getElementById("lbl-preamp");
+    if (lblPreamp && caps.preamp_labels) {
+      const firstKey = String(Math.min(...(caps.preamp_steps ?? [0])));
+      lblPreamp.textContent = caps.preamp_labels[firstKey] ?? "PREAMP";
+    }
+
+    if (elRigPreamp && caps.preamp_steps) {
+      elRigPreamp.innerHTML = "";
+      for (const step of caps.preamp_steps) {
+        const opt = document.createElement("option");
+        opt.value = String(step);
+        opt.textContent = caps.preamp_labels?.[String(step)] ?? (step === 0 ? "OFF" : `${step} dB`);
+        elRigPreamp.appendChild(opt);
+      }
+    }
+
+    if (elRigAtt && caps.att_steps) {
+      // Se só há um passo não-zero, mostrar ON/OFF em vez de "12 dB"
+      const attOnOff = caps.att_steps.filter(s => s !== 0).length === 1;
+      elRigAtt.innerHTML = "";
+      for (const step of caps.att_steps) {
+        const opt = document.createElement("option");
+        opt.value = String(step);
+        opt.textContent = step === 0 ? "OFF" : (attOnOff ? "ON" : `${step} dB`);
+        elRigAtt.appendChild(opt);
+      }
+    }
+
+    if (elRigAgc && caps.agc_modes) {
+      const prevAgc = elRigAgc.value;
+      elRigAgc.innerHTML = "";
+      for (const mode of caps.agc_modes) {
+        const opt = document.createElement("option");
+        opt.value = mode;
+        opt.textContent = mode;
+        elRigAgc.appendChild(opt);
+      }
+      if ([...elRigAgc.options].some(o => o.value === prevAgc)) elRigAgc.value = prevAgc;
+    }
+  } catch (_) {}
+}
+
+async function loadRfControls() {
+  try {
+    const r = await fetch(`${API}/api/rig/rf`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (elRigPreamp && d.preamp !== undefined) elRigPreamp.value = String(d.preamp);
+    if (elRigAtt && d.att !== undefined)       elRigAtt.value    = String(d.att);
+    if (elRigAgc && d.agc)                     elRigAgc.value    = d.agc;
+    if (elRfPower && d.rfpower !== undefined) {
+      elRfPower.value = d.rfpower;
+      if (elRfPowerVal) elRfPowerVal.textContent = `${d.rfpower} W`;
+    }
+  } catch (_) {}
+}
+
+async function sendRfControls() {
+  try {
+    await fetch(`${API}/api/rig/rf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        preamp:  parseInt(elRigPreamp?.value || "0",   10),
+        att:     parseInt(elRigAtt?.value    || "0",   10),
+        agc:     elRigAgc?.value             || "MID",
+        rfpower: parseInt(elRfPower?.value   || "100", 10),
+      }),
+    });
+  } catch (_) {}
+}
+
+if (elRfPower) {
+  elRfPower.addEventListener("input", () => {
+    if (elRfPowerVal) elRfPowerVal.textContent = `${elRfPower.value} W`;
+  });
+  elRfPower.addEventListener("change", sendRfControls);
+}
+if (elRigPreamp) elRigPreamp.addEventListener("change", sendRfControls);
+if (elRigAtt)    elRigAtt.addEventListener("change",    sendRfControls);
+if (elRigAgc)    elRigAgc.addEventListener("change",    sendRfControls);
+
+// ── Radio Settings Dialog ─────────────────────────────────────────────────────
+
+async function openRigSettings() {
+  try {
+    const r = await fetch(`${API}/api/rig/settings`);
+    if (r.ok) {
+      const d = await r.json();
+      if (elRigNb) elRigNb.value = d.nb ? "1" : "0";
+      if (elRigNbLevel) {
+        elRigNbLevel.value = Math.round(d.nb_level * 100);
+        if (elRigNbLevelVal) elRigNbLevelVal.textContent = `${elRigNbLevel.value}%`;
+      }
+      if (elRigProc) elRigProc.value = d.comp ? "1" : "0";
+      if (elRigProcLevel) {
+        elRigProcLevel.value = Math.round(d.comp_level * 100);
+        if (elRigProcLevelVal) elRigProcLevelVal.textContent = `${elRigProcLevel.value}%`;
+      }
+      if (elRigMicGain) {
+        elRigMicGain.value = Math.round(d.mic * 100);
+        if (elRigMicGainVal) elRigMicGainVal.textContent = `${elRigMicGain.value}%`;
+      }
+    }
+  } catch (_) {}
+  if (dlgRigSettings) dlgRigSettings.showModal();
+}
+
+async function applyRigSettings() {
+  try {
+    await fetch(`${API}/api/rig/settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nb:         elRigNb?.value === "1",
+        nb_level:   parseInt(elRigNbLevel?.value    || "50", 10) / 100,
+        comp:       elRigProc?.value === "1",
+        comp_level: parseInt(elRigProcLevel?.value  || "50", 10) / 100,
+        mic:        parseInt(elRigMicGain?.value    || "50", 10) / 100,
+        width:      elRigWidth?.value  || "AUTO",
+      }),
+    });
+  } catch (_) {}
+  if (dlgRigSettings) dlgRigSettings.close();
+}
+
+if (elRigNbLevel)    elRigNbLevel.addEventListener("input",    () => { if (elRigNbLevelVal)    elRigNbLevelVal.textContent    = `${elRigNbLevel.value}%`; });
+if (elRigProcLevel)  elRigProcLevel.addEventListener("input",  () => { if (elRigProcLevelVal)  elRigProcLevelVal.textContent  = `${elRigProcLevel.value}%`; });
+if (elRigMicGain)    elRigMicGain.addEventListener("input",    () => { if (elRigMicGainVal)    elRigMicGainVal.textContent    = `${elRigMicGain.value}%`; });
+if (btnRigSettings)  btnRigSettings.addEventListener("click", openRigSettings);
+if (btnRsdCancel)    btnRsdCancel.addEventListener("click", () => dlgRigSettings?.close());
+if (btnRsdApply)     btnRsdApply.addEventListener("click", applyRigSettings);
+
+// ── QSO Log ───────────────────────────────────────────────────────────────────
+
+async function loadRecentQsos() {
+  try {
+    const r = await fetch(`${API}/api/qso/recent?limit=10`);
+    if (!r.ok || !elRecentQsoBody) return;
+    const qsos = await r.json();
+    if (qsos.length === 0) {
+      elRecentQsoBody.innerHTML = `<tr><td colspan="5" class="recent-qso-empty">${t("recent_qso_empty")}</td></tr>`;
+      if (elRecentQsoCount) elRecentQsoCount.textContent = "0";
+      return;
+    }
+    elRecentQsoBody.innerHTML = qsos.map(q => `
+      <tr>
+        <td>${escapeHtml(q.callsign)}</td>
+        <td>${escapeHtml(q.band || "—")}</td>
+        <td>${escapeHtml(q.mode || "—")}</td>
+        <td>${escapeHtml(q.utc || q.logged_at || "—")}</td>
+        <td>${escapeHtml(q.rst_sent || "59")}</td>
+      </tr>`).join("");
+    if (elRecentQsoCount) elRecentQsoCount.textContent = String(qsos.length);
+  } catch (_) {}
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function logQso() {
+  const callsign = elQsoCallsign?.value?.trim().toUpperCase();
+  if (!callsign) {
+    if (elQsoCallsign) elQsoCallsign.focus();
+    return;
+  }
+  try {
+    const r = await fetch(`${API}/api/qso`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        callsign,
+        utc:       elQsoTime?.value       || "",
+        frequency: elQsoFrequency?.value  || "",
+        mode:      elQsoMode?.value       || "",
+        band:      elQsoBand?.value       || "",
+        rst_sent:  elQsoRstSent?.value    || "59",
+        rst_rx:    elQsoRstRx?.value      || "59",
+        notes:     elQsoNotes?.value      || "",
+      }),
+    });
+    if (r.ok) {
+      if (elQsoCallsign) elQsoCallsign.value = "";
+      if (elQsoRstSent)  elQsoRstSent.value  = "";
+      if (elQsoRstRx)    elQsoRstRx.value    = "";
+      if (elQsoNotes)    elQsoNotes.value    = "";
+      await loadRecentQsos();
+    }
+  } catch (_) {}
+}
+
+if (btnLogQso) btnLogQso.addEventListener("click", logQso);
+
+function setRigConnected(connected) {
+  if (rigConnected === connected) return;
+  rigConnected = connected;
+  if (connected) {
+    closeRigOfflineDialog();
+    _rigOfflineShown = false;  // nova ligação — permitir mostrar modal de novo se cair
+    loadRigCaps().then(loadRfControls); // carregar caps + estado RF assim que o rádio fica acessível
+  }
+  if (btnRigConnect) {
+    btnRigConnect.classList.toggle("is-connected", connected);
+    const key = connected ? "btn_rig_connect_on" : "btn_rig_connect_off";
+    btnRigConnect.textContent = t(key);
+    btnRigConnect.title = connected ? t("btn_rig_connect_on_title") : t("btn_rig_connect_off_title");
+  }
+}
+
+async function connectRig() {
+  if (btnRigConnect) {
+    btnRigConnect.disabled = true;
+    btnRigConnect.textContent = t("btn_rig_connecting");
+  }
+  try {
+    const res = await fetch(`${API}/api/rig/connect`, { method: "POST" });
+    if (res.ok) {
+      setRigConnected(true);
+      pollStatus();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      console.warn("Falha ao ligar ao rádio:", body.detail ?? res.status);
+      setRigConnected(false);
+    }
+  } catch (err) {
+    console.warn("Falha ao ligar ao rádio:", err);
+    setRigConnected(false);
+  } finally {
+    if (btnRigConnect) {
+      btnRigConnect.disabled = false;
+      btnRigConnect.textContent = t(rigConnected ? "btn_rig_connect_on" : "btn_rig_connect_off");
+    }
+  }
+}
+
+if (btnRigConnect) {
+  btnRigConnect.addEventListener("click", connectRig);
+}
+if (dlgBtnConnect) {
+  dlgBtnConnect.addEventListener("click", async () => {
+    dlgBtnConnect.disabled = true;
+    dlgBtnConnect.textContent = t("btn_rig_connecting");
+    await connectRig();
+    dlgBtnConnect.disabled = false;
+    dlgBtnConnect.textContent = t("btn_rig_connect_off");
+  });
+}
+if (dlgBtnDismiss) {
+  dlgBtnDismiss.addEventListener("click", closeRigOfflineDialog);
+}
+
 async function pollStatus() {
   try {
     const response = await fetch(`${API}/api/rig/status`);
-    if (!response.ok) return;
+    if (_firstPoll) {
+      _firstPoll = false;
+      if (elConnectingOverlay) elConnectingOverlay.hidden = true;
+    }
+    if (!response.ok) {
+      setRigConnected(false);
+      showRigOfflineDialog();
+      return;
+    }
 
+    setRigConnected(true);
     const data = await response.json();
 
     if (currentFrequencyHz === null || Date.now() >= tuneLockUntil) {
@@ -637,7 +1144,12 @@ async function pollStatus() {
     syncModeUI(data.mode);
     elPassband.textContent = formatPassband(data.passband_hz);
   } catch (_) {
-    // Keep the UI stable if the backend is briefly unavailable.
+    if (_firstPoll) {
+      _firstPoll = false;
+      if (elConnectingOverlay) elConnectingOverlay.hidden = true;
+    }
+    setRigConnected(false);
+    showRigOfflineDialog();
   }
 }
 
@@ -664,14 +1176,59 @@ function beginTxHold(event) {
   event?.preventDefault();
   txHoldActive = true;
   setTxButtonState(true);
+  if (micTrack) micTrack.enabled = true;
+  // Mutar ou não o RX consoante modo MONI Rádio
+  if (gainNode) gainNode.gain.value = moniRadioEnabled ? parseInt(elVolume.value, 10) / 100 : 0;
+  // Monitorização local: clone da track (independente do WebRTC) → Audio element
+  if (localMonitorEnabled && micTrack && !localMonitorEl) {
+    try {
+      const monTrack = micTrack.clone();
+      const monStream = new MediaStream([monTrack]);
+      localMonitorEl = new Audio();
+      localMonitorEl.srcObject = monStream;
+      localMonitorEl.volume = 0.8;
+      localMonitorEl.play().catch(e => console.warn('[4ham] monitor local:', e));
+    } catch (e) {
+      console.warn('[4ham] monitor local erro:', e);
+      localMonitorEl = null;
+    }
+  }
   sendPtt(true);
+  // TX monitor: começar a bufferizar — sem reproduzir durante TX para evitar eco
+  if (txMonCtx) { txMonPttActive = true; txMonPlayBuf = []; }
 }
 
 function endTxHold() {
   if (!txHoldActive) return;
   txHoldActive = false;
   setTxButtonState(false);
+  if (micTrack) micTrack.enabled = false;
+  // Parar monitorização local do mic e libertar o clone
+  if (localMonitorEl) {
+    localMonitorEl.srcObject?.getTracks().forEach(t => t.stop());
+    localMonitorEl.pause();
+    localMonitorEl.srcObject = null;
+    localMonitorEl = null;
+  }
+  // Restaurar volume RX após TX
+  if (gainNode) gainNode.gain.value = parseInt(elVolume.value, 10) / 100;
   sendPtt(false);
+  // TX monitor: reproduzir o buffer acumulado durante o PTT
+  txMonPttActive = false;
+  if (txMonCtx && txMonPlayBuf.length > 0) {
+    if (txMonCtx.state === "suspended") txMonCtx.resume().catch(() => {});
+    txMonNextTime = txMonCtx.currentTime + 0.05;
+    for (const f32 of txMonPlayBuf) {
+      const buf = txMonCtx.createBuffer(1, f32.length, 48000);
+      buf.copyToChannel(f32, 0);
+      const src = txMonCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(txMonCtx.destination);
+      src.start(txMonNextTime);
+      txMonNextTime += buf.duration;
+    }
+    txMonPlayBuf = [];
+  }
 }
 
 elMode.addEventListener("change", async () => {
@@ -817,15 +1374,192 @@ elVolume.addEventListener("input", () => {
 btnTx.addEventListener("pointerdown", beginTxHold);
 btnTx.addEventListener("keydown", (event) => {
   if (event.repeat) return;
-  if (event.key === " " || event.key === "Enter") {
-    beginTxHold(event);
-  }
+  if (event.key === "Enter") beginTxHold(event);
 });
 btnTx.addEventListener("keyup", (event) => {
-  if (event.key === " " || event.key === "Enter") {
-    event.preventDefault();
-    endTxHold();
+  if (event.key === "Enter") { event.preventDefault(); endTxHold(); }
+});
+
+// ── VOX ──────────────────────────────────────────────────────────────────────
+
+function voxStartAnalyser() {
+  if (voxAnalyser || !micTrack || !audioCtx) return;
+  try {
+    const micStream = new MediaStream([micTrack]);
+    const src = audioCtx.createMediaStreamSource(micStream);
+    voxAnalyser = audioCtx.createAnalyser();
+    voxAnalyser.fftSize = 256;
+    voxDataBuf = new Uint8Array(voxAnalyser.frequencyBinCount);
+    src.connect(voxAnalyser);
+  } catch (_) {
+    voxAnalyser = null;
   }
+}
+
+function voxStopAnalyser() {
+  voxAnalyser = null;
+  voxDataBuf  = null;
+  if (voxRafId !== null) { cancelAnimationFrame(voxRafId); voxRafId = null; }
+  if (voxHangTimer !== null) { clearTimeout(voxHangTimer); voxHangTimer = null; }
+}
+
+function voxLoop() {
+  if (!voxEnabled || !voxAnalyser) { voxRafId = null; return; }
+  voxAnalyser.getByteTimeDomainData(voxDataBuf);
+
+  // RMS da janela temporal
+  let sum = 0;
+  for (let i = 0; i < voxDataBuf.length; i++) {
+    const s = (voxDataBuf[i] - 128) / 128;
+    sum += s * s;
+  }
+  const rms = Math.sqrt(sum / voxDataBuf.length);  // 0..1
+  const pct = Math.min(100, Math.round(rms * 400)); // escalar para visual
+
+  // atualizar barra de nível (CSS custom property)
+  if (elVoxLevel) elVoxLevel.style.setProperty("--vox-pct", `${pct}%`);
+
+  const threshold = parseInt(elVoxThreshold?.value ?? "15", 10) / 100; // 0.01..0.50
+
+  if (rms > threshold) {
+    // sinal detectado — cancelar hang, activar PTT se não activo
+    if (voxHangTimer !== null) { clearTimeout(voxHangTimer); voxHangTimer = null; }
+    if (!txHoldActive) {
+      txHoldActive = true;
+      setTxButtonState(true);
+      if (micTrack) micTrack.enabled = true;
+      sendPtt(true);
+    }
+  } else if (txHoldActive && voxHangTimer === null) {
+    // silêncio — iniciar hang time
+    voxHangTimer = setTimeout(() => {
+      voxHangTimer = null;
+      if (txHoldActive) {
+        txHoldActive = false;
+        setTxButtonState(false);
+        if (micTrack) micTrack.enabled = false;
+        sendPtt(false);
+      }
+    }, VOX_HANG_MS);
+  }
+
+  voxRafId = requestAnimationFrame(voxLoop);
+}
+
+function setVoxEnabled(active) {
+  voxEnabled = active;
+  btnVox?.classList.toggle("is-active", active);
+  if (active) {
+    voxStartAnalyser();
+    if (voxAnalyser) voxRafId = requestAnimationFrame(voxLoop);
+  } else {
+    voxStopAnalyser();
+    // PTT OFF imediato se estava em VOX TX
+    if (txHoldActive) endTxHold();
+    if (elVoxLevel) elVoxLevel.style.setProperty("--vox-pct", "0%");
+  }
+}
+
+btnVox?.addEventListener("click", () => setVoxEnabled(!voxEnabled));
+
+btnMonLocal?.addEventListener("click", () => {
+  localMonitorEnabled = !localMonitorEnabled;
+  btnMonLocal.classList.toggle("is-active", localMonitorEnabled);
+  // Mutuamente exclusivo com Radio Monitor
+  if (localMonitorEnabled && moniRadioEnabled) {
+    moniRadioEnabled = false;
+    btnMonRadio?.classList.remove("is-active");
+    fetch(`${API}/api/rig/settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ moni: 0.0 }),
+    }).catch(() => {});
+  }
+});
+
+btnMonRadio?.addEventListener("click", () => {
+  moniRadioEnabled = !moniRadioEnabled;
+  btnMonRadio.classList.toggle("is-active", moniRadioEnabled);
+  // Mutuamente exclusivo com Local Monitor
+  if (moniRadioEnabled && localMonitorEnabled) {
+    localMonitorEnabled = false;
+    btnMonLocal?.classList.remove("is-active");
+  }
+  // Activar/desactivar MONI hardware no rádio via CAT
+  fetch(`${API}/api/rig/settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ moni: moniRadioEnabled ? 0.5 : 0.0 }),
+  }).catch(() => {});
+});
+
+elMicPcGain?.addEventListener("input", () => {
+  const pct = parseInt(elMicPcGain.value, 10);
+  if (elMicPcGainVal) elMicPcGainVal.textContent = `${pct}%`;
+  if (txGainNode) txGainNode.gain.value = pct / 100;
+});
+
+// ── TX MONITOR pós-DSP ────────────────────────────────────────────────────────
+chkTxMonitor?.addEventListener("change", () => {
+  if (chkTxMonitor.checked) {
+    startTxMonitor();
+  } else {
+    stopTxMonitor();
+  }
+});
+
+function startTxMonitor() {
+  if (txMonWs) return;
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  txMonWs = new WebSocket(`${proto}//${location.host}/ws/tx-monitor`);
+  txMonWs.binaryType = "arraybuffer";
+  txMonCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  txMonCtx.resume().catch(() => {});
+  txMonNextTime = 0;
+  let _rxFrames = 0;
+  txMonWs.onmessage = (evt) => {
+    const int16 = new Int16Array(evt.data);
+    if (_rxFrames === 0) {
+      console.log("[TX Monitor] primeiro frame: amostras=", int16.length,
+                  "ctx.sampleRate=", txMonCtx.sampleRate, "ctx.state=", txMonCtx.state);
+    }
+    _rxFrames++;
+    const float32 = new Float32Array(int16.length);
+    for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768.0;
+    if (txMonPttActive) {
+      // Bufferizar durante PTT — não reproduzir para evitar eco na transmissão
+      if (txMonPlayBuf.length < TX_MON_MAX_BUF) txMonPlayBuf.push(float32);
+    }
+    // Fora de PTT os frames são silêncio — descartar
+  };
+  txMonWs.onclose = () => {
+    stopTxMonitor();
+    if (chkTxMonitor) chkTxMonitor.checked = false;
+  };
+  txMonWs.onerror = () => txMonWs?.close();
+}
+
+function stopTxMonitor() {
+  if (txMonWs) { txMonWs.onclose = null; txMonWs.close(); txMonWs = null; }
+  if (txMonCtx) { txMonCtx.close().catch(() => {}); txMonCtx = null; }
+  txMonNextTime  = 0;
+  txMonPttActive = false;
+  txMonPlayBuf   = [];
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// F8 global — PTT independente do foco, mas não quando o cursor está num input de texto
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "F8" || event.repeat) return;
+  const tag = document.activeElement?.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+  event.preventDefault();
+  beginTxHold(event);
+});
+window.addEventListener("keyup", (event) => {
+  if (event.key !== "F8") return;
+  event.preventDefault();
+  endTxHold();
 });
 window.addEventListener("pointerup", endTxHold);
 window.addEventListener("pointercancel", endTxHold);
@@ -844,22 +1578,69 @@ async function connectRx() {
 
   pc.ontrack = (event) => {
     const stream = event.streams[0] ?? new MediaStream([event.track]);
+    // Workaround Chrome (bug histórico): uma MediaStream remota WebRTC só é
+    // "puxada" pelo motor de áudio se também estiver anexada a um HTMLMediaElement.
+    // Sem isto, createMediaStreamSource não produz som no Chrome.
+    try {
+      const sink = new Audio();
+      sink.srcObject = stream;
+      sink.muted = true;
+      sink.play().catch(() => {});
+    } catch (_) {}
     // WebAudio GainNode — permite amplificar além de 100%
     try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const savedOutputId = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY);
+      const ctxOptions = savedOutputId ? { sinkId: savedOutputId } : {};
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)(ctxOptions);
       gainNode = audioCtx.createGain();
       gainNode.gain.value = parseFloat(elVolume.value) / 100;
       const src = audioCtx.createMediaStreamSource(stream);
       src.connect(gainNode);
       gainNode.connect(audioCtx.destination);
+      // Chrome suspende AudioContext por política de autoplay — forçar resume
+      if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
     } catch (_) {
       // fallback para audio element directo se WebAudio não disponível
       elAudio.srcObject = stream;
+      const savedOutputId = localStorage.getItem(OUTPUT_DEVICE_STORAGE_KEY);
+      if (savedOutputId && typeof elAudio.setSinkId === "function") {
+        elAudio.setSinkId(savedOutputId).catch(() => {});
+      }
     }
     setAudioState("audio_stream_received");
+    // Se VOX já estava activo, ligar o analyser agora que audioCtx existe
+    if (voxEnabled) { voxStartAnalyser(); voxRafId = requestAnimationFrame(voxLoop); }
   };
 
-  pc.addTransceiver("audio", { direction: "recvonly" });
+  // Tentar obter microfone para TX; se negado, operar em modo RX apenas
+  micTrack = null;
+  try {
+    const savedMicId = localStorage.getItem(MIC_DEVICE_STORAGE_KEY);
+    const audioConstraints = savedMicId
+      ? { deviceId: { exact: savedMicId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      : { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+    const micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
+    rawMicStream = micStream;
+    // Inserir GainNode no caminho TX para controlo de ganho do mic local
+    txAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+    if (txAudioCtx.state === "suspended") txAudioCtx.resume().catch(() => {});
+    const txSrc = txAudioCtx.createMediaStreamSource(micStream);
+    txGainNode = txAudioCtx.createGain();
+    txGainNode.gain.value = (elMicPcGain ? parseInt(elMicPcGain.value, 10) : 100) / 100;
+    const txDst = txAudioCtx.createMediaStreamDestination();
+    txSrc.connect(txGainNode);
+    txGainNode.connect(txDst);
+    micTrack = txDst.stream.getAudioTracks()[0];
+    micTrack.enabled = false;  // silencioso até PTT activo
+    pc.addTrack(micTrack, txDst.stream);
+    // Logar label do mic activo — visível na consola e no título do botão TX
+    const micLabel = micTrack.label || "desconhecido";
+    console.info("[4ham] Microfone activo:", micLabel, "| deviceId:", micTrack.getSettings().deviceId);
+    btnTx.title = "Mic: " + micLabel;
+  } catch (micErr) {
+    console.warn("Microfone não disponível — TX desactivado (modo RX apenas)", micErr);
+    pc.addTransceiver("audio", { direction: "recvonly" });
+  }
 
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
@@ -929,6 +1710,9 @@ async function connectRx() {
       }
 
       if (state === "closed" || state === "failed") {
+        if (micTrack) { micTrack.stop(); micTrack = null; }
+        if (rawMicStream) { rawMicStream.getTracks().forEach(t => t.stop()); rawMicStream = null; }
+        if (txAudioCtx) { txAudioCtx.close().catch(() => {}); txAudioCtx = null; txGainNode = null; }
         pc = null;
       }
     }
@@ -936,6 +1720,13 @@ async function connectRx() {
 }
 
 async function disconnectRx() {
+  endTxHold();   // PTT OFF imediato antes de fechar
+  voxStopAnalyser();
+
+  if (micTrack) { micTrack.stop(); micTrack = null; }
+  if (rawMicStream) { rawMicStream.getTracks().forEach(t => t.stop()); rawMicStream = null; }
+  if (txAudioCtx) { await txAudioCtx.close().catch(() => {}); txAudioCtx = null; txGainNode = null; }
+
   if (pc) {
     pc.close();
     pc = null;
@@ -973,6 +1764,7 @@ resizeWaterfallCanvas();
 connectWaterfall();
 pollStatus();
 pollId = window.setInterval(pollStatus, 1000);
+loadRecentQsos();
 
 /* ── Freq Ruler (DX Spots column) ───────────────────────────────────────── */
 (function () {

@@ -2,7 +2,7 @@
 © 2026 Octávio Filipe Gonçalves
 Callsign: CT7BFV
 License: GNU AGPL-3.0 (https://www.gnu.org/licenses/agpl-3.0.html)
-Last update: 2026-05-13 UTC
+Last update: 2026-05-17 UTC
 -->
 
 # 4HAM Remote Operation — User Manual
@@ -24,6 +24,9 @@ Last update: 2026-05-13 UTC
    - [PTT and Transmission](#ptt-and-transmission)
 5. [RX Audio — Listening to the Radio](#5-rx-audio--listening-to-the-radio)
 6. [TX Audio — Transmitting SSB Voice](#6-tx-audio--transmitting-ssb-voice)
+   - [DSP on the Pi](#dsp-on-the-pi)
+   - [Audio Settings](#audio-settings)
+   - [TX Post-DSP Monitor](#tx-post-dsp-monitor)
 7. [Waterfall and Spectrum](#7-waterfall-and-spectrum)
    - [Spectrum Panel](#spectrum-panel)
    - [AF Waterfall](#af-waterfall)
@@ -88,7 +91,7 @@ You control the physical transceiver (frequency, mode, PTT) and send/receive aud
 The address is provided by the station administrator. Typical format:
 
 ```
-https://<address>:8000/
+https://<address>:8001/
 ```
 
 On first visit, the browser may warn about a self-signed certificate. Click **Advanced** (or equivalent) to proceed.
@@ -181,6 +184,47 @@ The **TX/RX** badge at the top of the interface shows the current state.
 5. Click **TX HOLD** again to release PTT.
 
 > **Safety timeout:** If the WebRTC connection drops during TX, PTT is released automatically within 500 ms.
+
+> **RX muting during TX:** While PTT is active, the receive audio is automatically silenced on the server. This eliminates acoustic echo (headphones/speakers → microphone → radio TX) without any additional configuration. RX audio resumes immediately on PTT release.
+
+### DSP on the Pi
+
+Voice audio captured by the microphone is sent to the Pi via WebRTC and processed before reaching the radio. The processing chain applied (in order) is:
+
+| Stage | Type | Parameters |
+|---|---|---|
+| HPF | High-pass filter | 200 Hz — removes low-frequency noise |
+| Bell EQ | Cut | −6 dB @ 350 Hz — reduces male voice boxiness |
+| Bell EQ | Boost | +3 dB @ 2200 Hz — improves SSB intelligibility |
+| LPF | Low-pass filter | 3200 Hz — standard SSB bandwidth |
+| Expander | Downward expander | Reduces level when voice is below threshold (background suppression) |
+
+This processing is always applied when PTT is active, regardless of the monitoring mode selected.
+
+### Audio Settings
+
+The **⚙ Audio** button (or similar) opens a popup with TX audio configuration options:
+
+| Option | Description |
+|---|---|
+| **Microphone device** | Select the microphone to use for TX |
+| **TX Post-DSP Monitor** | See section below |
+
+### TX Post-DSP Monitor
+
+The **TX Post-DSP Monitor** checkbox in the Audio popup lets you hear the exact signal that reached the radio after all DSP processing.
+
+**How it works:**
+- During PTT, the Pi streams processed audio frames to the browser via WebSocket (`/ws/tx-monitor`)
+- The browser does *not* play them during transmission (which would cause echo)
+- When **PTT is released**, the browser immediately plays back all accumulated frames in sequence
+
+**What it is for:**
+- Checking transmitted signal quality (EQ, expander level)
+- Diagnosing audio problems without needing another operator
+- Confirming voice sounds correct before a QSO
+
+> The TX Post-DSP Monitor **does not cause echo** because audio is played back only after PTT is released and the microphone is deactivated.
 
 ---
 
@@ -285,6 +329,20 @@ Click **Log QSO** to save the record.
 - Confirm that mode is USB or LSB (AM/FM/CW modes have restrictions for microphone TX)
 - Check that the browser has microphone permission
 - Confirm that the antenna is connected to the radio
+
+### Echo reported by the other operator
+
+The system automatically mutes RX audio during TX to eliminate echo. If echo persists:
+
+1. Confirm that **TX Post-DSP Monitor** is disabled during the actual QSO (diagnostic tool only)
+2. Check that no other audio device is playing sound near the microphone
+3. Disconnect and reconnect the WebRTC session
+
+### TX Post-DSP Monitor produces no audio
+
+- Confirm the checkbox is active before pressing PTT
+- Check the browser console (F12 → Console) for "[TX Monitor] primeiro frame"
+- Audio is only played **after releasing PTT** — this is expected behaviour
 
 ### Browser shows security warning for certificate
 

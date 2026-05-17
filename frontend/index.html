@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#11161a" />
   <title>4ham Remote Operation</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260515e" />
 </head>
 <body data-connection-state="disconnected" data-ptt-state="rx" data-knob-active="false">
   <main class="radio-shell">
@@ -39,6 +39,27 @@
             <span class="status-module__label">PTT</span>
             <span id="ptt-badge" class="badge badge--rx">RX</span>
           </div>
+          <button id="btn-rig-connect" class="btn-rig-connect" type="button" data-i18n="btn_rig_connect_off">Connect to Radio</button>
+          <button id="btn-audio-settings" class="btn-audio-settings" type="button" aria-label="Audio settings" title="Audio settings" data-i18n-aria="btn_audio_settings_aria" data-i18n-title="btn_audio_settings_title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                 width="14" height="14" aria-hidden="true">
+              <rect x="9" y="2" width="6" height="11" rx="3"/>
+              <path d="M5 10a7 7 0 0 0 14 0"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="8" y1="22" x2="16" y2="22"/>
+            </svg>
+          </button>
+          <button id="btn-rig-settings" class="btn-rig-settings" type="button" aria-label="Radio settings" title="Radio Settings (NB, PROC, MIC…)" data-i18n-aria="btn_rig_settings_aria" data-i18n-title="btn_rig_settings_title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                 width="14" height="14" aria-hidden="true">
+              <line x1="12" y1="2" x2="12" y2="7"/>
+              <path d="M8 5 Q4 8 4 13 Q4 18 8 21"/><path d="M16 5 Q20 8 20 13 Q20 18 16 21"/>
+              <path d="M10 9 Q8 11 8 13 Q8 15 10 17"/><path d="M14 9 Q16 11 16 13 Q16 15 14 17"/>
+              <circle cx="12" cy="13" r="1.5" fill="currentColor"/>
+            </svg>
+          </button>
           <button id="lang-toggle" class="lang-toggle" type="button">EN</button>
         </div>
       </header>
@@ -159,56 +180,136 @@
                     <strong data-audio-readout>Em espera</strong>
                   </div>
 
-                  <p class="block-copy" data-i18n="block_copy_audio">RX link, TX hold e controlo rápido.</p>
-
-                  <div class="button-stack">
-                    <button id="btn-connect" class="panel-button panel-button--primary" data-i18n="btn_connect">Ligar RX</button>
-                    <button id="btn-disconnect" class="panel-button" disabled data-i18n="btn_disconnect">Desligar</button>
-                    <button id="btn-tx" class="panel-button panel-button--tx" type="button">EMISSÃO</button>
-                  </div>
-
-                  <div class="volume-row">
-                    <label class="hardware-label" for="rx-volume">Vol</label>
-                    <input id="rx-volume" type="range" min="0" max="300" value="100" step="5" class="volume-slider">
-                    <span id="rx-volume-val" class="volume-val">100%</span>
+                  <!-- grelha 2×2: botões | RF / vol+vox | knob -->
+                  <div class="audio-block-body">
+                    <!-- [1,1] botões TX -->
+                    <div class="audio-block-tx-top">
+                      <div class="button-stack">
+                        <button id="btn-connect" class="panel-button panel-button--primary" data-i18n="btn_connect">Ligar RX</button>
+                        <button id="btn-disconnect" class="panel-button" disabled data-i18n="btn_disconnect">Desligar</button>
+                        <button id="btn-tx" class="panel-button panel-button--tx" type="button" data-i18n="btn_tx_hold">EMISSÃO</button>
+                      </div>
+                    </div>
+                    <!-- [1,2] RF controls -->
+                    <div class="audio-block-rf-top">
+                      <span class="rf-section-label">RF · FT-991A</span>
+                      <div class="rf-grid">
+                        <div class="rf-row">
+                          <span class="hardware-label" id="lbl-preamp">IPO</span>
+                          <select id="rig-preamp" class="rf-select" title="Pré-amplificador">
+                            <option value="0" selected>IPO</option>
+                          </select>
+                        </div>
+                        <div class="rf-row">
+                          <span class="hardware-label">ATT</span>
+                          <select id="rig-att" class="rf-select" title="Atenuador">
+                            <option value="0" selected>OFF</option>
+                          </select>
+                        </div>
+                        <div class="rf-row">
+                          <span class="hardware-label">AGC</span>
+                          <select id="rig-agc" class="rf-select" title="AGC">
+                            <option value="FAST">FAST</option>
+                            <option value="MID" selected>MID</option>
+                            <option value="SLOW">SLOW</option>
+                            <option value="AUTO">AUTO</option>
+                          </select>
+                        </div>
+                        <div class="rf-slider-row">
+                          <span class="hardware-label">RF</span>
+                          <input type="range" class="rf-slider" id="rf-power" min="5" max="100" value="100">
+                          <span class="rf-val" id="rf-power-val">100 W</span>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- [2,1] VOL + VOX centrado -->
+                    <div class="audio-block-tx-bottom">
+                      <div class="volume-row">
+                        <label class="hardware-label" for="rx-volume">Vol</label>
+                        <input id="rx-volume" type="range" min="0" max="400" value="100" step="5" class="volume-slider">
+                        <span id="rx-volume-val" class="volume-val">100%</span>
+                      </div>
+                      <div class="vox-row">
+                        <button id="btn-vox" class="panel-button panel-button--vox" type="button" data-i18n="btn_vox">VOX</button>
+                        <label class="hardware-label" for="vox-threshold" data-i18n="vox_sens_label">Sens</label>
+                        <input id="vox-threshold" type="range" min="1" max="50" value="15" step="1" class="volume-slider">
+                        <span id="vox-level" class="vox-level-bar" title="nível mic"></span>
+                      </div>
+                      <div class="vox-row">
+                        <label class="hardware-label" for="mic-pc-gain">Mic PC Gain</label>
+                        <input id="mic-pc-gain" type="range" min="0" max="200" value="100" step="5" class="volume-slider" title="Ganho do microfone local (sinal enviado ao rádio)">
+                        <span id="mic-pc-gain-val" class="volume-val">100%</span>
+                      </div>
+                      <div class="vox-row">
+                        <button id="btn-mon-local" class="panel-button panel-button--vox" type="button">Local Monitor</button>
+                        <button id="btn-mon-radio" class="panel-button panel-button--vox" type="button">Radio Monitor</button>
+                      </div>
+                    </div>
+                    <!-- [2,2] Knob VFO centrado -->
+                    <div class="audio-block-rf-bottom">
+                      <button id="vfo-knob" class="vfo-knob" type="button" data-i18n-aria="vfo_knob_aria" aria-label="Knob de sintonização principal">
+                        <span class="vfo-knob__ring vfo-knob__ring--outer"></span>
+                        <span class="vfo-knob__ring vfo-knob__ring--mid"></span>
+                        <span class="vfo-knob__face"></span>
+                        <span class="vfo-knob__marker"></span>
+                        <span class="vfo-knob__cap"></span>
+                      </button>
+                      <p class="knob-caption" data-i18n="knob_caption">VFO · arrasta ou wheel</p>
+                    </div>
                   </div>
                 </section>
               </div>
 
-              <section class="hardware-block knob-block">
+              <!-- Plano de Banda -->
+              <section class="hardware-block band-plan-block">
                 <div class="block-title">
-                  <span class="hardware-label" data-i18n="vfo_knob_label">VFO Principal</span>
-                  <strong data-step-readout>100 Hz</strong>
+                  <span class="hardware-label" data-i18n="band_plan_label">Plano de Bandas</span>
+                  <strong>HF</strong>
                 </div>
-
-                <button id="vfo-knob" class="vfo-knob" type="button" data-i18n-aria="vfo_knob_aria" aria-label="Knob de sintonização principal">
-                  <span class="vfo-knob__ring vfo-knob__ring--outer"></span>
-                  <span class="vfo-knob__ring vfo-knob__ring--mid"></span>
-                  <span class="vfo-knob__face"></span>
-                  <span class="vfo-knob__marker"></span>
-                  <span class="vfo-knob__cap"></span>
-                </button>
-
-                <p class="knob-caption" data-i18n="knob_caption">Arrasta em arco, clique lateral ou wheel.</p>
+                <div class="info-stack band-plan-list">
+                  <article class="band-row" data-band="160m">
+                    <strong>160 m</strong>
+                    <span>1.810 - 2.000 MHz</span>
+                    <small data-i18n="band_160m_desc">Banda de inverno, propagação nocturna</small>
+                  </article>
+                  <article class="band-row" data-band="80m">
+                    <strong>80 m</strong>
+                    <span>3.500 - 3.800 MHz</span>
+                    <small data-i18n="band_80m_desc">CW, digital e SSB regional</small>
+                  </article>
+                  <article class="band-row" data-band="40m">
+                    <strong>40 m</strong>
+                    <span>7.000 - 7.200 MHz</span>
+                    <small data-i18n="band_40m_desc">DX, nets e operação geral</small>
+                  </article>
+                  <article class="band-row" data-band="20m">
+                    <strong>20 m</strong>
+                    <span>14.000 - 14.350 MHz</span>
+                    <small data-i18n="band_20m_desc">DX de longo curso e digital</small>
+                  </article>
+                  <article class="band-row" data-band="17m">
+                    <strong>17 m</strong>
+                    <span>18.068 - 18.168 MHz</span>
+                    <small data-i18n="band_17m_desc">WARC, sem contestos, DX consistente</small>
+                  </article>
+                  <article class="band-row" data-band="15m">
+                    <strong>15 m</strong>
+                    <span>21.000 - 21.450 MHz</span>
+                    <small data-i18n="band_15m_desc">Boa abertura diurna</small>
+                  </article>
+                  <article class="band-row" data-band="12m">
+                    <strong>12 m</strong>
+                    <span>24.890 - 24.990 MHz</span>
+                    <small data-i18n="band_12m_desc">WARC, abertura solar, pouco tráfego</small>
+                  </article>
+                  <article class="band-row" data-band="10m">
+                    <strong>10 m</strong>
+                    <span>28.000 - 29.700 MHz</span>
+                    <small data-i18n="band_10m_desc">Propagação variável e FM alta</small>
+                  </article>
+                </div>
               </section>
 
-              <section class="hardware-block step-block">
-                <div class="block-title">
-                  <span class="hardware-label" data-i18n="tuning_tools_label">Ferramentas de Sintonia</span>
-                  <strong data-step-caption>Dígito 100 Hz seleccionado</strong>
-                </div>
-
-                <p class="block-copy" data-i18n="step_copy">Escolhe o passo activo e combina-o com os botões rápidos do VFO.</p>
-
-                <div class="step-grid">
-                  <button type="button" class="step-btn" data-step="10">10 Hz</button>
-                  <button type="button" class="step-btn is-active" data-step="100">100 Hz</button>
-                  <button type="button" class="step-btn" data-step="1000">1 kHz</button>
-                  <button type="button" class="step-btn" data-step="10000">10 kHz</button>
-                  <button type="button" class="step-btn" data-step="100000">100 kHz</button>
-                  <button type="button" class="step-btn" data-step="1000000">1 MHz</button>
-                </div>
-              </section>
             </aside>
           </div>
         </section>
@@ -241,7 +342,7 @@
             <div class="form-grid">
               <label class="form-field">
                 <span class="form-label" data-i18n="form_callsign">Indicativo</span>
-                <input class="log-input" type="text" name="callsign" placeholder="CT1ABC" />
+                <input id="qso-callsign" class="log-input" type="text" name="callsign" placeholder="CT1ABC" />
               </label>
 
               <label class="form-field">
@@ -266,54 +367,43 @@
 
               <label class="form-field">
                 <span class="form-label" data-i18n="form_rst_sent">RST Enviado</span>
-                <input class="log-input" type="text" name="rst-sent" placeholder="59" />
+                <input id="qso-rst-sent" class="log-input" type="text" name="rst-sent" placeholder="59" />
               </label>
 
               <label class="form-field">
                 <span class="form-label" data-i18n="form_rst_rx">RST RX</span>
-                <input class="log-input" type="text" name="rst-rx" placeholder="59" />
+                <input id="qso-rst-rx" class="log-input" type="text" name="rst-rx" placeholder="59" />
               </label>
 
               <label class="form-field form-field--full">
                 <span class="form-label" data-i18n="form_notes">Notas</span>
-                <textarea class="log-textarea" name="notes" rows="4" placeholder="Locator, nome, potência, observações..."></textarea>
+                <textarea id="qso-notes" class="log-textarea" name="notes" rows="4" placeholder="Locator, nome, potência, observações..."></textarea>
               </label>
+            </div>
+            <div class="qso-log-actions">
+              <button id="btn-log-qso" class="panel-button" type="button" data-i18n="btn_log_qso">Registar QSO</button>
             </div>
           </section>
 
-          <section class="hardware-block band-plan-block">
+          <section class="hardware-block recent-qso-block">
             <div class="block-title">
-              <span class="hardware-label" data-i18n="band_plan_label">Plano de Bandas</span>
-              <strong>HF</strong>
+              <span class="hardware-label" data-i18n="recent_qso_label">Últimos QSOs</span>
+              <strong id="recent-qso-count">—</strong>
             </div>
-
-            <div class="info-stack band-plan-list">
-              <article class="band-row" data-band="80m">
-                <strong>80 m</strong>
-                <span>3.500 - 3.800 MHz</span>
-                <small data-i18n="band_80m_desc">CW, digital e SSB regional</small>
-              </article>
-              <article class="band-row" data-band="40m">
-                <strong>40 m</strong>
-                <span>7.000 - 7.200 MHz</span>
-                <small data-i18n="band_40m_desc">DX, nets e operação geral</small>
-              </article>
-              <article class="band-row" data-band="20m">
-                <strong>20 m</strong>
-                <span>14.000 - 14.350 MHz</span>
-                <small data-i18n="band_20m_desc">DX de longo curso e digital</small>
-              </article>
-              <article class="band-row" data-band="15m">
-                <strong>15 m</strong>
-                <span>21.000 - 21.450 MHz</span>
-                <small data-i18n="band_15m_desc">Boa abertura diurna</small>
-              </article>
-              <article class="band-row" data-band="10m">
-                <strong>10 m</strong>
-                <span>28.000 - 29.700 MHz</span>
-                <small data-i18n="band_10m_desc">Propagação variável e FM alta</small>
-              </article>
-            </div>
+            <table class="recent-qso-table" id="recent-qso-table">
+              <thead>
+                <tr>
+                  <th data-i18n="form_callsign">Indicativo</th>
+                  <th data-i18n="form_band">Banda</th>
+                  <th data-i18n="form_mode">Modo</th>
+                  <th data-i18n="form_utc">UTC</th>
+                  <th>RST</th>
+                </tr>
+              </thead>
+              <tbody id="recent-qso-body">
+                <tr><td colspan="5" class="recent-qso-empty" data-i18n="recent_qso_empty">Nenhum QSO registado</td></tr>
+              </tbody>
+            </table>
           </section>
         </aside>
       </section>
@@ -322,7 +412,129 @@
     </section>
   </main>
 
-  <script src="i18n.js"></script>
-  <script src="app.js"></script>
+  <!-- ── Modal: Radio Settings (NB, PROC, MIC…) ─────────────────────────── -->
+  <dialog id="dlg-rig-settings" class="rig-settings-dialog">
+    <div class="rig-settings-dialog__body">
+      <h2 class="rig-settings-dialog__title" data-i18n="rig_settings_title">Radio Settings</h2>
+
+      <div class="rsd-section">
+        <div class="rsd-row">
+          <span class="rsd-label">NB</span>
+          <select id="rig-nb" class="rsd-select">
+            <option value="0" selected>OFF</option>
+            <option value="1">ON</option>
+          </select>
+        </div>
+        <div class="rsd-row">
+          <span class="rsd-label" data-i18n="rsd_nb_level">NB Level</span>
+          <input type="range" class="rsd-slider" id="rig-nb-level" min="0" max="100" value="50">
+          <span class="rsd-val" id="rig-nb-level-val">50%</span>
+        </div>
+      </div>
+
+      <div class="rsd-section">
+        <div class="rsd-row">
+          <span class="rsd-label">PROC</span>
+          <select id="rig-proc" class="rsd-select">
+            <option value="0" selected>OFF</option>
+            <option value="1">ON</option>
+          </select>
+        </div>
+        <div class="rsd-row">
+          <span class="rsd-label" data-i18n="rsd_proc_level">PROC Lvl</span>
+          <input type="range" class="rsd-slider" id="rig-proc-level" min="0" max="100" value="50">
+          <span class="rsd-val" id="rig-proc-level-val">50%</span>
+        </div>
+      </div>
+
+      <div class="rsd-section">
+        <div class="rsd-row">
+          <span class="rsd-label" data-i18n="rsd_mic_gain">MIC Gain</span>
+          <input type="range" class="rsd-slider" id="rig-mic-gain" min="0" max="100" value="50">
+          <span class="rsd-val" id="rig-mic-gain-val">50%</span>
+        </div>
+      </div>
+
+      <div class="rsd-section">
+        <div class="rsd-row">
+          <span class="rsd-label" data-i18n="rsd_width">WIDTH</span>
+          <select id="rig-width" class="rsd-select">
+            <option value="NARROW">NARROW</option>
+            <option value="MID">MID</option>
+            <option value="WIDE">WIDE</option>
+            <option value="AUTO" selected>AUTO</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="rsd-actions">
+        <button class="rsd-btn-cancel" id="rsd-cancel" type="button" data-i18n="rsd_cancel">Cancelar</button>
+        <button class="rsd-btn-apply" id="rsd-apply" type="button" data-i18n="audio_settings_apply">Aplicar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ── Modal: configuração de áudio ──────────────────────────────────── -->
+  <dialog id="dlg-audio-settings" class="audio-settings-dialog">
+    <div class="audio-settings-dialog__body">
+      <h2 class="audio-settings-dialog__title" data-i18n="audio_settings_title">Áudio</h2>
+
+      <label class="audio-settings-dialog__label" for="sel-mic" data-i18n="audio_settings_mic">Microfone (TX)</label>
+      <select id="sel-mic" class="audio-settings-dialog__select"></select>
+
+      <label class="audio-settings-dialog__label" for="sel-output" data-i18n="audio_settings_output">Saída de áudio (RX)</label>
+      <select id="sel-output" class="audio-settings-dialog__select"></select>
+
+      <div class="audio-settings-dialog__tx-monitor-row">
+        <label class="audio-settings-dialog__tx-monitor-label">
+          <input id="chk-tx-monitor" type="checkbox">
+          Monitor TX pós-DSP
+        </label>
+        <span class="audio-settings-dialog__tx-monitor-hint">Ouve o sinal exacto que chega ao rádio (EQ + expander do Pi). Apenas durante TX.</span>
+      </div>
+
+      <div class="audio-settings-dialog__actions">
+        <button id="dlg-audio-apply" class="audio-settings-dialog__btn" type="button" data-i18n="audio_settings_apply">Aplicar</button>
+        <button id="dlg-audio-close" class="audio-settings-dialog__dismiss" type="button" data-i18n="audio_settings_close">Fechar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ── Overlay: a ligar ao rádio (visível até ao primeiro poll) ───────── -->
+  <div id="connecting-overlay" class="connecting-overlay" role="status" aria-live="polite">
+    <div class="connecting-overlay__content">
+      <div class="connecting-overlay__spinner" aria-hidden="true"></div>
+      <p class="connecting-overlay__msg" data-i18n="connecting_title">A ligar ao rádio…</p>
+    </div>
+  </div>
+
+  <!-- ── Modal: rádio desligado ─────────────────────────────────────────── -->
+  <dialog id="dlg-rig-offline" class="rig-offline-dialog">
+    <div class="rig-offline-dialog__body">
+      <div class="rig-offline-dialog__icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+             width="48" height="48">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h2 class="rig-offline-dialog__title" data-i18n="rig_offline_title">Rádio desligado</h2>
+      <p class="rig-offline-dialog__text" data-i18n="rig_offline_body">
+        Não foi possível ligar ao transceptor.<br>
+        Ligue o rádio e clique em <strong data-i18n="btn_rig_connect_off">Ligar ao Rádio</strong>.
+      </p>
+      <button id="dlg-btn-connect" class="rig-offline-dialog__btn" type="button" data-i18n="btn_rig_connect_off">
+        Ligar ao Rádio
+      </button>
+      <button id="dlg-btn-dismiss" class="rig-offline-dialog__dismiss" type="button" data-i18n="rig_offline_dismiss">
+        Fechar
+      </button>
+    </div>
+  </dialog>
+
+  <script src="i18n.js?v=20260515e"></script>
+  <script src="app.js?v=20260517m"></script>
 </body>
 </html>

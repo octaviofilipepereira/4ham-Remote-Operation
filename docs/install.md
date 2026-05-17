@@ -121,12 +121,12 @@ Adapt `-m` and `-r` for your radio. See [radio_profiles.md](radio_profiles.md).
 ```bash
 REMOTE_CONFIG=config/remote_config.yaml \
   .venv/bin/uvicorn backend.app.main:app \
-  --host 0.0.0.0 --port 8000 \
+  --host 0.0.0.0 --port 8001 \
   --ssl-certfile certs/cert.pem \
   --ssl-keyfile certs/key.pem
 ```
 
-Open `https://<server-ip>:8000/` in a browser and log in.
+Open `https://<server-ip>:8001/` in a browser and log in.
 
 ---
 
@@ -193,10 +193,10 @@ sudo usermod -aG dialout $USER
 groups | grep dialout
 ```
 
-### Backend fails to start (port 8000 in use)
+### Backend fails to start (port 8001 in use)
 
 ```bash
-fuser -k 8000/tcp
+fuser -k 8001/tcp
 ```
 
 ---

@@ -2,12 +2,12 @@
 © 2026 Octávio Filipe Gonçalves
 Callsign: CT7BFV
 License: GNU AGPL-3.0 (https://www.gnu.org/licenses/agpl-3.0.html)
-Last update: 2026-05-13 UTC
+Last update: 2026-05-17 UTC
 -->
 
 # 4HAM Remote Operation — REST API Reference
 
-Technical reference for developers. All endpoints are served over HTTPS on port 8000.
+Technical reference for developers. All endpoints are served over HTTPS on port 8001.
 
 ---
 
@@ -129,9 +129,15 @@ Set PTT state.
 **Request body:**
 ```json
 {
-  "ptt": true
+  "enabled": true
 }
 ```
+
+**Request body fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `enabled` | boolean | Desired PTT state (`true` = TX, `false` = RX) |
 
 **Response:**
 ```json
@@ -141,7 +147,9 @@ Set PTT state.
 }
 ```
 
-> ⚠️ PTT remains active until explicitly released (`ptt: false`). The WebRTC session monitors the connection and releases PTT automatically if the connection drops.
+> ⚠️ PTT remains active until explicitly released (`enabled: false`). The WebRTC session monitors the connection and releases PTT automatically if the connection drops.
+
+> **RX muting:** While PTT is active, the server automatically silences the RX audio track sent to the browser. This prevents acoustic echo without requiring any client-side configuration. RX audio resumes immediately on PTT release.
 
 ---
 
@@ -174,7 +182,7 @@ Initiates a WebRTC session for bidirectional audio (RX from radio + TX to radio)
 | Server → Client (RX) | Opus 48 kHz, mono — demodulated audio from the radio's USB Audio CODEC |
 | Client → Server (TX) | Opus 48 kHz, mono — microphone audio sent to radio TX input |
 
-TX audio is only applied to the radio when PTT is active (`/api/rig/ptt` with `ptt: true`).
+TX audio is only applied to the radio when PTT is active (`/api/rig/ptt` with `enabled: true`).
 
 ---
 

@@ -119,8 +119,8 @@ body::before {
 }
 
 .brand-badge {
-  width: 68px;
-  height: 68px;
+  width: 58px;
+  height: 58px;
   display: grid;
   place-items: center;
   border-radius: 16px;
@@ -141,9 +141,9 @@ body::before {
 .mode-slot label,
 .vfo-screen__label-row,
 .meter-scale {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -153,7 +153,7 @@ body::before {
 }
 
 .brand-copy h1 {
-  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  font-size: clamp(1.0rem, 1.4vw, 1.35rem);
   letter-spacing: 0.02em;
 }
 
@@ -178,8 +178,9 @@ body::before {
 
 .status-rack {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
 }
 
@@ -191,57 +192,55 @@ body::before {
 }
 
 .status-module {
-  min-width: 126px;
-  padding: 12px 14px;
-  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0.36em 0.85em;
+  border-radius: 6px;
+  min-width: unset;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 88px;
-  margin-top: 8px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-size: 0.76rem;
+  min-width: unset;
+  margin-top: 0;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: none;
+  background: none;
 }
 
 .badge--disconnected {
-  background: rgba(96, 103, 108, 0.18);
-  color: #d6dde0;
+  color: rgba(180, 190, 196, 0.65);
 }
 
 .badge--connecting {
-  background: rgba(146, 255, 228, 0.12);
   color: var(--teal);
 }
 
 .badge--connected {
-  background: rgba(146, 255, 228, 0.16);
   color: var(--teal);
-  box-shadow: 0 0 18px rgba(146, 255, 228, 0.12);
 }
 
 .badge--error,
 .badge--tx {
-  background: rgba(255, 132, 117, 0.18);
-  color: #ffd5cf;
+  color: #ff9f96;
 }
 
 .badge--rx {
-  background: rgba(247, 196, 109, 0.16);
-  color: #fff0d3;
+  color: var(--amber, #f7c46d);
 }
 
 .radio-main {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(180px, 0.42fr) minmax(300px, 1.0fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(120px, 0.30fr) minmax(160px, 0.65fr);
   gap: clamp(10px, 1.5vw, 18px);
 }
 
@@ -253,6 +252,12 @@ body::before {
   min-height: 0;
   display: grid;
   gap: clamp(10px, 1.5vh, 16px);
+  isolation: isolate;
+}
+
+.dx-column,
+.log-column {
+  overflow: hidden;
 }
 
 .control-column {
@@ -267,11 +272,12 @@ body::before {
 .control-workbench {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.72fr);
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   gap: clamp(10px, 1.5vw, 16px);
 }
 
 .tuning-panel {
+  min-width: 0;
   grid-template-rows: auto auto auto;
   align-content: start;
 }
@@ -389,7 +395,8 @@ body::before {
 
 .freq-ruler__spot-call {
   font-family: var(--display-font);
-  font-size: 0.78rem;
+  font-size: 0.92rem;
+  font-weight: 700;
   color: var(--teal);
   white-space: nowrap;
   overflow: hidden;
@@ -428,12 +435,13 @@ body::before {
 }
 
 .log-column {
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
 }
 
 .hardware-block {
   padding: 14px;
   border-radius: var(--radius-lg);
+  min-width: 0;
 }
 
 .hardware-block--compact {
@@ -481,6 +489,7 @@ body::before {
 .step-block,
 .knob-block,
 .qso-block,
+.recent-qso-block,
 .band-plan-block,
 .dx-block {
   display: flex;
@@ -669,6 +678,294 @@ body::before {
   border-color: rgba(255, 255, 255, 0.45);
 }
 
+/* ── Botão Audio Settings ───────────────────────────────────────────────── */
+.btn-audio-settings {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.45);
+  padding: 0.28em 0.55em;
+  border-radius: 3px;
+  cursor: pointer;
+  align-self: center;
+  line-height: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-audio-settings:hover {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Dialog: configuração de áudio ─────────────────────────────────────── */
+.audio-settings-dialog {
+  background: #1a1f2b;
+  border: 1px solid var(--amber, #f7c46d);
+  border-radius: 10px;
+  padding: 0;
+  color: var(--text, #c8d4dc);
+  max-width: 340px;
+  width: 92vw;
+}
+.audio-settings-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(3px);
+}
+.audio-settings-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.5rem 1.6rem 1.3rem;
+}
+.audio-settings-dialog__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--amber, #f7c46d);
+  margin: 0 0 0.4rem;
+  letter-spacing: 0.04em;
+}
+.audio-settings-dialog__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(200, 212, 220, 0.65);
+  margin-top: 0.3rem;
+}
+.audio-settings-dialog__select {
+  background: #0d1117;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text, #c8d4dc);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.4em 0.6em;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+}
+.audio-settings-dialog__select:focus {
+  outline: 1px solid var(--amber, #f7c46d);
+}
+.audio-settings-dialog__tx-monitor-row {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.audio-settings-dialog__tx-monitor-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-primary, #cdd6f4);
+  cursor: pointer;
+}
+.audio-settings-dialog__tx-monitor-label input[type="checkbox"] {
+  accent-color: var(--amber, #f7c46d);
+  width: 1rem;
+  height: 1rem;
+}
+.audio-settings-dialog__tx-monitor-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted, #8899aa);
+  margin-left: 1.5rem;
+}
+
+.audio-settings-dialog__actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.audio-settings-dialog__btn {
+  flex: 1;
+  background: var(--amber, #f7c46d);
+  color: #0d1117;
+  border: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.5em 1em;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.audio-settings-dialog__btn:hover { opacity: 0.85; }
+.audio-settings-dialog__dismiss {
+  flex: 1;
+  background: none;
+  border: 1px solid rgba(200, 212, 220, 0.25);
+  color: rgba(200, 212, 220, 0.6);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.5em 1em;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.audio-settings-dialog__dismiss:hover {
+  color: rgba(200, 212, 220, 0.9);
+  border-color: rgba(200, 212, 220, 0.5);
+}
+
+
+.btn-rig-connect {
+  align-self: center;
+  padding: 0.38em 0.9em;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  /* estado padrão: rádio desligado — destaque âmbar */
+  background: rgba(247, 196, 109, 0.12);
+  color: var(--amber, #f7c46d);
+  border: 1px solid rgba(247, 196, 109, 0.45);
+  box-shadow: 0 0 8px rgba(247, 196, 109, 0.18);
+}
+.btn-rig-connect:hover {
+  background: rgba(247, 196, 109, 0.22);
+  border-color: rgba(247, 196, 109, 0.75);
+  box-shadow: 0 0 14px rgba(247, 196, 109, 0.35);
+}
+.btn-rig-connect:active {
+  background: rgba(247, 196, 109, 0.30);
+}
+.btn-rig-connect:disabled {
+  cursor: default;
+  opacity: 0.55;
+  box-shadow: none;
+}
+/* estado: rádio ligado — subtil verde */
+.btn-rig-connect.is-connected {
+  background: rgba(146, 255, 228, 0.08);
+  color: var(--teal, #92ffe4);
+  border-color: rgba(146, 255, 228, 0.28);
+  box-shadow: none;
+}
+.btn-rig-connect.is-connected:hover {
+  background: rgba(146, 255, 228, 0.15);
+  border-color: rgba(146, 255, 228, 0.5);
+}
+
+/* ── Modal rádio offline ──────────────────────────────────────────────────── */
+.rig-offline-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(420px, 92vw);
+  padding: 0;
+  border: 1px solid rgba(247, 196, 109, 0.35);
+  border-radius: 16px;
+  background: #161b20;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(255,255,255,0.04);
+  color: #e0e8ee;
+}
+.rig-offline-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+}
+.rig-offline-dialog__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 36px 32px 28px;
+  text-align: center;
+}
+.rig-offline-dialog__icon {
+  color: var(--amber, #f7c46d);
+  opacity: 0.9;
+}
+.rig-offline-dialog__title {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--amber, #f7c46d);
+}
+.rig-offline-dialog__text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: rgba(200, 215, 224, 0.82);
+}
+.rig-offline-dialog__text strong {
+  color: #e0e8ee;
+}
+.rig-offline-dialog__btn {
+  margin-top: 6px;
+  width: 100%;
+  padding: 0.75em 1.2em;
+  border-radius: 8px;
+  border: 1px solid rgba(247, 196, 109, 0.5);
+  background: rgba(247, 196, 109, 0.14);
+  color: var(--amber, #f7c46d);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+}
+.rig-offline-dialog__btn:hover {
+  background: rgba(247, 196, 109, 0.26);
+  border-color: rgba(247, 196, 109, 0.8);
+}
+.rig-offline-dialog__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.rig-offline-dialog__dismiss {
+  background: none;
+  border: none;
+  color: rgba(180, 195, 205, 0.45);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0.2em 0.5em;
+  transition: color 0.15s;
+}
+.rig-offline-dialog__dismiss:hover {
+  color: rgba(180, 195, 205, 0.85);
+}
+
+/* ── Overlay: a ligar ao rádio ──────────────────────────────────────────── */
+.connecting-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg, #0d1117);
+  z-index: 9000;
+}
+.connecting-overlay[hidden] { display: none; }
+.connecting-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+.connecting-overlay__spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(146, 255, 228, 0.2);
+  border-top-color: var(--teal, #92ffe4);
+  border-radius: 50%;
+  animation: connecting-spin 0.9s linear infinite;
+}
+@keyframes connecting-spin {
+  to { transform: rotate(360deg); }
+}
+.connecting-overlay__msg {
+  color: var(--teal, #92ffe4);
+  font-size: 1rem;
+  opacity: 0.8;
+  letter-spacing: 0.03em;
+}
+
 .volume-row {
   display: flex;
   align-items: center;
@@ -685,7 +982,8 @@ body::before {
 .volume-val {
   font-size: 11px;
   color: var(--text-muted, #8899aa);
-  min-width: 36px;
+  min-width: 16px;
+  text-align: right;
   text-align: right;
 }
 
@@ -756,6 +1054,42 @@ body::before {
   color: #200d0a;
   background: linear-gradient(180deg, #ffd0c4 0%, #ff8e79 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 24px rgba(255, 132, 117, 0.28);
+}
+
+/* ── VOX ──────────────────────────────────────────────────────────────────── */
+.vox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.panel-button--vox {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.45);
+  background: linear-gradient(180deg, #252b30 0%, #161b1f 100%);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.panel-button--vox.is-active {
+  color: #0d1a15;
+  background: linear-gradient(180deg, #92ffe4 0%, #50d4b0 100%);
+  border-color: rgba(146, 255, 228, 0.5);
+  box-shadow: 0 0 14px rgba(146, 255, 228, 0.25);
+}
+
+/* barra de nível mic VOX */
+.vox-level-bar {
+  display: block;
+  width: 36px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #50d4b0 var(--vox-pct, 0%), rgba(255,255,255,0.08) var(--vox-pct, 0%));
+  flex-shrink: 0;
+  transition: --vox-pct 0.05s;
 }
 
 .display-bezel {
@@ -1081,6 +1415,9 @@ body::before {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  align-content: start;
 }
 
 .band-row,
@@ -1112,6 +1449,26 @@ body::before {
   border-color: rgba(247, 196, 109, 0.28);
   background: linear-gradient(180deg, rgba(77, 62, 26, 0.9), rgba(32, 25, 12, 0.96));
   box-shadow: 0 0 0 1px rgba(247, 196, 109, 0.1);
+}
+
+/* Band plan compact 2-column cards */
+.band-plan-list .band-row {
+  padding: 9px 10px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.band-plan-list .band-row strong {
+  font-size: 1.05rem;
+}
+
+.band-plan-list .band-row span {
+  font-size: 0.78rem;
+}
+
+.band-plan-list .band-row small {
+  font-size: 0.7rem;
+  line-height: 1.25;
 }
 
 .spot-list {
@@ -1458,7 +1815,7 @@ body[data-knob-active="true"] .vfo-knob {
   }
 
   .status-module {
-    flex: 1 1 0;
+    flex: unset;
   }
 
   .display-bezel,
@@ -1563,7 +1920,7 @@ body[data-knob-active="true"] .vfo-knob {
   }
 
   .status-module {
-    padding: 10px 12px;
+    padding: 0.36em 0.85em;
   }
 
   .brand-badge {
@@ -1596,6 +1953,299 @@ body[data-knob-active="true"] .vfo-knob {
   .knob-caption {
     font-size: 0.84rem;
   }
+}
+
+/* ====================================================================
+   Audio-block: grelha 2×2 (botões|RF / vol+vox|knob)
+   ==================================================================== */
+
+.audio-block-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  grid-template-rows: auto 1fr;
+  gap: 8px 14px;
+}
+
+.audio-block-tx-top {
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.audio-block-tx-bottom {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.audio-block-tx-top .panel-button {
+  padding: 0.08em 0.5em;
+  font-size: 0.96rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+}
+
+.audio-block-tx-bottom .volume-row .hardware-label,
+.audio-block-tx-bottom .vox-row .hardware-label { font-size: 0.75rem; font-weight: 700; }
+.audio-block-tx-bottom .vox-level-bar { display: none; }
+.audio-block-tx-bottom .volume-val { font-size: 0.75rem; }
+#mic-pc-gain { flex: 0 0 70px; max-width: 132px; }
+
+.audio-block-rf-top {
+  border-left: 1px solid rgba(255,255,255,0.07);
+  padding-left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-self: start;
+}
+
+.audio-block-rf-bottom {
+  border-left: 1px solid rgba(255,255,255,0.07);
+  padding-left: 12px;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  align-self: center;
+}
+
+.audio-block-rf-bottom .vfo-knob {
+  --knob-size: 135px;
+  width: var(--knob-size);
+  height: var(--knob-size);
+}
+
+.audio-block-rf-bottom .knob-caption {
+  font-size: 0.58rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin: 0;
+}
+
+/* ── RF controls (IPO / ATT / AGC / RF power) ─────────────────────── */
+
+.rf-section-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.rf-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.rf-row { display: flex; align-items: center; gap: 6px; }
+
+.rf-row .hardware-label {
+  min-width: 30px;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.rf-select {
+  flex: 1; min-width: 0;
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--teal);
+  font: inherit; font-family: var(--display-font);
+  font-size: 0.82rem; font-weight: 700; letter-spacing: 0.03em;
+  padding: 0.22em 0.4em; border-radius: 4px; cursor: pointer;
+}
+
+.rf-select:focus { outline: 1px solid var(--amber); }
+
+.rf-slider-row { display: flex; align-items: center; gap: 6px; }
+
+.rf-slider-row .hardware-label {
+  min-width: 30px;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.rf-slider { flex: 1; accent-color: var(--teal); cursor: pointer; }
+
+.rf-val {
+  font-family: var(--display-font); font-size: 0.82rem;
+  color: var(--amber); min-width: 34px; text-align: right;
+}
+
+/* ── Botão Radio Settings (header) ───────────────────────────────── */
+
+.btn-rig-settings {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.45);
+  padding: 0.28em 0.55em;
+  border-radius: 3px;
+  cursor: pointer;
+  align-self: center;
+  line-height: 0;
+  transition: color .15s, border-color .15s;
+}
+
+.btn-rig-settings:hover { color: var(--teal); border-color: rgba(146,255,228,0.5); }
+
+/* ── Dialog Radio Settings ─────────────────────────────────────────── */
+
+.rig-settings-dialog {
+  background: #1a1f2b;
+  border: 1px solid var(--teal);
+  border-radius: 12px;
+  padding: 0;
+  color: var(--text);
+  max-width: 520px;
+  width: 94vw;
+}
+
+.rig-settings-dialog::backdrop { background: rgba(0,0,0,0.65); backdrop-filter: blur(3px); }
+
+.rig-settings-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 2rem 2.2rem 1.6rem;
+}
+
+.rig-settings-dialog__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--teal);
+  margin: 0 0 1.4rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.rsd-section {
+  border-top: 1px solid rgba(255,255,255,0.09);
+  padding: .85rem 0;
+  display: grid;
+  gap: .6rem;
+}
+
+.rsd-section:first-of-type { border-top: none; padding-top: 0; }
+
+.rsd-row { display: flex; align-items: center; gap: 12px; }
+
+.rsd-label {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(200,212,220,.6);
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.rsd-select {
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--teal);
+  font: inherit; font-family: var(--display-font);
+  font-size: .92rem; font-weight: 700;
+  padding: .32em .65em;
+  border-radius: 5px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.rsd-select:focus { outline: 1px solid var(--teal); }
+
+.rsd-slider { flex: 1; accent-color: var(--teal); cursor: pointer; height: 6px; }
+
+.rsd-val {
+  font-family: var(--display-font);
+  font-size: .92rem;
+  color: var(--amber);
+  min-width: 44px;
+  text-align: right;
+}
+
+.rsd-actions {
+  display: flex;
+  gap: .8rem;
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.09);
+}
+
+.rsd-btn-apply {
+  flex: 1;
+  background: var(--teal);
+  color: #0d1117;
+  border: none;
+  font: inherit; font-size: .95rem; font-weight: 700;
+  padding: .6em 1em;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rsd-btn-apply:hover { opacity: .85; }
+
+.rsd-btn-cancel {
+  flex: 1;
+  background: none;
+  border: 1px solid rgba(200,212,220,.25);
+  color: rgba(200,212,220,.6);
+  font: inherit; font-size: .95rem;
+  padding: .6em 1em;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rsd-btn-cancel:hover { color: rgba(200,212,220,.9); border-color: rgba(200,212,220,.5); }
+
+/* ── Últimos QSOs ───────────────────────────────────────────────────── */
+
+.recent-qso-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-family: var(--display-font);
+  font-size: 0.72rem;
+}
+
+.recent-qso-table thead th {
+  text-align: left;
+  padding: 3px 4px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.recent-qso-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+.recent-qso-table tbody tr:last-child { border-bottom: none; }
+.recent-qso-table tbody td { padding: 4px 4px; color: var(--text); }
+.recent-qso-table tbody td:first-child { color: var(--amber); font-weight: 700; }
+.recent-qso-table tbody td:nth-child(3) { color: var(--teal); }
+.recent-qso-table tbody td:last-child { color: var(--text-muted); text-align: right; }
+
+.recent-qso-empty {
+  padding: 10px 4px;
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.qso-log-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 0 2px;
 }
 
 @media (max-height: 720px) {
