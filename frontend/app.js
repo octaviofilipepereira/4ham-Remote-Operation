@@ -1671,11 +1671,9 @@ window.addEventListener("keydown", (event) => {
   if (elQsoCallsign) { elQsoCallsign.value = ""; elQsoCallsign.focus(); }
 });
 
-// F8 global — PTT independente do foco, mas não quando o cursor está num input de texto
+// F8 global — PTT independente do foco
 window.addEventListener("keydown", (event) => {
   if (event.key !== "F8" || event.repeat) return;
-  const tag = document.activeElement?.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
   event.preventDefault();
   beginTxHold(event);
 });
