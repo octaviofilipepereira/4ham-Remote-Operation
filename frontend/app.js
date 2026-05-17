@@ -2090,8 +2090,8 @@ loadRecentQsos();
     applyDotState(dot, status.state);
     applyDotState(headerDot, status.state);
     if (status.state === "connected") {
-      activeCall = status.call || status.host || "";
-      statusText.textContent = "Ligado a " + (status.call || status.host);
+      activeCall = status.callsign || status.call || status.host || "";
+      statusText.textContent = "Ligado a " + (status.callsign || status.call || status.host);
       headerDot.title = "Ligado: " + (status.call || status.host);
     } else if (status.state === "connecting") {
       statusText.textContent = "A ligar a " + (status.host || "…");
@@ -2136,6 +2136,7 @@ loadRecentQsos();
       row.innerHTML =
         `<span class="dx-cluster-row__call">${c.call}</span>` +
         `<span class="dx-cluster-row__loc">${c.country} — ${c.location}</span>` +
+        (c.verified ? '<span class="dx-cluster-row__ok" title="Ligação verificada">✓</span>' : "") +
         (c.rbn ? '<span class="dx-cluster-row__rbn">RBN</span>' : "");
 
       row.addEventListener("click", () => connectCluster(c));
@@ -2166,16 +2167,19 @@ loadRecentQsos();
     statusText.textContent = "A ligar a " + c.call + "…";
 
     try {
-      const r = await fetch(`${API}/api/dx/cluster`, {
+      await fetch(`${API}/api/dx/cluster`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ host: c.host, port: c.port, callsign }),
       });
-      const data = await r.json();
-      updateStatusBar(data);
+      /* PUT retorna imediatamente com state=disconnected (task asyncio ainda nao ligou).
+         Nao chamar updateStatusBar aqui — polling faz a actualizacao apos ligacao. */
+      window.setTimeout(() => refreshStatus(), 2000);
+      window.setTimeout(() => refreshStatus(), 6000);
     } catch (err) {
       console.error("[DXCluster] connectCluster:", err);
       applyDotState(headerDot, "error");
+      applyDotState(statusBar.querySelector(".dx-cluster-dot"), "error");
       statusText.textContent = "Erro ao ligar";
     }
   }
