@@ -1259,6 +1259,45 @@ stepButtons.forEach((button) => {
   });
 });
 
+// Plano de Bandas — clicar numa banda sintoniza no início da zona SSB (IARU Região 1)
+// e selecciona o modo correcto: LSB se banda ≤ 7 MHz, USB acima de 7 MHz.
+const BAND_SSB = {
+  "160m": { hz: 1_840_000,  mode: "LSB" },  // 1.840 MHz
+  "80m":  { hz: 3_600_000,  mode: "LSB" },  // 3.600 MHz
+  "40m":  { hz: 7_060_000,  mode: "LSB" },  // 7.060 MHz — banda inicia em 7.000 (= 7000 kHz ≤ 7000 → LSB)
+  "20m":  { hz: 14_125_000, mode: "USB" },  // 14.125 MHz
+  "17m":  { hz: 18_110_000, mode: "USB" },  // 18.110 MHz
+  "15m":  { hz: 21_151_000, mode: "USB" },  // 21.151 MHz
+  "12m":  { hz: 24_930_000, mode: "USB" },  // 24.930 MHz
+  "10m":  { hz: 28_300_000, mode: "USB" },  // 28.300 MHz
+};
+
+bandPlanRows.forEach((row) => {
+  row.style.cursor = "pointer";
+  row.addEventListener("click", async () => {
+    const entry = BAND_SSB[row.dataset.band];
+    if (!entry) return;
+
+    // 1. Frequência
+    applyLocalFrequency(entry.hz, 1000);
+
+    // 2. Modo — actualizar UI e enviar ao rádio
+    if (elMode.value !== entry.mode) {
+      elMode.value = entry.mode;
+      syncModeUI(entry.mode);
+      try {
+        await fetch(`${API}/api/rig/mode`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: entry.mode, passband_hz: 0 }),
+        });
+      } catch (err) {
+        console.error("[4ham] band plan set_mode:", err);
+      }
+    }
+  });
+});
+
 softkeys.forEach((button) => {
   button.addEventListener("click", () => {
     nudgeFrequency(Number(button.dataset.multiplier) * selectedTuneStep, selectedTuneStep);
