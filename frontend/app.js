@@ -2004,24 +2004,16 @@ loadRecentQsos();
     elRuler.scrollTop = Math.max(0, initPx - elRuler.clientHeight / 2);
   }
 
-  function updateCursor(freqHz, autoScroll = false) {
+  function updateCursor(freqHz) {
     if (!rulerBand) return;
     const inBand = freqHz >= rulerBand.lo && freqHz <= rulerBand.hi;
     elCursor.style.display = inBand ? "" : "none";
-    if (!inBand) return;
-    const pct = (freqHz - rulerBand.lo) / (rulerBand.hi - rulerBand.lo);
+    const clampedHz = Math.max(rulerBand.lo, Math.min(rulerBand.hi, freqHz));
+    const pct = (clampedHz - rulerBand.lo) / (rulerBand.hi - rulerBand.lo);
     const px = pct * RULER_PX;
-    /* Auto-scroll: centrar a frequência se saiu da janela visível */
-    if (autoScroll) {
-      const visTop = elRuler.scrollTop;
-      const visBot = visTop + elRuler.clientHeight;
-      if (px < visTop || px > visBot) {
-        elRuler.scrollTop = Math.max(0, px - elRuler.clientHeight / 2);
-      }
-    }
-    /* O cursor é position:absolute no .freq-ruler (scroll container);
-       ajustar top pelo scrollTop para acompanhar o conteúdo visualmente */
-    elCursor.style.top = (px - elRuler.scrollTop).toFixed(1) + 'px';
+    /* O cursor está fora do scroll container (posição CSS top:50% fixa).
+       Apenas movemos o scrollTop para centrar sempre a frequência actual. */
+    elRuler.scrollTop = Math.max(0, px - elRuler.clientHeight / 2);
     if (elCursorLbl) elCursorLbl.textContent = freqToMhzLabel(freqHz);
   }
 
@@ -2034,16 +2026,13 @@ loadRecentQsos();
   buildRuler(initBand);
   updateCursor(currentFrequencyHz);
 
-  /* Actualizar cursor quando o utilizador faz scroll (viewport move, conteúdo fica) */
-  elRuler.addEventListener('scroll', () => updateCursor(lastHz));
-
   /* Re-render quando a frequência muda */
   document.addEventListener("4ham:freqchange", (e) => {
     const hz = e.detail;
     lastHz = hz;
     const band = getBandForFreq(hz);
     if (!rulerBand || band.label !== rulerBand.label) buildRuler(band);
-    updateCursor(hz, true); /* auto-scroll activo quando o VFO muda */
+    updateCursor(hz);
   });
 
   /* Polling periódico para actualizar spots */

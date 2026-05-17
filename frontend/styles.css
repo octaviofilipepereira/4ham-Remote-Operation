@@ -300,12 +300,19 @@ body::before {
 }
 
 /* ── Freq ruler ─────────────────────────────── */
+/* Wrapper: mantém o cursor centrado fora do scroll container */
+.freq-ruler-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 200px;
+  max-height: calc(100dvh - 175px);
+  display: flex;
+  flex-direction: column;
+}
+
 .freq-ruler {
   position: relative;
   flex: 1;
-  /* max-height garante scroll independente da cadeia de pais */
-  min-height: 200px;
-  max-height: calc(100dvh - 175px);
   display: grid;
   grid-template-columns: 58px 1fr;
   border-radius: 12px;
@@ -413,10 +420,12 @@ body::before {
 
 .freq-ruler__cursor {
   position: absolute;
+  top: 50%;               /* sempre a meio do wrapper — não segue o scroll */
   left: 0;
   right: 0;
   pointer-events: none;
   transform: translateY(-50%);
+  z-index: 10;
 }
 
 .freq-ruler__cursor-line {
