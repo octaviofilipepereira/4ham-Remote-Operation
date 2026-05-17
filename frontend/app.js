@@ -1199,7 +1199,7 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
   });
 })();
 
-
+function setRigConnected(connected) {
   if (rigConnected === connected) return;
   rigConnected = connected;
   if (connected) {
