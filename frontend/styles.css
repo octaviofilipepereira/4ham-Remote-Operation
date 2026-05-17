@@ -1387,6 +1387,11 @@ body::before {
   color: var(--text-muted);
 }
 
+#qso-callsign,
+#dx-cluster-callsign {
+  text-transform: uppercase;
+}
+
 .log-input,
 .log-textarea {
   width: 100%;

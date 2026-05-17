@@ -996,19 +996,27 @@ if (btnRsdApply)     btnRsdApply.addEventListener("click", applyRigSettings);
 
 // ── QSO Log ───────────────────────────────────────────────────────────────────
 
+/* Forçar CAPS no campo Indicativo QSO */
+if (elQsoCallsign) elQsoCallsign.addEventListener("input", () => {
+  const s = elQsoCallsign.selectionStart, e = elQsoCallsign.selectionEnd;
+  elQsoCallsign.value = elQsoCallsign.value.toUpperCase();
+  elQsoCallsign.setSelectionRange(s, e);
+});
+
 async function loadRecentQsos() {
   try {
     const r = await fetch(`${API}/api/qso/recent?limit=10`);
     if (!r.ok || !elRecentQsoBody) return;
     const qsos = await r.json();
     if (qsos.length === 0) {
-      elRecentQsoBody.innerHTML = `<tr><td colspan="5" class="recent-qso-empty">${t("recent_qso_empty")}</td></tr>`;
+      elRecentQsoBody.innerHTML = `<tr><td colspan="6" class="recent-qso-empty">${t("recent_qso_empty")}</td></tr>`;
       if (elRecentQsoCount) elRecentQsoCount.textContent = "0";
       return;
     }
     elRecentQsoBody.innerHTML = qsos.map(q => `
       <tr>
         <td>${escapeHtml(q.callsign)}</td>
+        <td>${escapeHtml(q.frequency || "—")}</td>
         <td>${escapeHtml(q.band || "—")}</td>
         <td>${escapeHtml(q.mode || "—")}</td>
         <td>${escapeHtml(q.utc || q.logged_at || "—")}</td>
@@ -2073,6 +2081,13 @@ loadRecentQsos();
   const headerDot    = document.getElementById("dx-cluster-dot");
 
   if (!dlg) return;
+
+  /* Forçar CAPS no callsign do cluster */
+  if (inpCallsign) inpCallsign.addEventListener("input", () => {
+    const s = inpCallsign.selectionStart, e = inpCallsign.selectionEnd;
+    inpCallsign.value = inpCallsign.value.toUpperCase();
+    inpCallsign.setSelectionRange(s, e);
+  });
 
   let allClusters  = [];
   let activeCall   = null; /* call do cluster actualmente ligado */
