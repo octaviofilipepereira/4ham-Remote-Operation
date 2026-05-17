@@ -1261,6 +1261,7 @@ stepButtons.forEach((button) => {
 
 // Plano de Bandas — clicar numa banda sintoniza no início da zona SSB (IARU Região 1)
 // e selecciona o modo correcto: LSB se banda ≤ 7 MHz, USB acima de 7 MHz.
+// Se o utilizador já esteve nessa banda, restaura a última frequência/modo usados.
 const BAND_SSB = {
   "160m": { hz: 1_840_000,  mode: "LSB" },  // 1.840 MHz
   "80m":  { hz: 3_600_000,  mode: "LSB" },  // 3.600 MHz
@@ -1272,11 +1273,45 @@ const BAND_SSB = {
   "10m":  { hz: 28_300_000, mode: "USB" },  // 28.300 MHz
 };
 
+// Memória por banda: { [band]: { hz, mode } } — persiste em localStorage
+const _BAND_MEM_KEY = "4ham_band_memory";
+let bandMemory = (() => {
+  try { return JSON.parse(localStorage.getItem(_BAND_MEM_KEY) || "{}"); }
+  catch { return {}; }
+})();
+
+function saveBandMemory() {
+  try { localStorage.setItem(_BAND_MEM_KEY, JSON.stringify(bandMemory)); } catch { /* quota */ }
+}
+
+// Guardar frequência+modo actuais na memória da banda sempre que a frequência muda
+document.addEventListener("4ham:freqchange", (e) => {
+  const band = getBandLabel(e.detail);
+  if (band && band !== "General" && band !== "") {
+    bandMemory[band] = { hz: e.detail, mode: elMode.value };
+    saveBandMemory();
+  }
+});
+
+// Guardar modo na memória da banda quando o modo muda (sem mudança de frequência)
+elMode.addEventListener("change", () => {
+  const band = getBandLabel(currentFrequencyHz);
+  if (band && band !== "General" && band !== "") {
+    if (bandMemory[band]) bandMemory[band].mode = elMode.value;
+    saveBandMemory();
+  }
+}, /* capture */ true);  // capture=true: executa antes do handler que envia ao rádio
+
 bandPlanRows.forEach((row) => {
   row.style.cursor = "pointer";
   row.addEventListener("click", async () => {
-    const entry = BAND_SSB[row.dataset.band];
-    if (!entry) return;
+    const band = row.dataset.band;
+    const def  = BAND_SSB[band];
+    if (!def) return;
+
+    // Usar memória se existir, caso contrário usar o default SSB da banda
+    const mem   = bandMemory[band];
+    const entry = mem ?? def;
 
     // 1. Frequência
     applyLocalFrequency(entry.hz, 1000);
