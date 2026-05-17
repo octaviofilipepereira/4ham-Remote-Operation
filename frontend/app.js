@@ -19,7 +19,8 @@ let knobAngle = 0;
 let knobDrag = null;
 let txHoldActive = false;
 let micTrack = null;   // MediaStreamTrack do microfone; null se não autorizado
-let localMonitorEl = null;  // <audio> para monitorização local do mic durante TX
+let localMonitorGain = null; // GainNode para sidetone do mic (Web Audio, baixa latência)
+let localMonitorSink = null; // elemento muted como workaround Chrome para getUserMedia
 let localMonitorEnabled = false;  // toggle Monitor local (OFF por defeito)
 let moniRadioEnabled = false;     // toggle MONI Rádio (OFF por defeito)
 let txAudioCtx = null;            // AudioContext para ganho de TX
@@ -1179,18 +1180,26 @@ function beginTxHold(event) {
   if (micTrack) micTrack.enabled = true;
   // Mutar ou não o RX consoante modo MONI Rádio
   if (gainNode) gainNode.gain.value = moniRadioEnabled ? parseInt(elVolume.value, 10) / 100 : 0;
-  // Monitorização local: clone da track (independente do WebRTC) → Audio element
-  if (localMonitorEnabled && micTrack && !localMonitorEl) {
+  // Monitorização local: Web Audio (baixa latência) — evita eco causado pelo buffering de new Audio()
+  if (localMonitorEnabled && audioCtx && micTrack && !localMonitorGain) {
     try {
       const monTrack = micTrack.clone();
       const monStream = new MediaStream([monTrack]);
-      localMonitorEl = new Audio();
-      localMonitorEl.srcObject = monStream;
-      localMonitorEl.volume = 0.8;
-      localMonitorEl.play().catch(e => console.warn('[4ham] monitor local:', e));
+      // Chrome workaround: elem muted para forçar o motor de áudio a puxar o stream
+      localMonitorSink = new Audio();
+      localMonitorSink.srcObject = monStream;
+      localMonitorSink.muted = true;
+      localMonitorSink.play().catch(() => {});
+      // Sidetone via Web Audio API — latência muito inferior a new Audio()
+      const monSrc = audioCtx.createMediaStreamSource(monStream);
+      localMonitorGain = audioCtx.createGain();
+      localMonitorGain.gain.value = 0.8;
+      monSrc.connect(localMonitorGain);
+      localMonitorGain.connect(audioCtx.destination);
     } catch (e) {
       console.warn('[4ham] monitor local erro:', e);
-      localMonitorEl = null;
+      localMonitorGain = null;
+      localMonitorSink = null;
     }
   }
   sendPtt(true);
@@ -1204,11 +1213,15 @@ function endTxHold() {
   setTxButtonState(false);
   if (micTrack) micTrack.enabled = false;
   // Parar monitorização local do mic e libertar o clone
-  if (localMonitorEl) {
-    localMonitorEl.srcObject?.getTracks().forEach(t => t.stop());
-    localMonitorEl.pause();
-    localMonitorEl.srcObject = null;
-    localMonitorEl = null;
+  if (localMonitorGain) {
+    localMonitorGain.disconnect();
+    localMonitorGain = null;
+  }
+  if (localMonitorSink) {
+    localMonitorSink.srcObject?.getTracks().forEach(t => t.stop());
+    localMonitorSink.pause();
+    localMonitorSink.srcObject = null;
+    localMonitorSink = null;
   }
   // Restaurar volume RX após TX
   if (gainNode) gainNode.gain.value = parseInt(elVolume.value, 10) / 100;
