@@ -195,6 +195,9 @@ async def set_ptt(body: SetPTTRequest, request: Request) -> dict:
                     detail=f"PTT negado: {freq} Hz fora das bandas autorizadas",
                 )
 
+        # ── Silenciar RX para eliminar eco acústico durante TX ───────────────
+        peer.set_rx_muted(True)
+
         # ── Timer de TX máximo ────────────────────────────────────────────────
         _cancel_tx_timer(request)
         max_secs: int = getattr(request.app.state, "ptt_max_tx_seconds", 180)
@@ -206,19 +209,32 @@ async def set_ptt(body: SetPTTRequest, request: Request) -> dict:
                 await driver.set_ptt(False)
             except Exception:
                 pass
+            # Restaurar RX ao fim do timer
+            _peer: WebRTCPeer | None = getattr(request.app.state, "webrtc_peer", None)
+            if _peer is not None:
+                _peer.set_rx_muted(False)
             request.app.state.tx_timer = None
 
         request.app.state.tx_timer = asyncio.create_task(_tx_timeout())
 
     else:
-        # PTT OFF — cancelar timer sem verificações adicionais
+        # PTT OFF — restaurar RX e cancelar timer
         _cancel_tx_timer(request)
+        from ..remote.webrtc_peer import WebRTCPeer  # noqa: PLC0415
+        _peer: WebRTCPeer | None = getattr(request.app.state, "webrtc_peer", None)
+        if _peer is not None:
+            _peer.set_rx_muted(False)
 
     try:
         await driver.set_ptt(body.enabled)
     except Exception as exc:
         if body.enabled:
             _cancel_tx_timer(request)
+            # Reverter mute se o CAT falhar
+            from ..remote.webrtc_peer import WebRTCPeer  # noqa: PLC0415
+            _peer2: WebRTCPeer | None = getattr(request.app.state, "webrtc_peer", None)
+            if _peer2 is not None:
+                _peer2.set_rx_muted(False)
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {"ok": True, "ptt": body.enabled}
