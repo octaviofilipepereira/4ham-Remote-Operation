@@ -1273,15 +1273,33 @@ const BAND_SSB = {
   "10m":  { hz: 28_300_000, mode: "USB" },  // 28.300 MHz
 };
 
-// Memória por banda: { [band]: { hz, mode } } — persiste em localStorage
+// Memória por banda: { [band]: { hz, mode } } — persiste no servidor (config/user_prefs.json)
+// localStorage serve apenas como cache imediata enquanto o fetch ainda não respondeu.
 const _BAND_MEM_KEY = "4ham_band_memory";
 let bandMemory = (() => {
   try { return JSON.parse(localStorage.getItem(_BAND_MEM_KEY) || "{}"); }
   catch { return {}; }
 })();
 
+// Carregar do servidor ao arranque (sobrepõe-se ao localStorage se o servidor responder)
+fetch(`${API}/api/prefs/band-memory`)
+  .then(r => r.ok ? r.json() : null)
+  .then(data => { if (data && typeof data === "object") { bandMemory = data; } })
+  .catch(() => { /* servidor indisponível — usar cache local */ });
+
+let _bandMemSaveTimer = null;
 function saveBandMemory() {
+  // cache local imediata
   try { localStorage.setItem(_BAND_MEM_KEY, JSON.stringify(bandMemory)); } catch { /* quota */ }
+  // guardar no servidor com debounce de 1.5 s
+  clearTimeout(_bandMemSaveTimer);
+  _bandMemSaveTimer = setTimeout(() => {
+    fetch(`${API}/api/prefs/band-memory`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(bandMemory),
+    }).catch(() => { /* silenciar erros de rede */ });
+  }, 1500);
 }
 
 // Guardar frequência+modo actuais na memória da banda sempre que a frequência muda

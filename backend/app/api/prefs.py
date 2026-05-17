@@ -61,6 +61,22 @@ def put_audio_prefs(prefs: AudioPrefs) -> AudioPrefs:
     return prefs
 
 
+@router.get("/prefs/band-memory")
+def get_band_memory() -> dict:
+    """Devolver memória de frequência/modo por banda."""
+    data = _load()
+    return data.get("band_memory", {})
+
+
+@router.put("/prefs/band-memory")
+def put_band_memory(body: dict) -> dict:
+    """Guardar memória de frequência/modo por banda."""
+    data = _load()
+    data["band_memory"] = body
+    _save(data)
+    return body
+
+
 @router.get("/setup/ca-cert")
 def download_ca_cert():
     """Descarregar o certificado da CA local para instalar no browser/sistema.
