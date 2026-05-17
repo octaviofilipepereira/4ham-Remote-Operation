@@ -94,6 +94,8 @@ const LOCALES = {
     recent_qso_empty:      "Nenhum QSO registado",
     /* Cluster DX */
     dx_cluster_search_placeholder: "país, call, host…",
+    btn_dx_cluster:                "Clusters",
+    btn_dx_cluster_title:          "Ligar a um cluster DX",
     /* Plano de bandas */
     band_plan_label:       "Plano de Bandas",
     band_160m_desc:        "Banda de inverno, propagação nocturna",
@@ -214,6 +216,8 @@ const LOCALES = {
     recent_qso_empty:      "No QSOs logged",
     /* DX Cluster */
     dx_cluster_search_placeholder: "country, call, host…",
+    btn_dx_cluster:                "Clusters",
+    btn_dx_cluster_title:          "Connect to a DX cluster",
     /* Band plan */
     band_plan_label:       "Band Plan",
     band_160m_desc:        "Winter band, night propagation",
