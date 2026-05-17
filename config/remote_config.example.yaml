@@ -87,3 +87,12 @@ decoders:
     # Direwolf deve estar a correr separadamente
     direwolf_host: "127.0.0.1"
     direwolf_kiss_port: 8001
+
+dx_cluster:
+  # Host do nó DX Cluster a usar (deixar em branco para não ligar)
+  # Exemplos: cq0pax.hamnet.radio | cs5arlc.ampr.org | dxc.k7co.us
+  host: ""
+  port: 7300
+  callsign: "CT7BFV"
+  # Tempo máximo de vida de um spot na cache (minutos)
+  max_spot_age_min: 60

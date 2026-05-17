@@ -1895,19 +1895,7 @@ loadRecentQsos();
     { label: "10 m", lo: 28000000, hi: 29700000 },
   ];
 
-  /* Spots simulados — serão substituídos por dados reais do cluster */
-  const DEMO_SPOTS = [
-    { call: "VK2GR",   freqHz: 14195000, type: "dx"   },
-    { call: "PY5EG",   freqHz: 14225000, type: "dx"   },
-    { call: "ZL2IFB",  freqHz: 14152000, type: "rare" },
-    { call: "EA8TL",   freqHz: 14070000, type: "dx"   },
-    { call: "OH2BH",   freqHz: 14260000, type: "dx"   },
-    { call: "G3LHJ",   freqHz: 14178000, type: ""     },
-    { call: "W6RJ",    freqHz: 14030000, type: ""     },
-    { call: "JA1NVF",  freqHz: 14020000, type: "rare" },
-    { call: "LU5HTV",  freqHz: 14310000, type: "dx"   },
-    { call: "CT1BFV",  freqHz: 14195000, type: ""     },
-  ];
+  const SPOTS_REFRESH_MS = 60_000; /* polling a cada 60 s */
 
   const elRuler     = document.getElementById("freq-ruler");
   const elScale     = document.getElementById("freq-ruler-scale");
@@ -1921,11 +1909,57 @@ loadRecentQsos();
   /* Canvas de altura fixa em px — garante overflow → scroll no contentor */
   const RULER_PX = 1400;
 
-  let rulerBand = null;
-  let lastHz = currentFrequencyHz;
+  let rulerBand  = null;
+  let lastHz      = currentFrequencyHz;
+  let spotsTimer  = null;
 
   function freqToMhzLabel(hz) {
     return (hz / 1e6).toFixed(3);
+  }
+
+  async function loadSpots(band) {
+    try {
+      const bParam = band.label.replace(" ", "");
+      const r = await fetch(`${API}/api/dx/spots?band=${encodeURIComponent(bParam)}&limit=100`);
+      if (!r.ok) return [];
+      return await r.json();
+    } catch {
+      return [];
+    }
+  }
+
+  function renderSpots(band, spots) {
+    /* Ignorar se a banda mudou entretanto */
+    if (!rulerBand || rulerBand.label !== band.label) return;
+    elSpots.innerHTML = "";
+    const span = band.hi - band.lo;
+    spots.forEach(spot => {
+      const freqHz = spot.freq_hz;
+      if (freqHz < band.lo || freqHz > band.hi) return;
+      const px = ((freqHz - band.lo) / span) * RULER_PX;
+      const el = document.createElement("div");
+      el.className = "freq-ruler__spot";
+      el.style.top = px.toFixed(1) + 'px';
+      el.title = spot.dx_call + " — " + freqToMhzLabel(freqHz) + " MHz"
+                 + (spot.comment ? " — " + spot.comment : "");
+      el.style.cursor = "pointer";
+
+      const dot = document.createElement("div");
+      dot.className = "freq-ruler__spot-dot freq-ruler__spot-dot--dx";
+
+      const lbl = document.createElement("span");
+      lbl.className = "freq-ruler__spot-call";
+      lbl.textContent = spot.dx_call;
+
+      el.appendChild(dot);
+      el.appendChild(lbl);
+
+      el.addEventListener("click", () => {
+        applyLocalFrequency(freqHz, 1000);
+      });
+
+      elSpots.appendChild(el);
+    });
   }
 
   function buildRuler(band) {
@@ -1962,41 +1996,29 @@ loadRecentQsos();
       idx++;
     }
 
-    /* Spots */
-    const spots = DEMO_SPOTS.filter(s => s.freqHz >= band.lo && s.freqHz <= band.hi);
-    spots.forEach(spot => {
-      const px = ((spot.freqHz - band.lo) / span) * RULER_PX;
-      const el = document.createElement("div");
-      el.className = "freq-ruler__spot";
-      el.style.top = px.toFixed(1) + 'px';
-      el.title = spot.call + " — " + freqToMhzLabel(spot.freqHz) + " MHz";
-
-      const dot = document.createElement("div");
-      dot.className = "freq-ruler__spot-dot" +
-        (spot.type === "dx" ? " freq-ruler__spot-dot--dx" :
-         spot.type === "rare" ? " freq-ruler__spot-dot--rare" : "");
-
-      const lbl = document.createElement("span");
-      lbl.className = "freq-ruler__spot-call";
-      lbl.textContent = spot.call;
-
-      el.appendChild(dot);
-      el.appendChild(lbl);
-      elSpots.appendChild(el);
-    });
+    /* Spots — carregar do backend de forma assíncrona */
+    loadSpots(band).then(spots => renderSpots(band, spots));
 
     /* Centrar a frequência actual após construir o canvas */
     const initPx = ((lastHz - band.lo) / span) * RULER_PX;
     elRuler.scrollTop = Math.max(0, initPx - elRuler.clientHeight / 2);
   }
 
-  function updateCursor(freqHz) {
+  function updateCursor(freqHz, autoScroll = false) {
     if (!rulerBand) return;
     const inBand = freqHz >= rulerBand.lo && freqHz <= rulerBand.hi;
     elCursor.style.display = inBand ? "" : "none";
     if (!inBand) return;
     const pct = (freqHz - rulerBand.lo) / (rulerBand.hi - rulerBand.lo);
     const px = pct * RULER_PX;
+    /* Auto-scroll: centrar a frequência se saiu da janela visível */
+    if (autoScroll) {
+      const visTop = elRuler.scrollTop;
+      const visBot = visTop + elRuler.clientHeight;
+      if (px < visTop || px > visBot) {
+        elRuler.scrollTop = Math.max(0, px - elRuler.clientHeight / 2);
+      }
+    }
     /* O cursor é position:absolute no .freq-ruler (scroll container);
        ajustar top pelo scrollTop para acompanhar o conteúdo visualmente */
     elCursor.style.top = (px - elRuler.scrollTop).toFixed(1) + 'px';
@@ -2021,8 +2043,13 @@ loadRecentQsos();
     lastHz = hz;
     const band = getBandForFreq(hz);
     if (!rulerBand || band.label !== rulerBand.label) buildRuler(band);
-    updateCursor(hz);
+    updateCursor(hz, true); /* auto-scroll activo quando o VFO muda */
   });
+
+  /* Polling periódico para actualizar spots */
+  spotsTimer = window.setInterval(() => {
+    if (rulerBand) loadSpots(rulerBand).then(spots => renderSpots(rulerBand, spots));
+  }, SPOTS_REFRESH_MS);
 
   /* Re-render no resize */
   new ResizeObserver(() => {

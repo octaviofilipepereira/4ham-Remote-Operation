@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from .api.dx import router as dx_router
 from .api.prefs import router as prefs_router
 from .api.qso import router as qso_router
 from .api.rig import router as rig_router
@@ -34,6 +35,17 @@ def _load_config() -> dict:
     except FileNotFoundError:
         logger.warning("Ficheiro de config não encontrado (%s) — a usar defaults", _CONFIG_PATH)
         return {}
+
+
+def _load_prefs_dx() -> dict | None:
+    """Ler config do DX Cluster a partir de user_prefs.json (prioridade sobre remote_config)."""
+    import json
+    prefs_path = Path(_CONFIG_PATH).parent / "user_prefs.json"
+    try:
+        data = json.loads(prefs_path.read_text(encoding="utf-8"))
+        return data.get("dx_cluster") or None
+    except Exception:
+        return None
 
 
 @asynccontextmanager
@@ -182,8 +194,36 @@ async def lifespan(app: FastAPI):
             logger.warning("Não foi possível carregar log de QSOs: %s", exc)
     app.state.qso_log = qso_deque
 
+    # ── DX Cluster (opcional) ─────────────────────────────────────────────────
+    from .remote.dx_cluster import DXClusterClient
+
+    dx_cfg_src = _load_prefs_dx()
+    if dx_cfg_src is None:
+        dx_cfg_src = cfg.get("dx_cluster", {})
+
+    dx_host     = dx_cfg_src.get("host", "").strip()
+    dx_port     = int(dx_cfg_src.get("port", 7300))
+    dx_call     = dx_cfg_src.get("callsign", "").strip()
+    dx_age      = int(dx_cfg_src.get("max_spot_age_min", 60))
+
+    dx_client: DXClusterClient | None = None
+    if dx_host and dx_call:
+        dx_client = DXClusterClient(
+            host=dx_host,
+            port=dx_port,
+            callsign=dx_call,
+            max_spot_age_min=dx_age,
+        )
+        await dx_client.start()
+        logger.info("DX Cluster: %s:%d (callsign=%s)", dx_host, dx_port, dx_call)
+    else:
+        logger.info("DX Cluster: não configurado (sem host ou callsign)")
+    app.state.dx_cluster_client = dx_client
+
     yield
 
+    if dx_client:
+        await dx_client.stop()
     await peer.close()
     await audio_source.close()
     audio_tx.stop()
@@ -220,6 +260,7 @@ def create_app() -> FastAPI:
     app.include_router(webrtc_router)
     app.include_router(spectrum_router)
     app.include_router(tx_monitor_router)
+    app.include_router(dx_router)
     app.include_router(prefs_router)
 
     @app.get("/health")
