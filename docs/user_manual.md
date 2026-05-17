@@ -25,6 +25,10 @@ Licença: GNU AGPL-3.0 (https://www.gnu.org/licenses/agpl-3.0.html)
 5. [Áudio RX — Ouvir o Rádio](#5-áudio-rx--ouvir-o-rádio)
 6. [Áudio TX — Transmitir Voz SSB](#6-áudio-tx--transmitir-voz-ssb)
    - [DSP no Pi](#dsp-no-pi)
+   - [Especificações de Áudio](#especificações-de-áudio)
+   - [VOX — Transmissão Automática por Voz](#vox--transmissão-automática-por-voz)
+   - [Monitor Local](#monitor-local)
+   - [Radio Monitor (MONI)](#radio-monitor-moni)
    - [Definições de Áudio](#definições-de-áudio)
    - [Monitor TX pós-DSP](#monitor-tx-pós-dsp)
 7. [Waterfall e Espectro](#7-waterfall-e-espectro)
@@ -201,6 +205,60 @@ O áudio de voz captado pelo microfone é transmitido ao Pi via WebRTC e process
 
 Este processamento é aplicado sempre que o PTT está activo, independentemente do modo de monitorização seleccionado.
 
+### Especificações de Áudio
+
+| Parâmetro | Valor |
+|---|---|
+| Taxa de amostragem | 48 000 Hz |
+| Profundidade | 16 bits (int16) |
+| Frame (Pi → rádio) | 960 amostras = 20 ms |
+| Codec WebRTC | Opus |
+| Cancelamento de eco (AEC) | **Desactivado** — o DSP do Pi processa o sinal |
+| Supressão de ruído (NS) | **Desactivado** — preserva qualidade SSB |
+| Controlo automático de ganho (AGC) | **Desactivado** — o expander do Pi gere o nível |
+
+> O AEC, NS e AGC nativos do WebRTC são desactivados intencionalmente para que o DSP do Pi tenha controlo total sobre o sinal de voz.
+
+### VOX — Transmissão Automática por Voz
+
+O **VOX** (Voice Operated Transmit) activa e desactiva o PTT automaticamente com base no nível de voz detectado pelo microfone, sem necessidade de premir **TX HOLD**.
+
+**Elementos de controlo VOX:**
+
+| Elemento | Descrição |
+|---|---|
+| **Botão VOX** | Liga/desliga o VOX (iluminado = activo) |
+| **Slider Sens** | Sensibilidade — limiar de detecção de voz (padrão: 50%) |
+| **Barra de nível** | Nível actual do microfone em tempo real |
+
+**Como funciona:**
+
+1. Clicar no botão **VOX** para activar.
+2. Ajustar o slider **Sens** conforme necessário: para a direita = limiar mais alto (menos sensível); para a esquerda = limiar mais baixo (mais sensível).
+3. Falar ao microfone — o PTT activa-se automaticamente quando o nível de voz ultrapassa o limiar.
+4. Ao parar de falar, há um *hang time* de 600 ms antes de o PTT ser libertado (evita cortes entre palavras).
+5. A barra de nível mostra o nível do mic em tempo real mesmo com o VOX inactivo — útil para calibrar a sensibilidade.
+
+> **VOX e Monitor TX pós-DSP:** Quando ambos estão activos, o sistema suprime automaticamente o VOX durante a reprodução do monitor após o PTT, evitando eco em loop. Não é necessária qualquer configuração adicional.
+
+### Monitor Local
+
+O botão **Local Monitor** reproduz o sinal do microfone directamente nos auscultadores/altifalantes do computador durante a transmissão.
+
+- O som reproduzido é o sinal *antes* do DSP do Pi (sinal bruto do mic)
+- Útil para verificar se o microfone está a captar correctamente
+- Não causa eco no receptor remoto (o áudio RX do browser já está silenciado durante TX)
+
+### Radio Monitor (MONI)
+
+O botão **Radio Monitor** activa o circuito MONI de hardware do rádio.
+
+- O rádio reproduz o sinal TX nos auscultadores *do próprio rádio* (não no browser)
+- Permite ouvir a voz processada pelo rádio em tempo real, sem latência de rede
+- O nível é controlado pelo slider de ganho associado
+
+> **Nota importante:** Independentemente do estado do Radio Monitor, o áudio de recepção WebRTC no browser é **sempre silenciado durante TX**. Isto elimina o reverb causado pela sobreposição do sinal MONI imediato (hardware) com a cópia atrasada via WebRTC.
+
 ### Definições de Áudio
 
 O botão **⚙ Áudio** (ou similar) abre uma popup com opções de configuração de áudio TX:
@@ -329,6 +387,14 @@ Clicar em **Log QSO** para guardar o registo.
 - Confirmar que o modo é USB ou LSB (modos AM/FM/CW têm restrições de TX via microfone)
 - Verificar que o browser tem permissão de microfone
 - Confirmar que a antena está ligada no rádio
+
+### VOX não activa / activa com ruído de fundo
+
+- Confirmar que o browser concedeu permissão de microfone (necessária para VOX)
+- Se o VOX não activar com voz normal: deslocar o slider **Sens** para a esquerda (limiar mais baixo)
+- Se o VOX activar com ruído de fundo: deslocar o slider **Sens** para a direita (limiar mais alto)
+- A barra de nível mostra o nível actual — ajustar o slider até a barra atingir metade com voz normal e ficar baixa em silêncio
+- O VOX requer que a ligação WebRTC esteja activa (**Live**)
 
 ### Eco reportado pelo outro operador
 

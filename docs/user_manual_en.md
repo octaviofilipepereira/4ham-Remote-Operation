@@ -25,6 +25,10 @@ Last update: 2026-05-17 UTC
 5. [RX Audio — Listening to the Radio](#5-rx-audio--listening-to-the-radio)
 6. [TX Audio — Transmitting SSB Voice](#6-tx-audio--transmitting-ssb-voice)
    - [DSP on the Pi](#dsp-on-the-pi)
+   - [Audio Specifications](#audio-specifications)
+   - [VOX — Voice Operated Transmit](#vox--voice-operated-transmit)
+   - [Local Monitor](#local-monitor)
+   - [Radio Monitor (MONI)](#radio-monitor-moni)
    - [Audio Settings](#audio-settings)
    - [TX Post-DSP Monitor](#tx-post-dsp-monitor)
 7. [Waterfall and Spectrum](#7-waterfall-and-spectrum)
@@ -201,6 +205,60 @@ Voice audio captured by the microphone is sent to the Pi via WebRTC and processe
 
 This processing is always applied when PTT is active, regardless of the monitoring mode selected.
 
+### Audio Specifications
+
+| Parameter | Value |
+|---|---|
+| Sample rate | 48 000 Hz |
+| Bit depth | 16 bits (int16) |
+| Frame (Pi → radio) | 960 samples = 20 ms |
+| WebRTC codec | Opus |
+| Echo cancellation (AEC) | **Disabled** — DSP on the Pi handles the signal |
+| Noise suppression (NS) | **Disabled** — preserves SSB quality |
+| Automatic gain control (AGC) | **Disabled** — Pi downward expander manages level |
+
+> AEC, NS, and AGC built into WebRTC are intentionally disabled so that the Pi DSP has full control over the voice signal.
+
+### VOX — Voice Operated Transmit
+
+**VOX** activates and releases PTT automatically based on the microphone voice level, with no need to press **TX HOLD**.
+
+**VOX controls:**
+
+| Element | Description |
+|---|---|
+| **VOX button** | Enables/disables VOX (lit = active) |
+| **Sens slider** | Sensitivity — voice detection threshold (default: 50%) |
+| **Level bar** | Real-time microphone level indicator |
+
+**How it works:**
+
+1. Click the **VOX** button to enable.
+2. Adjust the **Sens** slider as needed: right = higher threshold (less sensitive); left = lower threshold (more sensitive).
+3. Speak into the microphone — PTT activates automatically when the voice level exceeds the threshold.
+4. When you stop speaking, a 600 ms *hang time* elapses before PTT is released (prevents gaps between words).
+5. The level bar shows the mic level in real time even when VOX is inactive — useful for calibrating sensitivity.
+
+> **VOX and TX Post-DSP Monitor:** When both are active, the system automatically suppresses VOX during monitor playback after PTT release, preventing an echo loop. No additional configuration is needed.
+
+### Local Monitor
+
+The **Local Monitor** button plays the microphone signal directly through the computer's headphones/speakers during transmission.
+
+- The audio played is the signal *before* the Pi DSP (raw microphone signal)
+- Useful for verifying that the microphone is picking up correctly
+- Does not cause echo at the remote end (browser RX audio is already muted during TX)
+
+### Radio Monitor (MONI)
+
+The **Radio Monitor** button activates the radio's hardware MONI circuit.
+
+- The radio plays the TX signal through *the radio's own headphones* (not the browser)
+- Lets you hear the radio-processed voice in real time, with no network latency
+- The level is controlled by the associated gain slider
+
+> **Important note:** Regardless of the Radio Monitor state, the WebRTC receive audio in the browser is **always muted during TX**. This eliminates the reverb caused by the overlap between the immediate hardware MONI signal and the delayed WebRTC copy.
+
 ### Audio Settings
 
 The **⚙ Audio** button (or similar) opens a popup with TX audio configuration options:
@@ -329,6 +387,14 @@ Click **Log QSO** to save the record.
 - Confirm that mode is USB or LSB (AM/FM/CW modes have restrictions for microphone TX)
 - Check that the browser has microphone permission
 - Confirm that the antenna is connected to the radio
+
+### VOX not triggering / triggering on background noise
+
+- Confirm the browser has granted microphone permission (required for VOX)
+- If VOX does not trigger with normal voice: move the **Sens** slider to the left (lower threshold)
+- If VOX triggers on background noise: move the **Sens** slider to the right (higher threshold)
+- The level bar shows the current level — adjust the slider until the bar reaches half with normal voice and stays low in silence
+- VOX requires an active WebRTC connection (**Live**)
 
 ### Echo reported by the other operator
 

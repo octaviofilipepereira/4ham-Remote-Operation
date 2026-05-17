@@ -6,9 +6,10 @@
 
 Controls a transceiver (Yaesu FT-991A, Xiegu X6100, or any Hamlib-supported radio) from any modern browser, featuring:
 
-- Real-time bidirectional RX/TX audio (WebRTC Opus, <80 ms LAN)
+- Real-time bidirectional RX/TX audio (WebRTC Opus, 48 kHz 16-bit, <80 ms LAN)
 - Full CAT control (frequency, mode, PTT, S-meter)
 - TX voice DSP pipeline on Pi (HPF + EQ + LPF + downward expander)
+- VOX (Voice Operated Transmit) with adjustable sensitivity and 600 ms hang time
 - TX post-DSP audio monitor (buffer-and-play after PTT release, no echo)
 - Automatic RX muting during TX (acoustic echo prevention)
 - Digital modes: FT8, FT4, live CW decode
