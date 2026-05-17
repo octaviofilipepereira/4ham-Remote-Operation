@@ -1906,8 +1906,9 @@ loadRecentQsos();
 
   if (!elRuler) return;
 
-  /* Canvas de altura fixa em px — garante overflow → scroll no contentor */
-  const RULER_PX = 1400;
+  /* Canvas de altura em px — calculado por banda em buildRuler() para garantir
+     espaçamento adequado entre spots próximos (alvo: 15 px/kHz) */
+  let RULER_PX = 4000;
 
   let rulerBand  = null;
   let lastHz      = currentFrequencyHz;
@@ -1968,14 +1969,19 @@ loadRecentQsos();
     elSpots.innerHTML = "";
     if (elBandLbl) elBandLbl.textContent = band.label;
 
-    /* Impor altura fixa ao canvas — isto cria overflow no .freq-ruler */
+    const span = band.hi - band.lo;
+
+    /* Zoom dinâmico: 15 px/kHz, mín 3000 px, máx 12 000 px */
+    RULER_PX = Math.max(3000, Math.min(12000, Math.round((span / 1000) * 15)));
+
+    /* Impor altura ao canvas — cria overflow no .freq-ruler */
     elScale.style.height = RULER_PX + 'px';
     elSpots.style.height = RULER_PX + 'px';
 
-    const span = band.hi - band.lo;
-
-    /* Scale ticks: every 10/25/50 kHz minor, every 2nd is major */
-    const step = span <= 200000 ? 10000 : span <= 500000 ? 25000 : 50000;
+    /* Scale ticks: intervalo calculado para ~60 px entre ticks */
+    const rawStep = 60 * span / RULER_PX;
+    const TICK_OPTIONS = [1000, 2000, 5000, 10000, 25000, 50000, 100000];
+    const step = TICK_OPTIONS.find(s => s >= rawStep) || 100000;
     const majorEvery = 2;
     let tick = Math.ceil(band.lo / step) * step;
     let idx = 0;
