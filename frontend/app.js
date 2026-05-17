@@ -1429,7 +1429,7 @@ function voxLoop() {
   // atualizar barra de nível (CSS custom property)
   if (elVoxLevel) elVoxLevel.style.setProperty("--vox-pct", `${pct}%`);
 
-  const threshold = parseInt(elVoxThreshold?.value ?? "15", 10) / 100; // 0.01..0.50
+  const threshold = parseInt(elVoxThreshold?.value ?? "25", 10) / 100; // 0.01..0.50
 
   // Suprimir VOX enquanto o Monitor DSP está a reproduzir para evitar eco em loop:
   // a reprodução é captada pelo mic (ou pelo analyser) e re-dispara o VOX.
