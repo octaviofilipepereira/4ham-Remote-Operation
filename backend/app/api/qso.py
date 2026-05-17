@@ -5,9 +5,11 @@
 import json
 import logging
 from collections import deque
+from datetime import date
 from pathlib import Path
 
 from fastapi import APIRouter, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/qso", tags=["qso"])
@@ -64,9 +66,6 @@ async def get_recent_qsos(request: Request, limit: int = 20) -> list:
 @router.get("/export/adif")
 async def export_adif() -> Response:
     """Exporta todos os QSOs do ficheiro JSONL em formato ADIF (.adi)."""
-    from datetime import date
-    from fastapi.responses import Response as FResponse
-
     today = date.today().strftime("%Y%m%d")
 
     def _f(name: str, value: str) -> str:
@@ -106,7 +105,7 @@ async def export_adif() -> Response:
         lines.append(" ".join(fs) + " <EOR>")
 
     content = "\n".join(lines) + "\n"
-    return FResponse(
+    return Response(
         content=content,
         media_type="text/plain; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename=qsos_{today}.adi"},
