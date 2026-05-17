@@ -1155,10 +1155,13 @@ async function pollStatus() {
 
 async function sendPtt(enabled) {
   try {
+    // mute_rx: silenciar RX no Pi durante TX para evitar eco
+    // Excepção: se MONI Rádio activo, o utilizador quer ouvir o sinal MONI do rádio
+    const mute_rx = enabled ? !moniRadioEnabled : false;
     const response = await fetch(`${API}/api/rig/ptt`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled }),
+      body: JSON.stringify({ enabled, mute_rx }),
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
