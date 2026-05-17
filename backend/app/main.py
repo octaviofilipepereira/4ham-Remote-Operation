@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from .api.clublog import router as clublog_router
 from .api.dx import router as dx_router
 from .api.prefs import router as prefs_router
 from .api.qso import router as qso_router
@@ -263,6 +264,7 @@ def create_app() -> FastAPI:
     app.include_router(spectrum_router)
     app.include_router(tx_monitor_router)
     app.include_router(dx_router)
+    app.include_router(clublog_router)
     app.include_router(prefs_router)
 
     @app.get("/health")

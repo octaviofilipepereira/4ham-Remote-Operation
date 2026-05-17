@@ -393,6 +393,14 @@
             <div class="block-title">
               <span class="hardware-label" data-i18n="recent_qso_label">Últimos QSOs</span>
               <strong id="recent-qso-count">—</strong>
+              <div class="recent-qso-actions">
+                <button id="btn-adif-export" class="recent-qso-actions__btn" type="button"
+                  data-i18n="btn_adif_export" data-i18n-title="btn_adif_export_title"
+                  title="Exportar ADIF">ADIF</button>
+                <button id="btn-clublog-open" class="recent-qso-actions__btn recent-qso-actions__btn--clublog" type="button"
+                  data-i18n="btn_clublog" data-i18n-title="btn_clublog_title"
+                  title="Configurar Clublog">Clublog</button>
+              </div>
             </div>
             <table class="recent-qso-table" id="recent-qso-table">
               <thead>
@@ -501,6 +509,36 @@
       <div class="audio-settings-dialog__actions">
         <button id="dlg-audio-apply" class="audio-settings-dialog__btn" type="button" data-i18n="audio_settings_apply">Aplicar</button>
         <button id="dlg-audio-close" class="audio-settings-dialog__dismiss" type="button" data-i18n="audio_settings_close">Fechar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ── Modal: Clublog ─────────────────────────────────────────────────── -->
+  <dialog id="dlg-clublog" class="clublog-dialog">
+    <div class="clublog-dialog__body">
+      <h2 class="clublog-dialog__title" data-i18n="clublog_title">Clublog</h2>
+
+      <label class="clublog-dialog__label" for="clublog-callsign" data-i18n="form_callsign">Indicativo</label>
+      <input id="clublog-callsign" class="clublog-dialog__input" type="text"
+        autocomplete="off" spellcheck="false" style="text-transform:uppercase" />
+
+      <label class="clublog-dialog__label" for="clublog-email" data-i18n="clublog_email">E-mail</label>
+      <input id="clublog-email" class="clublog-dialog__input" type="email" autocomplete="off" />
+
+      <label class="clublog-dialog__label" for="clublog-apikey" data-i18n="clublog_apikey">API Key</label>
+      <input id="clublog-apikey" class="clublog-dialog__input" type="password" autocomplete="off"
+        data-i18n-placeholder="clublog_apikey_placeholder" placeholder="Chave da API do Clublog" />
+
+      <p class="clublog-dialog__hint" data-i18n-html="clublog_hint">
+        A chave API está em <a href="https://clublog.org/apikeys.php" target="_blank" rel="noopener">clublog.org/apikeys.php</a>.
+      </p>
+
+      <p class="clublog-dialog__status" id="clublog-status"></p>
+
+      <div class="clublog-dialog__actions">
+        <button id="clublog-save-btn" class="clublog-dialog__btn-save" type="button" data-i18n="clublog_save">Guardar</button>
+        <button id="clublog-upload-btn" class="clublog-dialog__btn-upload" type="button" data-i18n="clublog_upload">Enviar para Clublog</button>
+        <button id="clublog-close-btn" class="clublog-dialog__btn-close" type="button" data-i18n="btn_close">Fechar</button>
       </div>
     </div>
   </dialog>

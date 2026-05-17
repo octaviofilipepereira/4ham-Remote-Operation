@@ -1067,7 +1067,139 @@ async function logQso() {
 
 if (btnLogQso) btnLogQso.addEventListener("click", logQso);
 
-function setRigConnected(connected) {
+// ── ADIF Export ───────────────────────────────────────────────────────────────
+
+function adifField(name, value) {
+  const s = String(value ?? "");
+  return `<${name}:${s.length}>${s}`;
+}
+
+async function buildAdifFromQsos() {
+  const r = await fetch(`${API}/api/qso/recent?limit=1000`);
+  if (!r.ok) throw new Error("Falha ao obter QSOs");
+  const qsos = await r.json();
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const lines = [`${adifField("ADIF_VER", "3.1.4")} ${adifField("PROGRAMID", "4ham")} <EOH>`];
+  for (const q of [...qsos].reverse()) {
+    const fs = [];
+    if (q.callsign) fs.push(adifField("CALL", q.callsign.toUpperCase()));
+    if (q.frequency) { const f = parseFloat(q.frequency); if (!isNaN(f)) fs.push(adifField("FREQ", f.toFixed(3))); }
+    if (q.band)      fs.push(adifField("BAND", q.band.toUpperCase()));
+    if (q.mode)      fs.push(adifField("MODE", q.mode.toUpperCase()));
+    fs.push(adifField("QSO_DATE", today));
+    const rawT = String(q.utc || q.logged_at || "");
+    const tOn = rawT.replace(/\D/g, "").slice(0, 4);
+    if (tOn) fs.push(adifField("TIME_ON", tOn));
+    if (q.rst_sent) fs.push(adifField("RST_SENT", q.rst_sent));
+    if (q.rst_rx)   fs.push(adifField("RST_RCVD", q.rst_rx));
+    if (q.notes)    fs.push(adifField("NOTES", q.notes));
+    lines.push(fs.join(" ") + " <EOR>");
+  }
+  return lines.join("\n") + "\n";
+}
+
+const btnAdifExport = document.getElementById("btn-adif-export");
+if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
+  try {
+    btnAdifExport.disabled = true;
+    const adif = await buildAdifFromQsos();
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const blob = new Blob([adif], { type: "text/plain;charset=utf-8" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = `qsos_${today}.adi`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error("Erro ao exportar ADIF:", e);
+  } finally {
+    btnAdifExport.disabled = false;
+  }
+});
+
+// ── Clublog ───────────────────────────────────────────────────────────────────
+
+(function () {
+  const _LS = { call: "clublog_callsign", email: "clublog_email", key: "clublog_apikey" };
+  const dlg          = document.getElementById("dlg-clublog");
+  const inpCall      = document.getElementById("clublog-callsign");
+  const inpEmail     = document.getElementById("clublog-email");
+  const inpKey       = document.getElementById("clublog-apikey");
+  const statusEl     = document.getElementById("clublog-status");
+  const btnOpen      = document.getElementById("btn-clublog-open");
+  const btnSave      = document.getElementById("clublog-save-btn");
+  const btnUpload    = document.getElementById("clublog-upload-btn");
+  const btnClose     = document.getElementById("clublog-close-btn");
+
+  if (!dlg) return;
+
+  /* CAPS no callsign */
+  if (inpCall) inpCall.addEventListener("input", () => {
+    const s = inpCall.selectionStart, e = inpCall.selectionEnd;
+    inpCall.value = inpCall.value.toUpperCase();
+    inpCall.setSelectionRange(s, e);
+  });
+
+  function loadCreds() {
+    if (inpCall)  inpCall.value  = localStorage.getItem(_LS.call)  || "";
+    if (inpEmail) inpEmail.value = localStorage.getItem(_LS.email) || "";
+    if (inpKey)   inpKey.value   = localStorage.getItem(_LS.key)   || "";
+  }
+
+  function saveCreds() {
+    if (inpCall)  localStorage.setItem(_LS.call,  inpCall.value.trim().toUpperCase());
+    if (inpEmail) localStorage.setItem(_LS.email, inpEmail.value.trim());
+    if (inpKey)   localStorage.setItem(_LS.key,   inpKey.value.trim());
+  }
+
+  function setStatus(msg, isError) {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.className = "clublog-dialog__status" + (isError ? " clublog-dialog__status--error" : " clublog-dialog__status--ok");
+  }
+
+  if (btnOpen) btnOpen.addEventListener("click", () => { loadCreds(); setStatus(""); dlg.showModal(); });
+  if (btnClose) btnClose.addEventListener("click", () => dlg.close());
+  dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+
+  if (btnSave) btnSave.addEventListener("click", () => {
+    saveCreds();
+    setStatus(t("clublog_saved"));
+  });
+
+  if (btnUpload) btnUpload.addEventListener("click", async () => {
+    saveCreds();
+    const email    = inpEmail?.value.trim();
+    const api_key  = inpKey?.value.trim();
+    const callsign = inpCall?.value.trim().toUpperCase();
+    if (!email || !api_key || !callsign) {
+      setStatus(t("clublog_missing_fields"), true);
+      return;
+    }
+    btnUpload.disabled = true;
+    setStatus(t("clublog_uploading"));
+    try {
+      const adif = await buildAdifFromQsos();
+      const r = await fetch(`${API}/api/clublog/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, api_key, callsign, adif }),
+      });
+      const body = await r.json().catch(() => ({}));
+      if (r.ok && body.ok) {
+        setStatus(t("clublog_upload_ok"));
+      } else {
+        setStatus((body.message || body.detail || t("clublog_upload_error")), true);
+      }
+    } catch (e) {
+      setStatus(t("clublog_upload_error"), true);
+    } finally {
+      btnUpload.disabled = false;
+    }
+  });
+})();
+
+
   if (rigConnected === connected) return;
   rigConnected = connected;
   if (connected) {

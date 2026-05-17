@@ -59,3 +59,55 @@ async def get_recent_qsos(request: Request, limit: int = 20) -> list:
     """Retorna os últimos QSOs registados (mais recente primeiro)."""
     q = _qso_deque(request.app.state)
     return list(q)[:min(limit, _QSO_MAX_MEMORY)]
+
+
+@router.get("/export/adif")
+async def export_adif() -> Response:
+    """Exporta todos os QSOs do ficheiro JSONL em formato ADIF (.adi)."""
+    from datetime import date
+    from fastapi.responses import Response as FResponse
+
+    today = date.today().strftime("%Y%m%d")
+
+    def _f(name: str, value: str) -> str:
+        return f"<{name}:{len(value)}>{value}"
+
+    entries: list[dict] = []
+    if _QSO_LOG_PATH.exists():
+        try:
+            for raw in _QSO_LOG_PATH.read_text(encoding="utf-8").strip().splitlines():
+                if raw.strip():
+                    entries.append(json.loads(raw))
+        except Exception as exc:
+            logger.warning("Erro ao ler JSONL para ADIF: %s", exc)
+
+    lines = [f"{_f('ADIF_VER', '3.1.4')} {_f('PROGRAMID', '4ham')} <EOH>"]
+    for e in entries:
+        fs = []
+        if e.get("callsign"):
+            fs.append(_f("CALL", e["callsign"].upper()))
+        if e.get("frequency"):
+            fs.append(_f("FREQ", str(e["frequency"])))
+        if e.get("band"):
+            fs.append(_f("BAND", e["band"].upper()))
+        if e.get("mode"):
+            fs.append(_f("MODE", e["mode"].upper()))
+        fs.append(_f("QSO_DATE", today))
+        raw_t = str(e.get("utc") or e.get("logged_at") or "")
+        t_on = "".join(c for c in raw_t if c.isdigit())[:4]
+        if t_on:
+            fs.append(_f("TIME_ON", t_on))
+        if e.get("rst_sent"):
+            fs.append(_f("RST_SENT", str(e["rst_sent"])))
+        if e.get("rst_rx"):
+            fs.append(_f("RST_RCVD", str(e["rst_rx"])))
+        if e.get("notes"):
+            fs.append(_f("NOTES", str(e["notes"])))
+        lines.append(" ".join(fs) + " <EOR>")
+
+    content = "\n".join(lines) + "\n"
+    return FResponse(
+        content=content,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename=qsos_{today}.adi"},
+    )

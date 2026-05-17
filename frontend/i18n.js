@@ -92,6 +92,24 @@ const LOCALES = {
     btn_log_qso:           "Registar QSO",
     recent_qso_label:      "Últimos QSOs",
     recent_qso_empty:      "Nenhum QSO registado",
+    /* Export ADIF + Clublog */
+    btn_adif_export:       "ADIF",
+    btn_adif_export_title: "Exportar QSOs em formato ADIF",
+    btn_clublog:           "Clublog",
+    btn_clublog_title:     "Configurar integração com o Clublog",
+    clublog_title:         "Clublog",
+    clublog_email:         "E-mail",
+    clublog_apikey:        "API Key",
+    clublog_apikey_placeholder: "Chave da API do Clublog",
+    clublog_hint:          "A chave API está em <a href=\"https://clublog.org/apikeys.php\" target=\"_blank\" rel=\"noopener\">clublog.org/apikeys.php</a>.",
+    clublog_save:          "Guardar",
+    clublog_saved:         "Configurações guardadas.",
+    clublog_upload:        "Enviar para Clublog",
+    clublog_uploading:     "A enviar…",
+    clublog_upload_ok:     "Upload concluído com sucesso!",
+    clublog_upload_error:  "Erro ao enviar para o Clublog.",
+    clublog_missing_fields: "Preencha o Indicativo, E-mail e API Key.",
+    btn_close:             "Fechar",
     /* Cluster DX */
     dx_cluster_search_placeholder: "país, call, host…",
     btn_dx_cluster:                "Clusters",
@@ -214,6 +232,24 @@ const LOCALES = {
     btn_log_qso:           "Log QSO",
     recent_qso_label:      "Recent QSOs",
     recent_qso_empty:      "No QSOs logged",
+    /* Export ADIF + Clublog */
+    btn_adif_export:       "ADIF",
+    btn_adif_export_title: "Export QSOs in ADIF format",
+    btn_clublog:           "Clublog",
+    btn_clublog_title:     "Configure Clublog integration",
+    clublog_title:         "Clublog",
+    clublog_email:         "E-mail",
+    clublog_apikey:        "API Key",
+    clublog_apikey_placeholder: "Clublog API Key",
+    clublog_hint:          "Get your API key at <a href=\"https://clublog.org/apikeys.php\" target=\"_blank\" rel=\"noopener\">clublog.org/apikeys.php</a>.",
+    clublog_save:          "Save",
+    clublog_saved:         "Settings saved.",
+    clublog_upload:        "Upload to Clublog",
+    clublog_uploading:     "Uploading\u2026",
+    clublog_upload_ok:     "Upload completed successfully!",
+    clublog_upload_error:  "Error uploading to Clublog.",
+    clublog_missing_fields: "Please fill in Callsign, E-mail and API Key.",
+    btn_close:             "Close",
     /* DX Cluster */
     dx_cluster_search_placeholder: "country, call, host…",
     btn_dx_cluster:                "Clusters",
@@ -274,6 +310,9 @@ function applyLocale(lang) {
   });
   document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
     el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder));
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach(function (el) {
+    el.innerHTML = t(el.dataset.i18nHtml);
   });
 
   var btn = document.getElementById("lang-toggle");

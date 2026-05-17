@@ -2262,6 +2262,42 @@ body[data-knob-active="true"] .vfo-knob {
   padding: 6px 0 2px;
 }
 
+/* Botões de acção do Recent QSOs (ADIF, Clublog) */
+.recent-qso-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.recent-qso-actions__btn {
+  background: none;
+  border: 1px solid rgba(146, 255, 228, 0.28);
+  border-radius: 6px;
+  color: var(--teal);
+  font-size: 0.68rem;
+  font-family: var(--display-font);
+  letter-spacing: 0.06em;
+  padding: 0.18em 0.55em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.recent-qso-actions__btn:hover {
+  background: rgba(146, 255, 228, 0.08);
+  border-color: rgba(146, 255, 228, 0.6);
+}
+
+.recent-qso-actions__btn--clublog {
+  border-color: rgba(255, 200, 87, 0.3);
+  color: var(--amber);
+}
+
+.recent-qso-actions__btn--clublog:hover {
+  background: rgba(255, 200, 87, 0.08);
+  border-color: rgba(255, 200, 87, 0.65);
+}
+
 @media (max-height: 720px) {
   .radio-header {
     flex-direction: column;
@@ -2481,5 +2517,110 @@ body[data-knob-active="true"] .vfo-knob {
 }
 .dx-cluster-dialog__btn-close:hover {
   color: rgba(200, 212, 220, 0.9);
+  border-color: rgba(200, 212, 220, 0.5);
+}
+
+/* ── Clublog: dialog ─────────────────────────────────────────────── */
+.clublog-dialog {
+  background: #1a1f2b;
+  border: 1px solid var(--amber, #ffc857);
+  border-radius: 10px;
+  padding: 0;
+  color: var(--text, #c8d4dc);
+  max-width: 360px;
+  width: 94vw;
+}
+.clublog-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(3px);
+}
+.clublog-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px;
+}
+.clublog-dialog__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--amber);
+  margin: 0 0 6px;
+}
+.clublog-dialog__label {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.clublog-dialog__input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 7px 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.clublog-dialog__input:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+.clublog-dialog__hint {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin: 2px 0 4px;
+}
+.clublog-dialog__hint a {
+  color: var(--teal);
+}
+.clublog-dialog__status {
+  font-size: 0.75rem;
+  min-height: 1.2em;
+  color: var(--text-muted);
+}
+.clublog-dialog__status--ok    { color: var(--teal); }
+.clublog-dialog__status--error { color: var(--red);  }
+.clublog-dialog__actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.clublog-dialog__btn-save,
+.clublog-dialog__btn-upload,
+.clublog-dialog__btn-close {
+  border-radius: 8px;
+  font-size: 0.8rem;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  border: 1px solid transparent;
+  background: none;
+}
+.clublog-dialog__btn-save {
+  border-color: rgba(146, 255, 228, 0.35);
+  color: var(--teal);
+}
+.clublog-dialog__btn-save:hover {
+  background: rgba(146, 255, 228, 0.1);
+  border-color: rgba(146, 255, 228, 0.7);
+}
+.clublog-dialog__btn-upload {
+  border-color: rgba(255, 200, 87, 0.4);
+  color: var(--amber);
+}
+.clublog-dialog__btn-upload:hover {
+  background: rgba(255, 200, 87, 0.12);
+  border-color: rgba(255, 200, 87, 0.8);
+}
+.clublog-dialog__btn-close {
+  border-color: rgba(200, 212, 220, 0.2);
+  color: var(--text-muted);
+}
+.clublog-dialog__btn-close:hover {
+  background: rgba(200, 212, 220, 0.06);
   border-color: rgba(200, 212, 220, 0.5);
 }
