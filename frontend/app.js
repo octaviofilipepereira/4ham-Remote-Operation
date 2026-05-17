@@ -40,6 +40,7 @@ let voxRafId   = null;
 let voxHangTimer = null;
 let voxAnalyser = null;
 let voxDataBuf  = null;
+let voxSuppressUntil = 0;   // epoch ms — VOX suprimido até este instante (Monitor DSP a reproduzir)
 const VOX_HANG_MS = 600;
 let rigConnected = false;
 let _rigOfflineShown = false;   // só mostrar o modal uma vez até ao próximo reconnect
@@ -1230,6 +1231,11 @@ function endTxHold() {
       txMonNextTime += buf.duration;
     }
     txMonPlayBuf = [];
+    // Suprimir VOX durante a duração da reprodução + margem de segurança
+    if (voxEnabled) {
+      const suppressMs = Math.ceil((txMonNextTime - txMonCtx.currentTime) * 1000) + 300;
+      voxSuppressUntil = Date.now() + suppressMs;
+    }
   }
 }
 
@@ -1424,6 +1430,13 @@ function voxLoop() {
   if (elVoxLevel) elVoxLevel.style.setProperty("--vox-pct", `${pct}%`);
 
   const threshold = parseInt(elVoxThreshold?.value ?? "15", 10) / 100; // 0.01..0.50
+
+  // Suprimir VOX enquanto o Monitor DSP está a reproduzir para evitar eco em loop:
+  // a reprodução é captada pelo mic (ou pelo analyser) e re-dispara o VOX.
+  if (Date.now() < voxSuppressUntil) {
+    voxRafId = requestAnimationFrame(voxLoop);
+    return;
+  }
 
   if (rms > threshold) {
     // sinal detectado — cancelar hang, activar PTT via beginTxHold
