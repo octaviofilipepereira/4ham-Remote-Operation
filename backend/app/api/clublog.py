@@ -91,7 +91,8 @@ async def realtime_qso(body: ClublogRealtimeBody) -> dict:
     return {"ok": True, "message": text}
 
 
-@router.post("/cty-refresh")async def refresh_cty(api_key: str = Body(..., embed=True)) -> dict:
+@router.post("/cty-refresh")
+async def refresh_cty(api_key: str = Body(..., embed=True)) -> dict:
     """Descarrega/actualiza o ficheiro cty.xml do Clublog para lookup local de DXCC."""
     from ..core.dxcc import get_dxcc_lookup
     lookup = get_dxcc_lookup()
