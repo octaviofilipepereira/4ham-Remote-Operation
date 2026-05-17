@@ -6,8 +6,10 @@ import logging
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+
+from ..core.secrets import get_secret
 
 router = APIRouter(prefix="/api/clublog", tags=["clublog"])
 logger = logging.getLogger(__name__)
@@ -15,12 +17,24 @@ logger = logging.getLogger(__name__)
 _CLUBLOG_UPLOAD_URL   = "https://clublog.org/putlogs.php"
 _CLUBLOG_REALTIME_URL = "https://clublog.org/realtime.php"
 _QSO_LOG_PATH = Path("data/qso_log.jsonl")
+_SECRET_NAME  = "clublog_api_key"
+
+
+def _get_api_key() -> str:
+    """Lê a API key do Clublog da base de dados de segredos."""
+    key = get_secret(_SECRET_NAME)
+    if not key:
+        raise HTTPException(
+            status_code=503,
+            detail="API key do Clublog não configurada. "
+                   "Execute: python -m backend.tools.secrets set clublog_api_key <chave>",
+        )
+    return key
 
 
 class ClublogUploadBody(BaseModel):
     email:    str = Field(..., min_length=1, max_length=256)
     password: str = Field(..., min_length=1, max_length=256)
-    api_key:  str = Field(..., min_length=1, max_length=64)
     callsign: str = Field(..., min_length=1, max_length=32)
     adif:     str = Field(..., min_length=1)
 
@@ -28,6 +42,7 @@ class ClublogUploadBody(BaseModel):
 @router.post("/upload")
 async def upload_to_clublog(body: ClublogUploadBody) -> dict:
     """Proxy de upload ADIF (batch) para o Clublog via putlogs.php."""
+    api_key = _get_api_key()
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
@@ -37,7 +52,7 @@ async def upload_to_clublog(body: ClublogUploadBody) -> dict:
                     "email":    body.email,
                     "password": body.password,
                     "callsign": body.callsign,
-                    "api":      body.api_key,
+                    "api":      api_key,
                 },
             )
     except httpx.RequestError as exc:
@@ -54,7 +69,6 @@ async def upload_to_clublog(body: ClublogUploadBody) -> dict:
 class ClublogRealtimeBody(BaseModel):
     email:    str = Field(..., min_length=1, max_length=256)
     password: str = Field(..., min_length=1, max_length=256)
-    api_key:  str = Field(..., min_length=1, max_length=64)
     callsign: str = Field(..., min_length=1, max_length=32)
     adif:     str = Field(..., min_length=1)
 
@@ -62,6 +76,7 @@ class ClublogRealtimeBody(BaseModel):
 @router.post("/realtime")
 async def realtime_qso(body: ClublogRealtimeBody) -> dict:
     """Envia um QSO individual para o Clublog em tempo-real via realtime.php."""
+    api_key = _get_api_key()
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(
@@ -70,7 +85,7 @@ async def realtime_qso(body: ClublogRealtimeBody) -> dict:
                     "email":    body.email,
                     "password": body.password,
                     "callsign": body.callsign,
-                    "api":      body.api_key,
+                    "api":      api_key,
                     "adif":     body.adif,
                 },
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -81,19 +96,18 @@ async def realtime_qso(body: ClublogRealtimeBody) -> dict:
 
     text = resp.text.strip()
     if resp.status_code == 403:
-        # Credenciais inválidas — o cliente DEVE parar de enviar para não bloquear o IP
         raise HTTPException(status_code=403, detail=text or "Credenciais inválidas")
     if resp.status_code == 400:
         raise HTTPException(status_code=400, detail=text or "QSO rejeitado pelo Clublog")
     if resp.status_code == 500:
         raise HTTPException(status_code=500, detail=text or "Erro interno do Clublog")
-    # 200 = sucesso (OK, Duplicate, Modified — todos são aceitáveis)
     return {"ok": True, "message": text}
 
 
 @router.post("/cty-refresh")
-async def refresh_cty(api_key: str = Body(..., embed=True)) -> dict:
+async def refresh_cty() -> dict:
     """Descarrega/actualiza o ficheiro cty.xml do Clublog para lookup local de DXCC."""
+    api_key = _get_api_key()
     from ..core.dxcc import get_dxcc_lookup
     lookup = get_dxcc_lookup()
     try:

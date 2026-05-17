@@ -1125,12 +1125,11 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
 let _clublogRealtimeFn = null;
 
 (function () {
-  const _LS = { call: "clublog_callsign", email: "clublog_email", key: "clublog_apikey", pass: "clublog_password", auto: "clublog_auto_upload" };
+  const _LS = { call: "clublog_callsign", email: "clublog_email", pass: "clublog_password", auto: "clublog_auto_upload" };
   const dlg          = document.getElementById("dlg-clublog");
   const inpCall      = document.getElementById("clublog-callsign");
   const inpEmail     = document.getElementById("clublog-email");
   const inpPassword  = document.getElementById("clublog-password");
-  const inpKey       = document.getElementById("clublog-apikey");
   const inpAuto      = document.getElementById("clublog-auto-upload");
   const statusEl     = document.getElementById("clublog-status");
   const btnOpen      = document.getElementById("btn-clublog-open");
@@ -1151,7 +1150,6 @@ let _clublogRealtimeFn = null;
     if (inpCall)     inpCall.value     = localStorage.getItem(_LS.call)  || "";
     if (inpEmail)    inpEmail.value    = localStorage.getItem(_LS.email) || "";
     if (inpPassword) inpPassword.value = localStorage.getItem(_LS.pass)  || "";
-    if (inpKey)      inpKey.value      = localStorage.getItem(_LS.key)   || "";
     if (inpAuto)     inpAuto.checked   = localStorage.getItem(_LS.auto) === "1";
   }
 
@@ -1159,7 +1157,6 @@ let _clublogRealtimeFn = null;
     if (inpCall)     localStorage.setItem(_LS.call,  inpCall.value.trim().toUpperCase());
     if (inpEmail)    localStorage.setItem(_LS.email, inpEmail.value.trim());
     if (inpPassword) localStorage.setItem(_LS.pass,  inpPassword.value.trim());
-    if (inpKey)      localStorage.setItem(_LS.key,   inpKey.value.trim());
     if (inpAuto)     localStorage.setItem(_LS.auto,  inpAuto.checked ? "1" : "0");
   }
 
@@ -1174,33 +1171,25 @@ let _clublogRealtimeFn = null;
   dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
 
   /* Re-activar botão de upload se o utilizador editar qualquer campo de credenciais após um erro 403 */
-  [inpEmail, inpPassword, inpKey, inpCall].forEach(inp => {
+  [inpEmail, inpPassword, inpCall].forEach(inp => {
     if (inp) inp.addEventListener("input", () => { if (btnUpload) btnUpload.disabled = false; });
   });
 
   if (btnSave) btnSave.addEventListener("click", async () => {
     saveCreds();
     setStatus(t("clublog_saved"));
-    const key = inpKey?.value.trim();
-    if (key) {
-      try {
-        const r = await fetch(`${API}/api/clublog/cty-refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ api_key: key }),
-        });
-        if (r.ok) setStatus(t("clublog_cty_ok"));
-      } catch (_) { /* falha silenciosa — DXCC é opcional */ }
-    }
+    try {
+      const r = await fetch(`${API}/api/clublog/cty-refresh`, { method: "POST" });
+      if (r.ok) setStatus(t("clublog_cty_ok"));
+    } catch (_) { /* falha silenciosa — DXCC é opcional */ }
   });
 
   if (btnUpload) btnUpload.addEventListener("click", async () => {
     saveCreds();
     const email    = inpEmail?.value.trim();
     const password = inpPassword?.value.trim();
-    const api_key  = inpKey?.value.trim();
     const callsign = inpCall?.value.trim().toUpperCase();
-    if (!email || !password || !api_key || !callsign) {
+    if (!email || !password || !callsign) {
       setStatus(t("clublog_missing_fields"), true);
       return;
     }
@@ -1212,7 +1201,7 @@ let _clublogRealtimeFn = null;
       const r = await fetch(`${API}/api/clublog/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, api_key, callsign, adif }),
+        body: JSON.stringify({ email, password, callsign, adif }),
       });
       const body = await r.json().catch(() => ({}));
       if (r.ok && body.ok) {
@@ -1235,9 +1224,8 @@ let _clublogRealtimeFn = null;
     if (localStorage.getItem(_LS.auto) !== "1") return;
     const email    = localStorage.getItem(_LS.email) || "";
     const password = localStorage.getItem(_LS.pass)  || "";
-    const api_key  = localStorage.getItem(_LS.key)   || "";
     const callsign = localStorage.getItem(_LS.call)  || "";
-    if (!email || !password || !api_key || !callsign) return;
+    if (!email || !password || !callsign) return;
 
     /* Construir registo ADIF para este QSO */
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -1259,7 +1247,7 @@ let _clublogRealtimeFn = null;
       const r = await fetch(`${API}/api/clublog/realtime`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, api_key, callsign, adif }),
+        body: JSON.stringify({ email, password, callsign, adif }),
       });
       if (r.status === 403) {
         /* Credenciais inválidas — PARAR imediatamente para não bloquear o IP */
