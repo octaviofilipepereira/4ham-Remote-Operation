@@ -29,8 +29,11 @@ READ_TIMEOUT    = 120  # segundos sem dados antes de considerar a ligação mort
 
 # ── Regex para linha DX Spider / AR-Cluster ────────────────────────────────
 # Formato: DX de SPOTTER:  FREQ    DXCALL    COMMENT                  HHMM Z
+# Nota: alguns nós (ex. CS5SEL-5/ISEL) enviam apenas 1 espaço antes da hora
+# quando o comentário termina com um localizador (ex. "JN41 1702Z"). Por isso
+# usa-se \s+ em vez de \s{2,}.
 _DX_RE = re.compile(
-    r"DX\s+de\s+(\S+?)\s*:?\s*([\d.]+)\s+(\S+)\s*(.*?)\s{2,}(\d{4})Z",
+    r"DX\s+de\s+(\S+?)\s*:?\s*([\d.]+)\s+(\S+)\s*(.*?)\s+(\d{4})Z",
     re.IGNORECASE,
 )
 
