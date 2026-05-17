@@ -2,7 +2,7 @@
 © 2026 Octávio Filipe Gonçalves
 Callsign: CT7BFV
 License: GNU AGPL-3.0 (https://www.gnu.org/licenses/agpl-3.0.html)
-Last update: 2026-05-13 UTC
+Last update: 2026-05-17 UTC
 -->
 
 # 4HAM Remote Operation — WebSocket Specification
@@ -20,7 +20,8 @@ Technical reference for developers integrating with the 4HAM Remote Operation We
    - [Frame Format](#frame-format)
    - [Delta Int8 Encoding](#delta-int8-encoding)
    - [Client Lifecycle](#client-lifecycle)
-4. [Future Endpoints](#4-future-endpoints)
+4. [TX Monitor WebSocket — `/ws/tx-monitor`](#4-tx-monitor-websocket--wstx-monitor)
+5. [Future Endpoints](#5-future-endpoints)
 
 ---
 
@@ -32,9 +33,10 @@ All WebSocket connections require HTTP Basic Auth (same credentials as the REST 
 
 | Endpoint | Purpose | Status |
 |---|---|---|
-| `wss://<host>:8000/ws/spectrum` | AF spectrum FFT frames | Active |
-| `wss://<host>:8000/ws/ft` | FT8/FT4 decode events | Planned |
-| `wss://<host>:8000/ws/cat` | CAT status push | Planned |
+| `wss://<host>:8001/ws/spectrum` | AF spectrum FFT frames | Active |
+| `wss://<host>:8001/ws/tx-monitor` | TX post-DSP audio for monitoring | Active |
+| `wss://<host>:8001/ws/ft` | FT8/FT4 decode events | Planned |
+| `wss://<host>:8001/ws/cat` | CAT status push | Planned |
 
 ---
 
@@ -189,9 +191,78 @@ function decodeSpectrum(buffer) {
 
 ---
 
-## 4. Future Endpoints
+## 4. TX Monitor WebSocket — `/ws/tx-monitor`
 
-### `wss://<host>:8000/ws/ft` (planned)
+Streams post-DSP TX audio back to the browser for monitoring. Audio is captured after the full DSP chain (HPF + EQ + LPF + expander) and before it reaches the USB audio card.
+
+### Connection
+
+```
+wss://<host>:8001/ws/tx-monitor
+```
+
+Requires an active WebRTC session with TX audio flowing. If no `audio_tx` instance is active on the server, the connection is closed immediately with code `1011`.
+
+### Frame Format
+
+Each message is a binary WebSocket frame containing raw **PCM16 mono** audio:
+
+| Property | Value |
+|---|---|
+| Encoding | Signed 16-bit integer (little-endian) |
+| Sample rate | 48000 Hz |
+| Channels | 1 (mono) |
+| Samples per frame | 960 (20 ms per frame) |
+| Frame size | 1920 bytes |
+
+Frames are sent in real time as TX audio is processed. The server drops frames (not queued) if the client cannot keep up (queue size limit: 16 frames ≈ 320 ms).
+
+### Client Behaviour
+
+The recommended client pattern (as implemented in the 4HAM frontend) buffers frames during PTT and plays them back after PTT release:
+
+```javascript
+// During PTT: buffer frames, do not play
+if (pttActive) {
+    buffer.push(float32Frame);
+    return;
+}
+// After PTT release: schedule buffered frames for playback
+for (const frame of buffer) {
+    const src = audioCtx.createBufferSource();
+    src.buffer = /* AudioBuffer from frame */;
+    src.start(nextTime);
+    nextTime += src.buffer.duration;
+}
+buffer = [];
+```
+
+This prevents acoustic echo: audio plays only after the microphone is deactivated.
+
+### Client Lifecycle
+
+```
+Client                              Server
+  │                                   │
+  │── WSS Upgrade (Basic Auth) ──────>|
+  |←─ 101 Switching Protocols ─────────|
+  |                                   |
+  |  [PTT pressed by user]            |
+  |←─ binary frame (PCM16, 960 samp) ─|  ~50 fps during TX
+  |←─ binary frame (PCM16, 960 samp) ─|
+  |          ...                      |
+  |  [PTT released]                   |
+  |  [client plays buffered frames]   |
+  |                                   |
+  |── close ─────────────────────────>|
+  |←─ close ──────────────────────────|
+```
+
+---
+
+## 5. Future Endpoints
+
+### `wss://<host>:8001/ws/ft` (planned)
 
 Will push FT8/FT4 decode events as JSON messages:
 
@@ -207,7 +278,7 @@ Will push FT8/FT4 decode events as JSON messages:
 }
 ```
 
-### `wss://<host>:8000/ws/cat` (planned)
+### `wss://<host>:8001/ws/cat` (planned)
 
 Will push CAT status updates on change (frequency, mode, PTT):
 
