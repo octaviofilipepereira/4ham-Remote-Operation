@@ -88,9 +88,12 @@ const LOCALES = {
     form_rst_sent:         "RST Enviado",
     form_rst_rx:           "RST Recebido",
     form_notes:            "Notas",
+    form_notes_placeholder: "Locator, nome, potência, observações…",
     btn_log_qso:           "Registar QSO",
     recent_qso_label:      "Últimos QSOs",
     recent_qso_empty:      "Nenhum QSO registado",
+    /* Cluster DX */
+    dx_cluster_search_placeholder: "país, call, host…",
     /* Plano de bandas */
     band_plan_label:       "Plano de Bandas",
     band_160m_desc:        "Banda de inverno, propagação nocturna",
@@ -205,9 +208,12 @@ const LOCALES = {
     form_rst_sent:         "RST Sent",
     form_rst_rx:           "RST RX",
     form_notes:            "Notes",
+    form_notes_placeholder: "Locator, name, power, notes…",
     btn_log_qso:           "Log QSO",
     recent_qso_label:      "Recent QSOs",
     recent_qso_empty:      "No QSOs logged",
+    /* DX Cluster */
+    dx_cluster_search_placeholder: "country, call, host…",
     /* Band plan */
     band_plan_label:       "Band Plan",
     band_160m_desc:        "Winter band, night propagation",
@@ -261,6 +267,9 @@ function applyLocale(lang) {
   });
   document.querySelectorAll("[data-i18n-title]").forEach(function (el) {
     el.setAttribute("title", t(el.dataset.i18nTitle));
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+    el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder));
   });
 
   var btn = document.getElementById("lang-toggle");
