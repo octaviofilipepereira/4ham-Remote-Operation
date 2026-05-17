@@ -1177,8 +1177,10 @@ function beginTxHold(event) {
   txHoldActive = true;
   setTxButtonState(true);
   if (micTrack) micTrack.enabled = true;
-  // Mutar ou não o RX consoante modo MONI Rádio
-  if (gainNode) gainNode.gain.value = moniRadioEnabled ? parseInt(elVolume.value, 10) / 100 : 0;
+  // RX sempre silenciado no browser durante TX — o hardware MONI do rádio funciona
+  // independentemente disto. Manter gainNode=0 elimina o reverb causado pela
+  // sobreposição do sinal MONI imediato (rádio) com a cópia atrasada via WebRTC.
+  if (gainNode) gainNode.gain.value = 0;
   // Monitorização local: clone da track (independente do WebRTC) → Audio element
   if (localMonitorEnabled && micTrack && !localMonitorEl) {
     try {
