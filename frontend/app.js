@@ -1385,11 +1385,13 @@ btnTx.addEventListener("keyup", (event) => {
 // ── VOX ──────────────────────────────────────────────────────────────────────
 
 function voxStartAnalyser() {
-  if (voxAnalyser || !micTrack || !audioCtx) return;
+  // Usar rawMicStream (sinal original, nunca desactivado) e txAudioCtx.
+  // micTrack tem enabled=false quando PTT está inactivo — não serve para VOX.
+  // audioCtx (RX) pode não existir ainda quando o utilizador activa VOX.
+  if (voxAnalyser || !rawMicStream || !txAudioCtx) return;
   try {
-    const micStream = new MediaStream([micTrack]);
-    const src = audioCtx.createMediaStreamSource(micStream);
-    voxAnalyser = audioCtx.createAnalyser();
+    const src = txAudioCtx.createMediaStreamSource(rawMicStream);
+    voxAnalyser = txAudioCtx.createAnalyser();
     voxAnalyser.fftSize = 256;
     voxDataBuf = new Uint8Array(voxAnalyser.frequencyBinCount);
     src.connect(voxAnalyser);
@@ -1424,24 +1426,15 @@ function voxLoop() {
   const threshold = parseInt(elVoxThreshold?.value ?? "15", 10) / 100; // 0.01..0.50
 
   if (rms > threshold) {
-    // sinal detectado — cancelar hang, activar PTT se não activo
+    // sinal detectado — cancelar hang, activar PTT via beginTxHold
+    // (garante gainNode=0, TX monitor, etc. — mesma lógica do PTT manual)
     if (voxHangTimer !== null) { clearTimeout(voxHangTimer); voxHangTimer = null; }
-    if (!txHoldActive) {
-      txHoldActive = true;
-      setTxButtonState(true);
-      if (micTrack) micTrack.enabled = true;
-      sendPtt(true);
-    }
+    if (!txHoldActive) beginTxHold();
   } else if (txHoldActive && voxHangTimer === null) {
     // silêncio — iniciar hang time
     voxHangTimer = setTimeout(() => {
       voxHangTimer = null;
-      if (txHoldActive) {
-        txHoldActive = false;
-        setTxButtonState(false);
-        if (micTrack) micTrack.enabled = false;
-        sendPtt(false);
-      }
+      endTxHold();
     }, VOX_HANG_MS);
   }
 
