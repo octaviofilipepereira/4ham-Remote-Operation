@@ -30,6 +30,9 @@ let rawMicStream = null;          // stream original do getUserMedia (para clean
 let txMonWs         = null;       // WebSocket para /ws/tx-monitor
 let txMonCtx        = null;       // AudioContext para playback do monitor
 let txMonNextTime   = 0;          // próximo instante de playback agendado
+let txMonPttActive  = false;      // true enquanto PTT está activo
+let txMonPlayBuf    = [];         // frames Float32 bufferizados durante PTT
+const TX_MON_MAX_BUF = 1500;     // máx ~30 s de buffer (1500 × 20 ms)
 
 // ── VOX ──────────────────────────────────────────────────────────────────────
 let voxEnabled = false;
@@ -1191,6 +1194,8 @@ function beginTxHold(event) {
     }
   }
   sendPtt(true);
+  // TX monitor: começar a bufferizar — sem reproduzir durante TX para evitar eco
+  if (txMonCtx) { txMonPttActive = true; txMonPlayBuf = []; }
 }
 
 function endTxHold() {
@@ -1208,6 +1213,22 @@ function endTxHold() {
   // Restaurar volume RX após TX
   if (gainNode) gainNode.gain.value = parseInt(elVolume.value, 10) / 100;
   sendPtt(false);
+  // TX monitor: reproduzir o buffer acumulado durante o PTT
+  txMonPttActive = false;
+  if (txMonCtx && txMonPlayBuf.length > 0) {
+    if (txMonCtx.state === "suspended") txMonCtx.resume().catch(() => {});
+    txMonNextTime = txMonCtx.currentTime + 0.05;
+    for (const f32 of txMonPlayBuf) {
+      const buf = txMonCtx.createBuffer(1, f32.length, 48000);
+      buf.copyToChannel(f32, 0);
+      const src = txMonCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(txMonCtx.destination);
+      src.start(txMonNextTime);
+      txMonNextTime += buf.duration;
+    }
+    txMonPlayBuf = [];
+  }
 }
 
 elMode.addEventListener("change", async () => {
@@ -1497,7 +1518,6 @@ function startTxMonitor() {
   txMonNextTime = 0;
   let _rxFrames = 0;
   txMonWs.onmessage = (evt) => {
-    if (txMonCtx.state === "suspended") txMonCtx.resume().catch(() => {});
     const int16 = new Int16Array(evt.data);
     if (_rxFrames === 0) {
       console.log("[TX Monitor] primeiro frame: amostras=", int16.length,
@@ -1506,16 +1526,11 @@ function startTxMonitor() {
     _rxFrames++;
     const float32 = new Float32Array(int16.length);
     for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768.0;
-    const buf = txMonCtx.createBuffer(1, float32.length, 48000);
-    buf.copyToChannel(float32, 0);
-    const src = txMonCtx.createBufferSource();
-    src.buffer = buf;
-    src.connect(txMonCtx.destination);
-    const now = txMonCtx.currentTime;
-    // Manter 40 ms de buffer mínimo para playback suave
-    if (txMonNextTime < now + 0.04) txMonNextTime = now + 0.04;
-    src.start(txMonNextTime);
-    txMonNextTime += buf.duration;
+    if (txMonPttActive) {
+      // Bufferizar durante PTT — não reproduzir para evitar eco na transmissão
+      if (txMonPlayBuf.length < TX_MON_MAX_BUF) txMonPlayBuf.push(float32);
+    }
+    // Fora de PTT os frames são silêncio — descartar
   };
   txMonWs.onclose = () => {
     stopTxMonitor();
@@ -1527,7 +1542,9 @@ function startTxMonitor() {
 function stopTxMonitor() {
   if (txMonWs) { txMonWs.onclose = null; txMonWs.close(); txMonWs = null; }
   if (txMonCtx) { txMonCtx.close().catch(() => {}); txMonCtx = null; }
-  txMonNextTime = 0;
+  txMonNextTime  = 0;
+  txMonPttActive = false;
+  txMonPlayBuf   = [];
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
