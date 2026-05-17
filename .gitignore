@@ -16,6 +16,9 @@ build/
 *.db-wal
 *.db-shm
 
+# Dados em tempo de execução (logs de QSOs, prefs locais)
+data/
+
 # Audio temporário
 *.wav
 *.raw
