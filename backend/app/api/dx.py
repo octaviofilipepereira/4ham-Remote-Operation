@@ -58,6 +58,7 @@ class ClusterSetRequest(BaseModel):
     host:             str
     port:             int  = 7300
     callsign:         str  = "CT7BFV"
+    node_call:        str  = ""       # indicativo do nó cluster (ex: CS1SEL)
     max_spot_age_min: int  = 60
 
 
@@ -116,6 +117,7 @@ async def put_active_cluster(body: ClusterSetRequest, request: Request) -> dict:
         "host":             body.host,
         "port":             body.port,
         "callsign":         body.callsign,
+        "node_call":        body.node_call,
         "max_spot_age_min": body.max_spot_age_min,
     }
     _save_prefs(prefs)
@@ -126,6 +128,7 @@ async def put_active_cluster(body: ClusterSetRequest, request: Request) -> dict:
             host=body.host,
             port=body.port,
             callsign=body.callsign,
+            node_call=body.node_call,
             max_spot_age_min=body.max_spot_age_min,
         )
     else:
@@ -135,6 +138,7 @@ async def put_active_cluster(body: ClusterSetRequest, request: Request) -> dict:
             host=body.host,
             port=body.port,
             callsign=body.callsign,
+            node_call=body.node_call,
             max_spot_age_min=body.max_spot_age_min,
         )
         await client.start()

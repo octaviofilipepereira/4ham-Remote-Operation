@@ -85,6 +85,7 @@ class ClusterConfig:
     host:             str
     port:             int  = 7300
     callsign:         str  = "CT7BFV"
+    node_call:        str  = ""       # indicativo do nó cluster (ex: CS1SEL)
     max_spot_age_min: int  = 60
 
 
@@ -92,11 +93,13 @@ class DXClusterClient:
     """Cliente asyncio para um nó DX Cluster (DX Spider / AR-Cluster)."""
 
     def __init__(self, host: str, port: int, callsign: str,
+                 node_call: str = "",
                  max_spot_age_min: int = 60) -> None:
         self._cfg = ClusterConfig(
             host=host,
             port=port,
             callsign=callsign,
+            node_call=node_call,
             max_spot_age_min=max_spot_age_min,
         )
         self._spots: deque[DXSpot] = deque(maxlen=MAX_SPOTS)
@@ -147,6 +150,7 @@ class DXClusterClient:
             "host":         self._cfg.host,
             "port":         self._cfg.port,
             "callsign":     self._cfg.callsign,
+            "node_call":    self._cfg.node_call,
             "spot_count":   len(self._spots),
             "connected_at": self._connected_at,
             "error":        self._error,
@@ -172,12 +176,14 @@ class DXClusterClient:
         logger.info("[DXCluster] Parado.")
 
     async def reconfigure(self, host: str, port: int, callsign: str,
+                          node_call: str = "",
                           max_spot_age_min: int = 60) -> None:
         """Parar, actualizar configuração e reiniciar."""
         await self.stop()
         self._cfg = ClusterConfig(
             host=host, port=port,
             callsign=callsign,
+            node_call=node_call,
             max_spot_age_min=max_spot_age_min,
         )
         self._spots.clear()

@@ -2091,8 +2091,9 @@ loadRecentQsos();
     applyDotState(headerDot, status.state);
     if (status.state === "connected") {
       activeCall = status.callsign || status.call || status.host || "";
-      statusText.textContent = "Ligado a " + (status.callsign || status.call || status.host);
-      headerDot.title = "Ligado: " + (status.call || status.host);
+      const nodeLabel = status.node_call || status.host;
+      statusText.textContent = "Ligado a \u201c" + nodeLabel + "\u201d";
+      headerDot.title = "Ligado: " + nodeLabel;
     } else if (status.state === "connecting") {
       statusText.textContent = "A ligar a " + (status.host || "…");
       headerDot.title = "A ligar…";
@@ -2170,7 +2171,7 @@ loadRecentQsos();
       await fetch(`${API}/api/dx/cluster`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ host: c.host, port: c.port, callsign }),
+        body: JSON.stringify({ host: c.host, port: c.port, callsign, node_call: c.call }),
       });
       /* PUT retorna imediatamente com state=disconnected (task asyncio ainda nao ligou).
          Nao chamar updateStatusBar aqui — polling faz a actualizacao apos ligacao. */

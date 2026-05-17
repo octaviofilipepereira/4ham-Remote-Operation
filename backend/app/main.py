@@ -201,10 +201,11 @@ async def lifespan(app: FastAPI):
     if dx_cfg_src is None:
         dx_cfg_src = cfg.get("dx_cluster", {})
 
-    dx_host     = dx_cfg_src.get("host", "").strip()
-    dx_port     = int(dx_cfg_src.get("port", 7300))
-    dx_call     = dx_cfg_src.get("callsign", "").strip()
-    dx_age      = int(dx_cfg_src.get("max_spot_age_min", 60))
+    dx_host      = dx_cfg_src.get("host", "").strip()
+    dx_port      = int(dx_cfg_src.get("port", 7300))
+    dx_call      = dx_cfg_src.get("callsign", "").strip()
+    dx_node_call = dx_cfg_src.get("node_call", "").strip()
+    dx_age       = int(dx_cfg_src.get("max_spot_age_min", 60))
 
     dx_client: DXClusterClient | None = None
     if dx_host and dx_call:
@@ -212,6 +213,7 @@ async def lifespan(app: FastAPI):
             host=dx_host,
             port=dx_port,
             callsign=dx_call,
+            node_call=dx_node_call,
             max_spot_age_min=dx_age,
         )
         await dx_client.start()
