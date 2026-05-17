@@ -2328,6 +2328,10 @@ body[data-knob-active="true"] .vfo-knob {
   border-color: rgba(255, 255, 255, 0.45);
 }
 
+#dx-band-label {
+  font-size: 0.78rem;
+}
+
 /* ── DX Cluster: dialog ─────────────────────────────────────────────────── */
 .dx-cluster-dialog {
   background: #1a1f2b;
