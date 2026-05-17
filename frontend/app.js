@@ -1664,6 +1664,13 @@ function stopTxMonitor() {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// F7 global — limpar campo Indicativo e colocar foco nele
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "F7" || event.repeat) return;
+  event.preventDefault();
+  if (elQsoCallsign) { elQsoCallsign.value = ""; elQsoCallsign.focus(); }
+});
+
 // F8 global — PTT independente do foco, mas não quando o cursor está num input de texto
 window.addEventListener("keydown", (event) => {
   if (event.key !== "F8" || event.repeat) return;
