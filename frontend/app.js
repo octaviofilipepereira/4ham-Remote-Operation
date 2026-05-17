@@ -1274,24 +1274,40 @@ const BAND_SSB = {
 };
 
 // Memória por banda: { [band]: { hz, mode } } — persiste no servidor (config/user_prefs.json)
-// localStorage serve apenas como cache imediata enquanto o fetch ainda não respondeu.
+// localStorage serve apenas como cache imediata enquanto o fetch inicial ainda não respondeu.
 const _BAND_MEM_KEY = "4ham_band_memory";
 let bandMemory = (() => {
   try { return JSON.parse(localStorage.getItem(_BAND_MEM_KEY) || "{}"); }
   catch { return {}; }
 })();
 
-// Carregar do servidor ao arranque (sobrepõe-se ao localStorage se o servidor responder)
+// Bloquear PUTs ao servidor até o GET inicial ter completado — evita sobrescrever
+// dados do servidor com bandMemory vazio (race condition em browsers sem localStorage).
+let _bandMemReady = false;
+let _bandMemSaveTimer = null;
+
 fetch(`${API}/api/prefs/band-memory`)
   .then(r => r.ok ? r.json() : null)
-  .then(data => { if (data && typeof data === "object") { bandMemory = data; } })
-  .catch(() => { /* servidor indisponível — usar cache local */ });
+  .then(data => {
+    if (data && typeof data === "object") {
+      bandMemory = data;
+      try { localStorage.setItem(_BAND_MEM_KEY, JSON.stringify(bandMemory)); } catch { /* quota */ }
+    }
+  })
+  .catch(() => { /* servidor indisponível — usar cache local */ })
+  .finally(() => {
+    _bandMemReady = true;
+    // Cancelar qualquer save agendado antes dos dados do servidor chegarem;
+    // foi baseado em estado incompleto e já não é necessário.
+    clearTimeout(_bandMemSaveTimer);
+    _bandMemSaveTimer = null;
+  });
 
-let _bandMemSaveTimer = null;
 function saveBandMemory() {
-  // cache local imediata
+  // cache local sempre imediata
   try { localStorage.setItem(_BAND_MEM_KEY, JSON.stringify(bandMemory)); } catch { /* quota */ }
-  // guardar no servidor com debounce de 1.5 s
+  // PUT ao servidor só depois do GET inicial ter completado
+  if (!_bandMemReady) return;
   clearTimeout(_bandMemSaveTimer);
   _bandMemSaveTimer = setTimeout(() => {
     fetch(`${API}/api/prefs/band-memory`, {
