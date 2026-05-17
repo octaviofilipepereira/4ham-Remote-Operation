@@ -318,7 +318,9 @@
           <section class="hardware-block dx-block">
             <div class="block-title">
               <span class="hardware-label">DX Spots</span>
+              <span id="dx-cluster-dot" class="dx-cluster-dot dx-cluster-dot--off" title="Sem cluster activo"></span>
               <strong id="dx-band-label">20 m</strong>
+              <button id="btn-dx-cluster" class="btn-dx-cluster" type="button" title="Configurar cluster DX">⚙</button>
             </div>
 
             <div class="freq-ruler" id="freq-ruler" data-i18n-aria="freq_ruler_aria">
@@ -496,6 +498,31 @@
       <div class="audio-settings-dialog__actions">
         <button id="dlg-audio-apply" class="audio-settings-dialog__btn" type="button" data-i18n="audio_settings_apply">Aplicar</button>
         <button id="dlg-audio-close" class="audio-settings-dialog__dismiss" type="button" data-i18n="audio_settings_close">Fechar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ── Modal: DX Cluster ──────────────────────────────────────────────── -->
+  <dialog id="dlg-dx-cluster" class="dx-cluster-dialog">
+    <div class="dx-cluster-dialog__body">
+      <h2 class="dx-cluster-dialog__title">DX Cluster</h2>
+
+      <div id="dx-cluster-status-bar" class="dx-cluster-dialog__status">
+        <span class="dx-cluster-dot dx-cluster-dot--off"></span>
+        <span id="dx-cluster-status-text">Desligado</span>
+      </div>
+
+      <label class="dx-cluster-dialog__label" for="dx-cluster-callsign">Callsign</label>
+      <input id="dx-cluster-callsign" class="dx-cluster-dialog__input" type="text" value="CT7BFV" autocomplete="off" spellcheck="false" />
+
+      <label class="dx-cluster-dialog__label" for="dx-cluster-search">Pesquisar</label>
+      <input id="dx-cluster-search" class="dx-cluster-dialog__input" type="text" placeholder="país, call, host…" autocomplete="off" />
+
+      <div id="dx-cluster-list" class="dx-cluster-dialog__list" role="listbox" aria-label="Clusters disponíveis"></div>
+
+      <div class="dx-cluster-dialog__actions">
+        <button id="dx-cluster-disconnect" class="dx-cluster-dialog__btn-disconnect" type="button">Desligar</button>
+        <button id="dx-cluster-close" class="dx-cluster-dialog__btn-close" type="button">Fechar</button>
       </div>
     </div>
   </dialog>

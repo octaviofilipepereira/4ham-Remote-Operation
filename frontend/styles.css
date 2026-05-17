@@ -2268,3 +2268,194 @@ body[data-knob-active="true"] .vfo-knob {
     font-size: clamp(2.2rem, 5.2vw, 4rem);
   }
 }
+
+/* ── DX Cluster: botão e indicador no header ────────────────────────────── */
+.dx-cluster-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  align-self: center;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.dx-cluster-dot--off {
+  background: rgba(200, 212, 220, 0.2);
+  box-shadow: none;
+}
+.dx-cluster-dot--connecting {
+  background: var(--amber, #f7c46d);
+  box-shadow: 0 0 6px rgba(247, 196, 109, 0.6);
+  animation: dot-pulse 1s ease-in-out infinite;
+}
+.dx-cluster-dot--connected {
+  background: #4cff8a;
+  box-shadow: 0 0 6px rgba(76, 255, 138, 0.6);
+}
+.dx-cluster-dot--error {
+  background: var(--red, #ff5041);
+  box-shadow: 0 0 6px rgba(255, 80, 65, 0.5);
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+.btn-dx-cluster {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.45);
+  padding: 0.2em 0.45em;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  align-self: center;
+  transition: color 0.15s, border-color 0.15s;
+  line-height: 1;
+}
+.btn-dx-cluster:hover {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── DX Cluster: dialog ─────────────────────────────────────────────────── */
+.dx-cluster-dialog {
+  background: #1a1f2b;
+  border: 1px solid var(--teal, #92ffe4);
+  border-radius: 10px;
+  padding: 0;
+  color: var(--text, #c8d4dc);
+  max-width: 380px;
+  width: 94vw;
+}
+.dx-cluster-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(3px);
+}
+.dx-cluster-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1.4rem 1.5rem 1.2rem;
+}
+.dx-cluster-dialog__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--teal, #92ffe4);
+  margin: 0 0 0.2rem;
+  letter-spacing: 0.04em;
+}
+.dx-cluster-dialog__status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: rgba(200, 212, 220, 0.65);
+  min-height: 1.4rem;
+}
+.dx-cluster-dialog__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(200, 212, 220, 0.55);
+  margin-top: 0.2rem;
+}
+.dx-cluster-dialog__input {
+  background: #0d1117;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text, #c8d4dc);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.38em 0.6em;
+  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.dx-cluster-dialog__input:focus {
+  outline: 1px solid var(--teal, #92ffe4);
+}
+.dx-cluster-dialog__list {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #0d1117;
+}
+.dx-cluster-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.42em 0.65em;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.12s;
+}
+.dx-cluster-row:last-child { border-bottom: none; }
+.dx-cluster-row:hover { background: rgba(146, 255, 228, 0.07); }
+.dx-cluster-row--active {
+  background: rgba(146, 255, 228, 0.12);
+}
+.dx-cluster-row--connecting {
+  background: rgba(247, 196, 109, 0.08);
+}
+.dx-cluster-row__call {
+  font-family: var(--display-font);
+  font-size: 0.8rem;
+  color: var(--teal, #92ffe4);
+  flex-shrink: 0;
+  min-width: 80px;
+}
+.dx-cluster-row__loc {
+  font-size: 0.72rem;
+  color: rgba(200, 212, 220, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dx-cluster-row__rbn {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--amber, #f7c46d);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.dx-cluster-dialog__actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+.dx-cluster-dialog__btn-disconnect {
+  flex: 1;
+  background: none;
+  border: 1px solid rgba(255, 80, 65, 0.45);
+  color: rgba(255, 80, 65, 0.75);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.45em 0.8em;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.dx-cluster-dialog__btn-disconnect:hover {
+  color: var(--red, #ff5041);
+  border-color: var(--red, #ff5041);
+}
+.dx-cluster-dialog__btn-close {
+  flex: 1;
+  background: none;
+  border: 1px solid rgba(200, 212, 220, 0.25);
+  color: rgba(200, 212, 220, 0.6);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.45em 0.8em;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.dx-cluster-dialog__btn-close:hover {
+  color: rgba(200, 212, 220, 0.9);
+  border-color: rgba(200, 212, 220, 0.5);
+}

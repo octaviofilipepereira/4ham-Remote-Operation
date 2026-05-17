@@ -2057,3 +2057,160 @@ loadRecentQsos();
     updateCursor(lastHz);
   }).observe(elRuler);
 })();
+
+/* ── DX Cluster: gestão do diálogo ─────────────────────────────────────── */
+(function () {
+  const dlg          = document.getElementById("dlg-dx-cluster");
+  const btnOpen      = document.getElementById("btn-dx-cluster");
+  const btnClose     = document.getElementById("dx-cluster-close");
+  const btnDisconnect= document.getElementById("dx-cluster-disconnect");
+  const inpCallsign  = document.getElementById("dx-cluster-callsign");
+  const inpSearch    = document.getElementById("dx-cluster-search");
+  const listEl       = document.getElementById("dx-cluster-list");
+  const statusBar    = document.getElementById("dx-cluster-status-bar");
+  const statusText   = document.getElementById("dx-cluster-status-text");
+  const headerDot    = document.getElementById("dx-cluster-dot");
+
+  if (!dlg) return;
+
+  let allClusters  = [];
+  let activeCall   = null; /* call do cluster actualmente ligado */
+
+  /* ── Actualizar indicadores ── */
+  function applyDotState(dot, state) {
+    dot.className = "dx-cluster-dot";
+    if      (state === "connected")   dot.classList.add("dx-cluster-dot--connected");
+    else if (state === "connecting")  dot.classList.add("dx-cluster-dot--connecting");
+    else if (state === "error")       dot.classList.add("dx-cluster-dot--error");
+    else                              dot.classList.add("dx-cluster-dot--off");
+  }
+
+  function updateStatusBar(status) {
+    const dot = statusBar.querySelector(".dx-cluster-dot");
+    applyDotState(dot, status.state);
+    applyDotState(headerDot, status.state);
+    if (status.state === "connected") {
+      activeCall = status.call || status.host || "";
+      statusText.textContent = "Ligado a " + (status.call || status.host);
+      headerDot.title = "Ligado: " + (status.call || status.host);
+    } else if (status.state === "connecting") {
+      statusText.textContent = "A ligar a " + (status.host || "…");
+      headerDot.title = "A ligar…";
+    } else if (status.state === "error") {
+      statusText.textContent = "Erro: " + (status.error || "desconhecido");
+      activeCall = null;
+      headerDot.title = "Erro de ligação";
+    } else {
+      statusText.textContent = "Desligado";
+      activeCall = null;
+      headerDot.title = "Sem cluster activo";
+    }
+    /* Destacar linha activa na lista */
+    listEl.querySelectorAll(".dx-cluster-row").forEach(row => {
+      row.classList.toggle("dx-cluster-row--active",
+        status.state === "connected" && row.dataset.host === status.host);
+    });
+  }
+
+  async function refreshStatus() {
+    try {
+      const r = await fetch(`${API}/api/dx/status`);
+      if (r.ok) updateStatusBar(await r.json());
+    } catch { /* ignorar */ }
+  }
+
+  /* ── Renderizar lista de clusters ── */
+  function renderList(clusters) {
+    listEl.innerHTML = "";
+    if (!clusters.length) {
+      listEl.innerHTML = '<div style="padding:0.6em 0.65em;font-size:0.75rem;color:rgba(200,212,220,0.4)">Sem resultados</div>';
+      return;
+    }
+    clusters.forEach(c => {
+      const row = document.createElement("div");
+      row.className = "dx-cluster-row";
+      row.dataset.host = c.host;
+      row.dataset.port = c.port;
+      row.dataset.call = c.call;
+      row.role = "option";
+      row.innerHTML =
+        `<span class="dx-cluster-row__call">${c.call}</span>` +
+        `<span class="dx-cluster-row__loc">${c.country} — ${c.location}</span>` +
+        (c.rbn ? '<span class="dx-cluster-row__rbn">RBN</span>' : "");
+
+      row.addEventListener("click", () => connectCluster(c));
+      listEl.appendChild(row);
+    });
+  }
+
+  function filterList(q) {
+    if (!q) { renderList(allClusters); return; }
+    const ql = q.toLowerCase();
+    renderList(allClusters.filter(c =>
+      c.call.toLowerCase().includes(ql) ||
+      c.host.toLowerCase().includes(ql) ||
+      c.country.toLowerCase().includes(ql) ||
+      c.location.toLowerCase().includes(ql)
+    ));
+  }
+
+  /* ── Ligar a um cluster ── */
+  async function connectCluster(c) {
+    const callsign = (inpCallsign.value || "CT7BFV").trim().toUpperCase();
+    /* Feedback imediato na linha */
+    listEl.querySelectorAll(".dx-cluster-row").forEach(row => {
+      row.classList.remove("dx-cluster-row--connecting", "dx-cluster-row--active");
+      if (row.dataset.host === c.host) row.classList.add("dx-cluster-row--connecting");
+    });
+    applyDotState(headerDot, "connecting");
+    statusText.textContent = "A ligar a " + c.call + "…";
+
+    try {
+      const r = await fetch(`${API}/api/dx/cluster`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ host: c.host, port: c.port, callsign }),
+      });
+      const data = await r.json();
+      updateStatusBar(data);
+    } catch (err) {
+      console.error("[DXCluster] connectCluster:", err);
+      applyDotState(headerDot, "error");
+      statusText.textContent = "Erro ao ligar";
+    }
+  }
+
+  /* ── Desligar ── */
+  async function disconnectCluster() {
+    try {
+      await fetch(`${API}/api/dx/cluster`, { method: "DELETE" });
+    } catch { /* ignorar */ }
+    updateStatusBar({ state: "disconnected" });
+  }
+
+  /* ── Abrir diálogo ── */
+  async function openDialog() {
+    /* Carregar clusters se ainda não foram carregados */
+    if (!allClusters.length) {
+      try {
+        const r = await fetch(`${API}/api/dx/clusters`);
+        if (r.ok) allClusters = await r.json();
+      } catch { /* ignorar */ }
+    }
+    renderList(allClusters);
+    await refreshStatus();
+    dlg.showModal();
+  }
+
+  btnOpen.addEventListener("click", openDialog);
+  btnClose.addEventListener("click", () => dlg.close());
+  btnDisconnect.addEventListener("click", disconnectCluster);
+  inpSearch.addEventListener("input", () => filterList(inpSearch.value));
+
+  /* Fechar ao clicar no backdrop */
+  dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+
+  /* Polling do estado no header (a cada 10 s) */
+  refreshStatus();
+  window.setInterval(refreshStatus, 10_000);
+})();
