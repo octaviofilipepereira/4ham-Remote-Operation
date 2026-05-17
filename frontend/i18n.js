@@ -110,7 +110,7 @@ const LOCALES = {
     clublog_uploading:     "A enviar…",
     clublog_upload_ok:     "Upload concluído com sucesso!",
     clublog_upload_error:  "Erro ao enviar para o Clublog.",
-    clublog_missing_fields: "Preencha o Indicativo, E-mail, Palavra-passe e API Key.",
+    clublog_missing_fields: "Preencha o Indicativo, E-mail, Palavra-passe de Aplicação e API Key.",
     btn_close:             "Fechar",
     /* Cluster DX */
     dx_cluster_search_placeholder: "país, call, host…",
@@ -252,7 +252,7 @@ const LOCALES = {
     clublog_uploading:     "Uploading\u2026",
     clublog_upload_ok:     "Upload completed successfully!",
     clublog_upload_error:  "Error uploading to Clublog.",
-    clublog_missing_fields: "Please fill in Callsign, E-mail, Password and API Key.",
+    clublog_missing_fields: "Please fill in Callsign, E-mail, Application Password and API Key.",
     btn_close:             "Close",
     /* DX Cluster */
     dx_cluster_search_placeholder: "country, call, host…",
