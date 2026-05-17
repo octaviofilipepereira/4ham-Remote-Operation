@@ -146,28 +146,28 @@ class WebRTCPeer:
                     continue
 
                 arr = frame.to_ndarray()
-                n_ch = frame.channels
+                n_samples_per_ch = frame.samples  # e.g. 960 para 20 ms a 48 kHz
 
                 # Log do primeiro frame para diagnóstico
                 if _first_frame:
                     logger.info(
-                        "TX audio frame: shape=%s dtype=%s sample_rate=%d channels=%d samples=%d",
+                        "TX audio frame: shape=%s dtype=%s sample_rate=%d samples=%d",
                         arr.shape, arr.dtype,
                         getattr(frame, "sample_rate", 0),
-                        n_ch, frame.samples,
+                        n_samples_per_ch,
                     )
                     _first_frame = False
 
                 if arr.dtype != np.int16:
-                    # Formato planar (fltp): shape (channels, samples)
-                    # Extrair canal 0 antes de converter
-                    if arr.ndim == 2 and n_ch > 1:
-                        arr = arr[0:1, :]
+                    # Formato planar (fltp): shape (n_ch, n_samples)
+                    if arr.ndim == 2 and arr.shape[0] > 1:
+                        arr = arr[0:1, :]  # extrair canal 0
                     mono = (arr.astype(np.float32) * 32767.0).clip(-32768, 32767).astype(np.int16).flatten()
                 else:
-                    # Formato packed (s16): shape (1, channels * samples)
+                    # Formato packed (s16): shape (1, n_ch * n_samples)
                     flat = arr.flatten()
-                    mono = flat[::n_ch] if n_ch > 1 else flat
+                    n_ch = flat.size // n_samples_per_ch if n_samples_per_ch > 0 else 1
+                    mono = flat[::max(1, n_ch)]
 
                 self._audio_tx.push(mono)
         finally:
