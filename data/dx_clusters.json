@@ -30,18 +30,88 @@
     "verified": true
   },
   {
-    "call": "CQ0PAX-6",
-    "host": "cq0pax.hamnet.radio",
-    "port": 7300,
+    "call": "CS5SEL-5",
+    "host": "hamradio.isel.ipl.pt",
+    "port": 41112,
     "country": "Portugal",
-    "location": "Fatima (HAMNET)",
+    "location": "Lisboa (ISEL/IPL)",
     "software": "DXSpider",
     "rbn": false,
     "verified": false
   },
   {
     "call": "CS5ARLC-1",
-    "host": "cs5arlc.ampr.org",
+    "host": "cluster.arlc.pt",
+    "port": 7373,
+    "country": "Portugal",
+    "location": "Cascais",
+    "software": "DXSpider",
+    "rbn": false,
+    "verified": false
+  },
+  {
+    "call": "CS5ARTD-2",
+    "host": "portaldoradioamador.pt",
+    "port": 7300,
+    "country": "Portugal",
+    "location": "Amarante",
+    "software": "DXSpider",
+    "rbn": false,
+    "verified": false
+  },
+  {
+    "call": "CS0RCL-7",
+    "host": "cs0rcl.hopto.org",
+    "port": 9000,
+    "country": "Portugal",
+    "location": "Olhao, Algarve",
+    "software": "DxNet",
+    "rbn": false,
+    "verified": false
+  },
+  {
+    "call": "CT1EBQ",
+    "host": "node.ct1ebq.com",
+    "port": 7300,
+    "country": "Portugal",
+    "location": "Tomar",
+    "software": "DXSpider",
+    "rbn": false,
+    "verified": false
+  },
+  {
+    "call": "CT1ENQ-5",
+    "host": "ct1enq.myvnc.com",
+    "port": 35000,
+    "country": "Portugal",
+    "location": "Guimaraes",
+    "software": "AR-Cluster",
+    "rbn": false,
+    "verified": false
+  },
+  {
+    "call": "CS3MAD",
+    "host": "cs3mad.dyndns.org",
+    "port": 7300,
+    "country": "Portugal",
+    "location": "Funchal, Madeira",
+    "software": "DXSpider",
+    "rbn": false,
+    "verified": false
+  },
+  {
+    "call": "CU3HY-2",
+    "host": "cu3hy.mikemaciel.com",
+    "port": 7300,
+    "country": "Portugal",
+    "location": "Angra, Acores",
+    "software": "DXSpider",
+    "rbn": false,
+    "verified": false
+  },
+  {
+    "call": "CQ0PAX-6",
+    "host": "cq0pax.hamnet.radio",
     "port": 7300,
     "country": "Portugal",
     "location": "Lisboa (HAMNET)",
@@ -50,42 +120,32 @@
     "verified": false
   },
   {
-    "call": "CS5ARTD-2",
-    "host": "cs5artd.ampr.org",
-    "port": 7300,
-    "country": "Portugal",
-    "location": "Tomar (HAMNET)",
-    "software": "DXSpider",
-    "rbn": false,
-    "verified": false
-  },
-  {
     "call": "CS5NRA-6",
-    "host": "cs5nra.ampr.org",
+    "host": "cs5nra.hamnet.radio",
     "port": 7300,
     "country": "Portugal",
-    "location": "Nazare (HAMNET)",
+    "location": "Alfeite, Setubal (HAMNET)",
     "software": "DXSpider",
     "rbn": false,
     "verified": false
   },
   {
-    "call": "CS3MAD",
-    "host": "cs3mad.ampr.org",
+    "call": "EA4URE",
+    "host": "ea4ure.com",
     "port": 7300,
-    "country": "Portugal",
-    "location": "Madeira (HAMNET)",
+    "country": "Spain",
+    "location": "Madrid",
     "software": "DXSpider",
     "rbn": false,
     "verified": false
   },
   {
-    "call": "CU3HY-2",
-    "host": "cu3hy.ampr.org",
+    "call": "EA2CW-1",
+    "host": "cluster.gautxori.com",
     "port": 7300,
-    "country": "Portugal",
-    "location": "Acores (HAMNET)",
-    "software": "DXSpider",
+    "country": "Spain",
+    "location": "Bilbao",
+    "software": "CC Cluster",
     "rbn": false,
     "verified": false
   },
@@ -150,39 +210,39 @@
     "verified": false
   },
   {
-    "call": "OZ7O",
-    "host": "ou5a.dk",
-    "port": 7300,
+    "call": "OZ5BBS",
+    "host": "oz5bbs.dk",
+    "port": 8000,
     "country": "Denmark",
-    "location": "Copenhagen",
+    "location": "Odense",
     "software": "DXSpider",
     "rbn": false,
     "verified": false
   },
   {
-    "call": "F6IRC",
-    "host": "f6irc.fr",
+    "call": "F4BPO-1",
+    "host": "cluster.f4bpo.com",
     "port": 7300,
     "country": "France",
-    "location": "Strasbourg",
-    "software": "DXSpider",
+    "location": "Haute Savoie",
+    "software": "CC Cluster",
     "rbn": false,
     "verified": false
   },
   {
-    "call": "LA5HF",
-    "host": "la5hf.no",
-    "port": 7300,
+    "call": "LA7Q-6",
+    "host": "la7q.ddns.net",
+    "port": 9000,
     "country": "Norway",
-    "location": "Oslo",
-    "software": "DXSpider",
+    "location": "Trondheim",
+    "software": "CC Cluster",
     "rbn": false,
     "verified": false
   },
   {
     "call": "SK3W",
     "host": "sk3w.se",
-    "port": 7300,
+    "port": 8000,
     "country": "Sweden",
     "location": "Sundsvall",
     "software": "DXSpider",
@@ -200,8 +260,8 @@
     "verified": false
   },
   {
-    "call": "ES5TV",
-    "host": "es5tv.holystone.eu",
+    "call": "ES3V",
+    "host": "dxc.es3v.ee",
     "port": 7300,
     "country": "Estonia",
     "location": "Tallinn",
@@ -210,11 +270,11 @@
     "verified": false
   },
   {
-    "call": "OH6BG",
-    "host": "dxc.oh6bg.fi",
+    "call": "OH2J",
+    "host": "ham.connect.fi",
     "port": 7300,
     "country": "Finland",
-    "location": "Oulu",
+    "location": "Espoo",
     "software": "DXSpider",
     "rbn": false,
     "verified": false
