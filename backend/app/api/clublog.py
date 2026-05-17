@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/clublog", tags=["clublog"])
@@ -48,3 +48,18 @@ async def upload_to_clublog(body: ClublogUploadBody) -> dict:
         raise HTTPException(status_code=resp.status_code, detail=f"Clublog: {text[:300]}")
 
     return {"ok": True, "message": text or "Upload enviado para a fila do Clublog."}
+
+
+@router.post("/cty-refresh")
+async def refresh_cty(api_key: str = Body(..., embed=True)) -> dict:
+    """Descarrega/actualiza o ficheiro cty.xml do Clublog para lookup local de DXCC."""
+    from ..core.dxcc import get_dxcc_lookup
+    lookup = get_dxcc_lookup()
+    try:
+        await lookup.download(api_key)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except httpx.RequestError as exc:
+        logger.warning("Erro ao descarregar cty.xml: %s", exc)
+        raise HTTPException(status_code=502, detail="Falha ao contactar Clublog") from exc
+    return {"ok": True}

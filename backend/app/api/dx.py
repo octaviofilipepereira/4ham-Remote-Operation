@@ -175,7 +175,17 @@ def get_spots(
     client = getattr(request.app.state, "dx_cluster_client", None)
     if client is None:
         return []
-    return client.spots(band=band, limit=limit)
+    spots = client.spots(band=band, limit=limit)
+    from ..core.dxcc import get_dxcc_lookup
+    lkp = get_dxcc_lookup()
+    if lkp.is_loaded():
+        for spot in spots:
+            info = lkp.lookup(spot.get("dx_call", ""))
+            if info:
+                spot["dxcc_name"] = info["name"]
+                spot["dxcc_cqz"]  = info["cqz"]
+                spot["dxcc_cont"] = info["cont"]
+    return spots
 
 
 @router.get("/status")

@@ -195,6 +195,10 @@ async def lifespan(app: FastAPI):
             logger.warning("Não foi possível carregar log de QSOs: %s", exc)
     app.state.qso_log = qso_deque
 
+    # ── DXCC prefix table (cty.xml do Clublog) ────────────────────────────────
+    from .core.dxcc import get_dxcc_lookup
+    get_dxcc_lookup().load_if_available()
+
     # ── DX Cluster (opcional) ─────────────────────────────────────────────────
     from .remote.dx_cluster import DXClusterClient
 

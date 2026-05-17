@@ -1170,9 +1170,20 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
     if (inp) inp.addEventListener("input", () => { if (btnUpload) btnUpload.disabled = false; });
   });
 
-  if (btnSave) btnSave.addEventListener("click", () => {
+  if (btnSave) btnSave.addEventListener("click", async () => {
     saveCreds();
     setStatus(t("clublog_saved"));
+    const key = inpKey?.value.trim();
+    if (key) {
+      try {
+        const r = await fetch(`${API}/api/clublog/cty-refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ api_key: key }),
+        });
+        if (r.ok) setStatus(t("clublog_cty_ok"));
+      } catch (_) { /* falha silenciosa — DXCC é opcional */ }
+    }
   });
 
   if (btnUpload) btnUpload.addEventListener("click", async () => {
@@ -2100,6 +2111,7 @@ loadRecentQsos();
       el.className = "freq-ruler__spot";
       el.style.top = px.toFixed(1) + 'px';
       el.title = spot.dx_call + " — " + freqToMhzLabel(freqHz) + " MHz"
+                 + (spot.dxcc_name ? " [ " + spot.dxcc_name + (spot.dxcc_cont ? " · " + spot.dxcc_cont : "") + " ]" : "")
                  + (spot.comment ? " — " + spot.comment : "");
       el.style.cursor = "pointer";
 
