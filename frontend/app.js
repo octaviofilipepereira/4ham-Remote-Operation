@@ -2117,7 +2117,13 @@ loadRecentQsos();
   async function refreshStatus() {
     try {
       const r = await fetch(`${API}/api/dx/status`);
-      if (r.ok) updateStatusBar(await r.json());
+      if (r.ok) {
+        const s = await r.json();
+        updateStatusBar(s);
+        /* Preencher callsign com o valor guardado no backend se o campo estiver vazio */
+        if (inpCallsign && !inpCallsign.value && s.callsign)
+          inpCallsign.value = s.callsign;
+      }
     } catch { /* ignorar */ }
   }
 
@@ -2159,7 +2165,7 @@ loadRecentQsos();
 
   /* ── Ligar a um cluster ── */
   async function connectCluster(c) {
-    const callsign = (inpCallsign.value || "CT7BFV").trim().toUpperCase();
+    const callsign = (inpCallsign.value || "").trim().toUpperCase() || "CT7BFV";
     /* Feedback imediato na linha */
     listEl.querySelectorAll(".dx-cluster-row").forEach(row => {
       row.classList.remove("dx-cluster-row--connecting", "dx-cluster-row--active");
