@@ -1040,20 +1040,21 @@ async function logQso() {
     if (elQsoCallsign) elQsoCallsign.focus();
     return;
   }
+  const qsoData = {
+    callsign,
+    utc:       elQsoTime?.value       || "",
+    frequency: elQsoFrequency?.value  || "",
+    mode:      elQsoMode?.value       || "",
+    band:      elQsoBand?.value       || "",
+    rst_sent:  elQsoRstSent?.value    || "59",
+    rst_rx:    elQsoRstRx?.value      || "59",
+    notes:     elQsoNotes?.value      || "",
+  };
   try {
     const r = await fetch(`${API}/api/qso`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        callsign,
-        utc:       elQsoTime?.value       || "",
-        frequency: elQsoFrequency?.value  || "",
-        mode:      elQsoMode?.value       || "",
-        band:      elQsoBand?.value       || "",
-        rst_sent:  elQsoRstSent?.value    || "59",
-        rst_rx:    elQsoRstRx?.value      || "59",
-        notes:     elQsoNotes?.value      || "",
-      }),
+      body: JSON.stringify(qsoData),
     });
     if (r.ok) {
       if (elQsoCallsign) elQsoCallsign.value = "";
@@ -1061,6 +1062,7 @@ async function logQso() {
       if (elQsoRstRx)    elQsoRstRx.value    = "";
       if (elQsoNotes)    elQsoNotes.value    = "";
       await loadRecentQsos();
+      if (_clublogRealtimeFn) _clublogRealtimeFn(qsoData);
     }
   } catch (_) {}
 }
@@ -1119,13 +1121,17 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
 
 // ── Clublog ───────────────────────────────────────────────────────────────────
 
+// Definida pela IIFE Clublog; chamada após cada QSO registado com sucesso.
+let _clublogRealtimeFn = null;
+
 (function () {
-  const _LS = { call: "clublog_callsign", email: "clublog_email", key: "clublog_apikey", pass: "clublog_password" };
+  const _LS = { call: "clublog_callsign", email: "clublog_email", key: "clublog_apikey", pass: "clublog_password", auto: "clublog_auto_upload" };
   const dlg          = document.getElementById("dlg-clublog");
   const inpCall      = document.getElementById("clublog-callsign");
   const inpEmail     = document.getElementById("clublog-email");
   const inpPassword  = document.getElementById("clublog-password");
   const inpKey       = document.getElementById("clublog-apikey");
+  const inpAuto      = document.getElementById("clublog-auto-upload");
   const statusEl     = document.getElementById("clublog-status");
   const btnOpen      = document.getElementById("btn-clublog-open");
   const btnSave      = document.getElementById("clublog-save-btn");
@@ -1146,6 +1152,7 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
     if (inpEmail)    inpEmail.value    = localStorage.getItem(_LS.email) || "";
     if (inpPassword) inpPassword.value = localStorage.getItem(_LS.pass)  || "";
     if (inpKey)      inpKey.value      = localStorage.getItem(_LS.key)   || "";
+    if (inpAuto)     inpAuto.checked   = localStorage.getItem(_LS.auto) === "1";
   }
 
   function saveCreds() {
@@ -1153,6 +1160,7 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
     if (inpEmail)    localStorage.setItem(_LS.email, inpEmail.value.trim());
     if (inpPassword) localStorage.setItem(_LS.pass,  inpPassword.value.trim());
     if (inpKey)      localStorage.setItem(_LS.key,   inpKey.value.trim());
+    if (inpAuto)     localStorage.setItem(_LS.auto,  inpAuto.checked ? "1" : "0");
   }
 
   function setStatus(msg, isError) {
@@ -1221,6 +1229,46 @@ if (btnAdifExport) btnAdifExport.addEventListener("click", async () => {
       if (!credentialsError) btnUpload.disabled = false;
     }
   });
+
+  /* Upload automático ao Clublog quando um QSO é registado */
+  _clublogRealtimeFn = async function (q) {
+    if (localStorage.getItem(_LS.auto) !== "1") return;
+    const email    = localStorage.getItem(_LS.email) || "";
+    const password = localStorage.getItem(_LS.pass)  || "";
+    const api_key  = localStorage.getItem(_LS.key)   || "";
+    const callsign = localStorage.getItem(_LS.call)  || "";
+    if (!email || !password || !api_key || !callsign) return;
+
+    /* Construir registo ADIF para este QSO */
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const fs = [];
+    if (q.callsign)  fs.push(adifField("CALL",     q.callsign.toUpperCase()));
+    if (q.frequency) { const f = parseFloat(q.frequency); if (!isNaN(f)) fs.push(adifField("FREQ", f.toFixed(3))); }
+    if (q.band)      fs.push(adifField("BAND",     q.band.toUpperCase()));
+    if (q.mode)      fs.push(adifField("MODE",     q.mode.toUpperCase()));
+    fs.push(adifField("QSO_DATE", today));
+    const rawT = String(q.utc || "");
+    const tOn  = rawT.replace(/\D/g, "").slice(0, 4);
+    if (tOn)         fs.push(adifField("TIME_ON",  tOn));
+    if (q.rst_sent)  fs.push(adifField("RST_SENT", q.rst_sent));
+    if (q.rst_rx)    fs.push(adifField("RST_RCVD", q.rst_rx));
+    if (q.notes)     fs.push(adifField("NOTES",    q.notes));
+    const adif = fs.join(" ") + " <EOR>";
+
+    try {
+      const r = await fetch(`${API}/api/clublog/realtime`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, api_key, callsign, adif }),
+      });
+      if (r.status === 403) {
+        /* Credenciais inválidas — PARAR imediatamente para não bloquear o IP */
+        localStorage.setItem(_LS.auto, "0");
+        if (inpAuto) inpAuto.checked = false;
+        console.warn("Clublog realtime: 403 — auto-upload desactivado. Corrija as credenciais.");
+      }
+    } catch (_) { /* falha de rede — o QSO já está guardado localmente */ }
+  };
 })();
 
 function setRigConnected(connected) {
