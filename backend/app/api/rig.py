@@ -164,7 +164,6 @@ async def set_mode(body: SetModeRequest, request: Request) -> dict:
 
 class SetPTTRequest(BaseModel):
     enabled: bool = Field(..., description="Estado PTT/TX pretendido")
-    mute_rx: bool = Field(True, description="Silenciar RX durante TX para evitar eco (False se MONI Rádio activo)")
 
 
 @router.post("/ptt")
@@ -197,8 +196,8 @@ async def set_ptt(body: SetPTTRequest, request: Request) -> dict:
                 )
 
         # ── Silenciar RX para eliminar eco acústico durante TX ───────────────
-        # mute_rx=False quando MONI Rádio activo (utilizador quer ouvir sinal MONI)
-        peer.set_rx_muted(body.mute_rx)
+        # RX sempre muted durante TX — evita eco em qualquer configuração de saída
+        peer.set_rx_muted(True)
 
         # ── Timer de TX máximo ────────────────────────────────────────────────
         _cancel_tx_timer(request)
