@@ -1957,6 +1957,7 @@ loadRecentQsos();
 
       el.addEventListener("click", () => {
         applyLocalFrequency(freqHz, 1000);
+        if (elQsoCallsign) { elQsoCallsign.value = spot.dx_call; elQsoCallsign.focus(); }
       });
 
       elSpots.appendChild(el);
